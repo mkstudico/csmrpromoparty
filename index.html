@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Galagram • School Promo Party</title>
+    <!-- Firebase SDKs (modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+            authDomain: "akademia-c56ff.firebaseapp.com",
+            databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+            projectId: "akademia-c56ff",
+            storageBucket: "akademia-c56ff.firebasestorage.app",
+            messagingSenderId: "678278775270",
+            appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+            measurementId: "G-X3CHCJE5LK"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        window.onSnapshot = onSnapshot;
+        window.getDoc = getDoc;
+        window.updateDoc = updateDoc;
+        window.doc = doc;
+    </script>
+    <!-- Boxicons CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* PC / LARGE SCREEN BLOCKER */
+        .pc-blocker {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            z-index: 9999;
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            backdrop-filter: blur(8px);
+        }
+        .pc-blocker i {
+            font-size: 4rem;
+            margin-bottom: 1.2rem;
+            color: #d62976;
+        }
+        .pc-blocker p {
+            font-size: 1.4rem;
+            font-weight: 500;
+            max-width: 80%;
+            line-height: 1.3;
+        }
+        .pc-blocker small {
+            margin-top: 1rem;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        /* mobile-first container */
+        .app-container {
+            display: block;
+            max-width: 480px;
+            margin: 0 auto;
+            background: #ffffff;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.08);
+        }
+
+        /* header */
+        .header {
+            background: #ffffff;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 0.5px solid #efefef;
+        }
+        .logo {
+            font-weight: 620;
+            font-size: 1.7rem;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f77737, #d62976, #962fbf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .header-icons i {
+            font-size: 1.6rem;
+            color: #262626;
+            margin-left: 1rem;
+        }
+
+        /* pages */
+        .page {
+            padding: 24px 18px;
+            background: #ffffff;
+            min-height: 85vh;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #8e8e8e;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            display: block;
+            margin-bottom: 6px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #dbdbdb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: #fafafa;
+            transition: 0.2s ease;
+            font-family: inherit;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #b3b3b3;
+            background: #fff;
+        }
+        .btn {
+            background: #0095f6;
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:active { transform: scale(0.98); background: #0081d6; }
+        .btn:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
+        }
+        .switch-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #00376b;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .small-note {
+            font-size: 0.65rem;
+            color: #8e8e8e;
+            margin-top: 5px;
+        }
+        .protection-card {
+            background: #f8f8f8;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin: 14px 0 10px;
+            border: 0.5px solid #efefef;
+        }
+        .inline-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .inline-check label {
+            margin: 0;
+            text-transform: none;
+            font-weight: 450;
+            color: #262626;
+            font-size: 0.85rem;
+        }
+        .random-code-badge {
+            background: #f2f2f2;
+            padding: 14px;
+            text-align: center;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-weight: 700;
+            font-size: 1.6rem;
+            letter-spacing: 4px;
+            font-family: monospace;
+        }
+        .hidden {
+            display: none;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.65rem;
+            padding: 20px;
+            color: #a0a0a0;
+            border-top: 0.5px solid #efefef;
+        }
+        /* profile preview */
+        .profile-preview-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 12px;
+            border: 1.5px solid #dbdbdb;
+            background: #f0f0f0;
+        }
+        .img-upload-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .upload-btn-mini {
+            background: #efefef;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: #262626;
+            margin-top: 8px;
+            transition: 0.2s;
+        }
+        .upload-btn-mini:active { transform: scale(0.96); }
+        #profileImageInput {
+            display: none;
+        }
+        /* home feed style */
+        .home-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .story-ring {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #d62976;
+            padding: 2px;
+        }
+        .promo-card {
+            background: #ffffff;
+            border-radius: 16px;
+            border: 0.5px solid #efefef;
+            margin-top: 20px;
+            padding: 16px;
+        }
+        i.bx {
+            font-size: 1.5rem;
+            vertical-align: middle;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        /* loading spinner */
+        .loader-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* NOTIFICATION TOAST - centered at top */
+        .galagram-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 85%;
+            white-space: nowrap;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            pointer-events: none;
+        }
+        .galagram-toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        .galagram-toast i {
+            font-size: 1.2rem;
+        }
+        .galagram-toast.error {
+            background: rgba(237, 73, 86, 0.95);
+        }
+        .galagram-toast.success {
+            background: rgba(46, 125, 50, 0.95);
+        }
+    </style>
+</head>
+<body>
+
+<div id="pcBlocker" class="pc-blocker">
+    <i class='bx bx-mobile-alt'></i>
+    <p>Use your phone — PC is not supported</p>
+    <small>Galagram is built for mobile moments ✨</small>
+</div>
+
+<div id="appRoot" class="app-container">
+    <div class="header">
+        <div class="logo">Galagram<span>.</span></div>
+        <div class="header-icons">
+            <i class='bx bx-heart'></i>
+            <i class='bx bx-message-dots'></i>
+        </div>
+    </div>
+
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="page">
+        <div class="card">
+            <h3 style="margin-bottom: 20px; font-weight: 590;">🎟️ Welcome back</h3>
+            <div class="form-group">
+                <label>6‑digit identifier</label>
+                <input type="text" id="loginCode" placeholder="e.g., 482719" maxlength="6" inputmode="numeric" autocomplete="off">
+            </div>
+            <div id="dynamicPasswordField" class="hidden" style="margin-top: 6px;">
+                <input type="password" id="loginPassword" placeholder="Additional password" autocomplete="off">
+            </div>
+            <button id="loginBtn" class="btn"><i class='bx bx-log-in-circle'></i> Log in</button>
+            <div class="switch-link" id="goToSignup">No account? <strong>Create one</strong></div>
+        </div>
+        <footer>Galagram · exclusive promo party</footer>
+    </div>
+
+    <!-- SIGNUP PAGE -->
+    <div id="signupPage" class="page hidden">
+        <div class="card">
+            <h3 style="margin-bottom: 12px;">✨ Join the party</h3>
+            <div class="img-upload-area">
+                <img id="profilePreview" class="profile-preview-circle" src="https://ui-avatars.com/api/?background=0D8F81&color=fff&rounded=true&size=80&bold=true&name=📸" alt="avatar">
+                <label for="profileImageInput" class="upload-btn-mini"><i class='bx bx-cloud-upload'></i> Upload profile</label>
+                <input type="file" id="profileImageInput" accept="image/jpeg,image/png,image/jpg">
+            </div>
+            <div class="form-group">
+                <label>Real name</label>
+                <input type="text" id="realName" placeholder="Alex Morgan">
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="alex_promo">
+            </div>
+            <div class="form-group">
+                <label>Gender</label>
+                <select id="gender">
+                    <option value="Null">Select</option>
+                    <option value="BOY">BOY</option>
+                    <option value="GIRL">GIRL</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Phone number</label>
+                <input type="tel" id="phone" placeholder="+250 78 123 4567">
+                <div class="small-note">Your contact (any format)</div>
+            </div>
+            <div class="form-group">
+                <label>Instagram name (optional)</label>
+                <input type="text" id="instagramName" placeholder="@alex123">
+            </div>
+            <div class="protection-card">
+                <div class="inline-check">
+                    <input type="checkbox" id="extraProtectionToggle">
+                    <label><i class='bx bx-shield-alt-2'></i> Add password protection</label>
+                </div>
+                <div id="passwordFieldContainer" class="hidden" style="margin-top: 12px;">
+                    <input type="password" id="extraPassword" placeholder="Create strong password">
+                </div>
+            </div>
+            <button id="signupBtn" class="btn"><i class='bx bx-user-plus'></i> Sign up → Get code</button>
+            <div class="switch-link" id="goToLoginFromSignup">Already have an account? <strong>Log in</strong></div>
+        </div>
+    </div>
+
+    <!-- HOME PAGE (after login) -->
+    <div id="homePage" class="page hidden">
+        <div class="card" style="padding: 18px;">
+            <div class="home-header">
+                <img id="homeProfileImg" class="story-ring" src="https://ui-avatars.com/api/?background=262626&color=fff&rounded=true&size=60" alt="profile">
+                <div>
+                    <strong id="homeUsername" style="font-size: 1rem;">@user</strong>
+                    <div id="homeRealName" style="font-size: 0.75rem; color: #6e6e6e;"></div>
+                </div>
+            </div>
+            <div class="promo-card">
+                <div class="flex-between">
+                    <span><i class='bx bxs-party' style="color:#d62976;"></i> <strong>Promo night</strong></span>
+                    <span id="displayUserCode" style="font-family: monospace; background:#f2f2f2; padding:4px 12px; border-radius:30px; font-size:0.75rem;">XXXXXX</span>
+                </div>
+                <p style="margin-top: 14px; font-size: 0.9rem;">🎉 Welcome to Galagram! School party is live. Share your unique code to invite friends.</p>
+                <div style="margin-top: 18px; display: flex; gap: 12px;">
+                    <i class='bx bx-camera'></i>
+                    <i class='bx bx-music'></i>
+                    <i class='bx bx-map'></i>
+                </div>
+            </div>
+            <button id="logoutBtn" class="btn" style="background:#efefef; color:#262626; margin-top: 20px;"><i class='bx bx-log-out'></i> Log out</button>
+        </div>
+        <footer>Galagram ✦ school spirit</footer>
+    </div>
+</div>
+
+<script type="module">
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const db = window.db;
+    const IMGBB_KEY = "99c6aa298645e8a4742979117fc73be6";
+    
+    // --- NOTIFICATION SYSTEM (center top, auto-hide 6s) ---
+    function showNotification(message, type = "info") {
+        const existingToast = document.querySelector('.galagram-toast');
+        if(existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = `galagram-toast ${type}`;
+        let icon = 'bx-info-circle';
+        if(type === 'success') icon = 'bx-check-circle';
+        if(type === 'error') icon = 'bx-error-circle';
+        toast.innerHTML = `<i class='bx ${icon}'></i><span>${message}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 6000);
+    }
+    
+    // DOM elements
+    const loginPage = document.getElementById('loginPage');
+    const signupPage = document.getElementById('signupPage');
+    const homePage = document.getElementById('homePage');
+    const goToSignup = document.getElementById('goToSignup');
+    const goToLoginFromSignup = document.getElementById('goToLoginFromSignup');
+    const signupBtn = document.getElementById('signupBtn');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const protectionToggle = document.getElementById('extraProtectionToggle');
+    const passwordFieldContainer = document.getElementById('passwordFieldContainer');
+    const profileInput = document.getElementById('profileImageInput');
+    const profilePreview = document.getElementById('profilePreview');
+    
+    let uploadedImageURL = null;
+    let isSignupLoading = false;
+    let isLoginLoading = false;
+    let currentSessionUnsubscribe = null;
+    let currentActiveUserDocId = null;
+    let currentActiveUserId = null;
+    
+    // Helper loading states for buttons
+    function setLoading(button, isLoading, originalText) {
+        if(isLoading) {
+            button.disabled = true;
+            button.innerHTML = `<span class="loader-spinner"></span> ${originalText || 'Processing...'}`;
+        } else {
+            button.disabled = false;
+            button.innerHTML = originalText || button.getAttribute('data-original-text') || 'Submit';
+        }
+    }
+    
+    // ImgBB upload
+    async function uploadToImgBB(file) {
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if(data.success) return data.data.url;
+        throw new Error('Upload failed');
+    }
+    
+    profileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if(file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { profilePreview.src = ev.target.result; };
+            reader.readAsDataURL(file);
+            const uploadLabel = document.querySelector('.upload-btn-mini');
+            const originalLabelText = uploadLabel.innerHTML;
+            uploadLabel.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Uploading...';
+            try {
+                const url = await uploadToImgBB(file);
+                uploadedImageURL = url;
+                showNotification('Profile photo uploaded!', 'success');
+            } catch(err) { 
+                uploadedImageURL = null; 
+                showNotification('Image upload failed, using default', 'error');
+            } finally {
+                uploadLabel.innerHTML = originalLabelText;
+            }
+        }
+    });
+    
+    function generateSixDigit() {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+    
+    // --- Real-time session tracker: prevent concurrent login ---
+    async function startSessionTracking(username, sixDigitCode) {
+        if (currentSessionUnsubscribe) currentSessionUnsubscribe();
+        const userRef = doc(db, "users", username);
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        await updateDoc(userRef, { activeSession: sessionId, lastActive: new Date().toISOString() });
+        
+        // Listen for changes: if activeSession changes to different value -> kicked out
+        currentSessionUnsubscribe = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.activeSession && data.activeSession !== sessionId) {
+                    showNotification('⚠️ Someone else logged into this account. You have been logged out.', 'error');
+                    logoutUser();
+                }
+            }
+        });
+        return sessionId;
+    }
+    
+    async function clearSession(username) {
+        if (currentSessionUnsubscribe) {
+            currentSessionUnsubscribe();
+            currentSessionUnsubscribe = null;
+        }
+        if (username) {
+            const userRef = doc(db, "users", username);
+            await updateDoc(userRef, { activeSession: null, lastActive: null }).catch(() => {});
+        }
+    }
+    
+    function logoutUser() {
+        if (currentActiveUserId) {
+            clearSession(currentActiveUserId);
+        }
+        localStorage.removeItem('galagram_session');
+        currentActiveUserId = null;
+        currentActiveUserDocId = null;
+        homePage.classList.add('hidden');
+        loginPage.classList.remove('hidden');
+        signupPage.classList.add('hidden');
+        showNotification('Logged out successfully', 'success');
+        // reset login fields
+        document.getElementById('loginCode').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('dynamicPasswordField').classList.add('hidden');
+    }
+    
+    // Successful login handler (stores session, redirects to home)
+    async function onLoginSuccess(userDocSnap, enteredCode) {
+        const user = userDocSnap.data();
+        const username = userDocSnap.id;
+        
+        // start realtime session
+        const sessionId = await startSessionTracking(username, enteredCode);
+        // Store session in localStorage
+        const sessionData = {
+            username: username,
+            sixDigitCode: user.sixDigitCode,
+            sessionId: sessionId,
+            userData: {
+                realName: user.realName,
+                username: user.username,
+                profileImage: user.profileImage,
+                sixDigitCode: user.sixDigitCode
+            }
+        };
+        localStorage.setItem('galagram_session', JSON.stringify(sessionData));
+        currentActiveUserId = username;
+        
+        // populate home UI
+        document.getElementById('homeProfileImg').src = user.profileImage || "https://ui-avatars.com/api/?background=262626&color=fff&rounded=true&size=60";
+        document.getElementById('homeUsername').innerHTML = `@${user.username}`;
+        document.getElementById('homeRealName').innerHTML = user.realName;
+        document.getElementById('displayUserCode').innerText = user.sixDigitCode;
+        
+        loginPage.classList.add('hidden');
+        signupPage.classList.add('hidden');
+        homePage.classList.remove('hidden');
+        showNotification(`Welcome back, ${user.realName}! ✨`, 'success');
+    }
+    
+    // AUTO-LOGIN on page load
+    async function autoLogin() {
+        const stored = localStorage.getItem('galagram_session');
+        if (!stored) return false;
+        try {
+            const session = JSON.parse(stored);
+            if (!session.username || !session.sixDigitCode) return false;
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("username", "==", session.username), where("sixDigitCode", "==", session.sixDigitCode));
+            const snap = await getDocs(q);
+            if (snap.empty) return false;
+            const userDoc = snap.docs[0];
+            const user = userDoc.data();
+            // verify session is not stolen: check if activeSession matches stored
+            if (user.activeSession && user.activeSession !== session.sessionId) {
+                showNotification('Your session expired due to another login', 'error');
+                localStorage.removeItem('galagram_session');
+                return false;
+            }
+            // restore session tracking
+            await startSessionTracking(session.username, session.sixDigitCode);
+            currentActiveUserId = session.username;
+            document.getElementById('homeProfileImg').src = user.profileImage || "https://ui-avatars.com/api/?background=262626&color=fff&rounded=true&size=60";
+            document.getElementById('homeUsername').innerHTML = `@${user.username}`;
+            document.getElementById('homeRealName').innerHTML = user.realName;
+            document.getElementById('displayUserCode').innerText = user.sixDigitCode;
+            loginPage.classList.add('hidden');
+            signupPage.classList.add('hidden');
+            homePage.classList.remove('hidden');
+            showNotification('Auto-login successful 🎉', 'success');
+            return true;
+        } catch(e) {
+            console.warn("auto-login error", e);
+            return false;
+        }
+    }
+    
+    // Signup logic (no phone validation)
+    signupBtn.addEventListener('click', async () => {
+        if(isSignupLoading) return;
+        const realName = document.getElementById('realName').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const gender = document.getElementById('gender').value;
+        const phone = document.getElementById('phone').value.trim();
+        const instaName = document.getElementById('instagramName').value.trim();
+        const extraProtect = protectionToggle.checked;
+        const password = document.getElementById('extraPassword').value;
+        
+        if(!realName || !username || !phone) {
+            showNotification('Real name, username & phone are required', 'error');
+            return;
+        }
+        if(gender === "Null") {
+            showNotification('Please select a gender', 'error');
+            return;
+        }
+        if(extraProtect && password.length < 4) {
+            showNotification('Password must be at least 4 characters', 'error');
+            return;
+        }
+        
+        isSignupLoading = true;
+        const originalBtnText = signupBtn.innerHTML;
+        setLoading(signupBtn, true, 'Creating account...');
+        
+        try {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("username", "==", username));
+            const snap = await getDocs(q);
+            if(!snap.empty) {
+                showNotification('Username already taken', 'error');
+                setLoading(signupBtn, false, originalBtnText);
+                isSignupLoading = false;
+                return;
+            }
+            const sixCode = generateSixDigit();
+            const profilePic = uploadedImageURL ? uploadedImageURL : `https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80&name=${username.charAt(0).toUpperCase()}`;
+            const userData = {
+                realName, username, gender, phoneNumber: phone, instagramName: instaName || "",
+                sixDigitCode: sixCode, hasPassword: extraProtect, password: extraProtect ? password : null,
+                profileImage: profilePic, createdAt: new Date().toISOString(),
+                activeSession: null
+            };
+            await setDoc(doc(db, "users", username), userData);
+            showNotification(`✅ Account created! Your code: ${sixCode}`, 'success');
+            // auto switch to login and fill code
+            signupPage.classList.add('hidden');
+            loginPage.classList.remove('hidden');
+            document.getElementById('loginCode').value = sixCode;
+            // reset signup form
+            document.getElementById('realName').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('phone').value = '';
+            document.getElementById('instagramName').value = '';
+            document.getElementById('gender').value = "Null";
+            protectionToggle.checked = false;
+            passwordFieldContainer.classList.add('hidden');
+            document.getElementById('extraPassword').value = '';
+            uploadedImageURL = null;
+            profilePreview.src = "https://ui-avatars.com/api/?background=0D8F81&color=fff&rounded=true&size=80&bold=true&name=📸";
+            if(profileInput) profileInput.value = '';
+        } catch(e) { 
+            showNotification('Error: ' + e.message, 'error');
+        } finally {
+            setLoading(signupBtn, false, originalBtnText);
+            isSignupLoading = false;
+        }
+    });
+    
+    // Login + dynamic password
+    const loginCodeInput = document.getElementById('loginCode');
+    const dynamicPassDiv = document.getElementById('dynamicPasswordField');
+    const loginPasswordInput = document.getElementById('loginPassword');
+    let currentLoginUserRef = null;
+    
+    async function checkCodeAndUpdatePasswordField() {
+        const code = loginCodeInput.value.trim();
+        if(code.length !== 6) {
+            dynamicPassDiv.classList.add('hidden');
+            currentLoginUserRef = null;
+            return;
+        }
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("sixDigitCode", "==", code));
+        const snap = await getDocs(q);
+        if(!snap.empty) {
+            const user = snap.docs[0].data();
+            if(user.hasPassword === true) {
+                dynamicPassDiv.classList.remove('hidden');
+                currentLoginUserRef = snap.docs[0];
+            } else {
+                dynamicPassDiv.classList.add('hidden');
+                currentLoginUserRef = snap.docs[0];
+            }
+        } else {
+            dynamicPassDiv.classList.add('hidden');
+            currentLoginUserRef = null;
+        }
+    }
+    
+    loginCodeInput.addEventListener('input', () => { checkCodeAndUpdatePasswordField(); });
+    
+    loginBtn.addEventListener('click', async () => {
+        if(isLoginLoading) return;
+        const code = loginCodeInput.value.trim();
+        if(code.length !== 6) {
+            showNotification('Enter valid 6-digit code', 'error');
+            return;
+        }
+        isLoginLoading = true;
+        const originalLoginText = loginBtn.innerHTML;
+        setLoading(loginBtn, true, 'Signing in...');
+        
+        try {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("sixDigitCode", "==", code));
+            const snap = await getDocs(q);
+            if(snap.empty) {
+                showNotification('No account found with this code', 'error');
+                setLoading(loginBtn, false, originalLoginText);
+                isLoginLoading = false;
+                return;
+            }
+            const userDoc = snap.docs[0];
+            const user = userDoc.data();
+            if(user.hasPassword) {
+                const providedPass = loginPasswordInput.value;
+                if(!providedPass || providedPass !== user.password) {
+                    showNotification('Incorrect password for this account', 'error');
+                    setLoading(loginBtn, false, originalLoginText);
+                    isLoginLoading = false;
+                    return;
+                }
+            }
+            // check if already active session elsewhere
+            if(user.activeSession) {
+                showNotification('This account is already logged in on another device', 'error');
+                setLoading(loginBtn, false, originalLoginText);
+                isLoginLoading = false;
+                return;
+            }
+            await onLoginSuccess(userDoc, code);
+        } catch(e) {
+            showNotification('Login error: ' + e.message, 'error');
+        } finally {
+            setLoading(loginBtn, false, originalLoginText);
+            isLoginLoading = false;
+        }
+    });
+    
+    logoutBtn.addEventListener('click', async () => {
+        if (currentActiveUserId) {
+            await clearSession(currentActiveUserId);
+        }
+        localStorage.removeItem('galagram_session');
+        if(currentSessionUnsubscribe) currentSessionUnsubscribe();
+        homePage.classList.add('hidden');
+        loginPage.classList.remove('hidden');
+        signupPage.classList.add('hidden');
+        loginCodeInput.value = '';
+        loginPasswordInput.value = '';
+        dynamicPassDiv.classList.add('hidden');
+        currentActiveUserId = null;
+        showNotification('Logged out safely', 'success');
+    });
+    
+    // Navigation
+    goToSignup.addEventListener('click', () => {
+        loginPage.classList.add('hidden');
+        signupPage.classList.remove('hidden');
+        loginCodeInput.value = '';
+        dynamicPassDiv.classList.add('hidden');
+    });
+    goToLoginFromSignup.addEventListener('click', () => {
+        signupPage.classList.add('hidden');
+        loginPage.classList.remove('hidden');
+    });
+    
+    protectionToggle.addEventListener('change', (e) => {
+        if(e.target.checked) passwordFieldContainer.classList.remove('hidden');
+        else {
+            passwordFieldContainer.classList.add('hidden');
+            document.getElementById('extraPassword').value = '';
+        }
+    });
+    
+    // --- Screenshot Protection ---
+    (function antiScreenshot() {
+        const blackFlash = () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = overlay.style.left = '0';
+            overlay.style.width = overlay.style.height = '100%';
+            overlay.style.backgroundColor = '#000000';
+            overlay.style.zIndex = '999999';
+            overlay.style.pointerEvents = 'none';
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 200);
+        };
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); navigator.clipboard.writeText(''); return false; } });
+        document.addEventListener('keydown', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); return false; } if((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S')) { if(e.shiftKey || e.key === 's') { e.preventDefault(); blackFlash(); } } });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+        Object.defineProperty(navigator.clipboard, 'writeText', { value: async () => { blackFlash(); throw new Error('blocked'); } });
+        window.addEventListener('dragstart', (e) => e.preventDefault());
+    })();
+    
+    // PC Blocker
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if(window.innerWidth > 768) {
+            blocker.style.display = 'flex';
+            if(app) app.style.display = 'none';
+        } else {
+            blocker.style.display = 'none';
+            if(app) app.style.display = 'block';
+        }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
+    // Initialize: try auto-login, else show login
+    (async () => {
+        const loggedIn = await autoLogin();
+        if (!loggedIn) {
+            loginPage.classList.remove('hidden');
+            signupPage.classList.add('hidden');
+            homePage.classList.add('hidden');
+        }
+    })();
+</script>
+</body>
+  </html>
