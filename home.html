@@ -6,7 +6,7 @@
     <title>Galagram • Home</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -51,11 +51,7 @@
             justify-content: center;
             text-align: center;
         }
-        .pc-blocker i {
-            font-size: 4rem;
-            margin-bottom: 1.2rem;
-            color: #d62976;
-        }
+        .pc-blocker i { font-size: 4rem; margin-bottom: 1.2rem; color: #d62976; }
         .app-container {
             display: block;
             max-width: 480px;
@@ -82,6 +78,11 @@
             background-clip: text;
             color: transparent;
         }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
         .heart-icon {
             position: relative;
             cursor: pointer;
@@ -98,6 +99,14 @@
             border-radius: 20px;
             min-width: 18px;
             text-align: center;
+        }
+        .profile-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1.5px solid #dbdbdb;
         }
         .search-bar {
             padding: 12px 16px;
@@ -117,16 +126,17 @@
             padding: 0 16px;
             background: #fff;
             border-bottom: 0.5px solid #efefef;
-            gap: 24px;
+            gap: 20px;
+            overflow-x: auto;
         }
         .tab {
             padding: 12px 0;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: #8e8e8e;
             cursor: pointer;
             border-bottom: 2px solid transparent;
-            transition: 0.2s;
+            white-space: nowrap;
         }
         .tab.active {
             color: #0095f6;
@@ -150,43 +160,115 @@
             transition: 0.15s;
         }
         .user-card:active { transform: scale(0.98); }
+        .avatar-container {
+            position: relative;
+        }
         .user-avatar {
-            width: 50px;
-            height: 50px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             object-fit: cover;
-            border: 1.5px solid #dbdbdb;
+            border: 2px solid #dbdbdb;
         }
+        .status-stroke {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .status-stroke.available { background: #22c55e; box-shadow: 0 0 0 2px #22c55e; }
+        .status-stroke.taken { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
         .user-info {
             flex: 1;
         }
+        .user-name-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
         .user-name {
             font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .verified-badge {
             font-size: 0.9rem;
         }
+        .verified-badge.blue { color: #0095f6; }
+        .verified-badge.gray { color: #8e8e8e; }
         .user-username {
             font-size: 0.7rem;
             color: #8e8e8e;
         }
-        .status-badge {
-            font-size: 0.65rem;
-            padding: 4px 8px;
-            border-radius: 20px;
+        .news-card {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .news-card:active { transform: scale(0.98); }
+        .news-header {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 0.5px solid #efefef;
+        }
+        .news-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .news-author {
             font-weight: 600;
+            font-size: 0.85rem;
         }
-        .status-available {
-            background: #e3f7e8;
-            color: #1e7b3e;
+        .news-time {
+            font-size: 0.65rem;
+            color: #8e8e8e;
         }
-        .status-taken {
-            background: #ffe6e6;
-            color: #c0392b;
+        .news-content {
+            padding: 12px;
+        }
+        .news-text {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .news-image {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 8px;
+            max-height: 250px;
+            object-fit: cover;
+        }
+        .news-stats {
+            padding: 8px 12px;
+            display: flex;
+            gap: 16px;
+            border-top: 0.5px solid #efefef;
+            color: #8e8e8e;
+            font-size: 0.7rem;
         }
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: #8e8e8e;
         }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: #8e8e8e;
+        }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
         .galagram-toast {
             position: fixed;
             top: 20px;
@@ -205,47 +287,32 @@
             transition: transform 0.25s;
             pointer-events: none;
         }
-        .galagram-toast.show {
-            transform: translateX(-50%) translateY(0);
-        }
-        i.bx {
-            font-size: 1.3rem;
-        }
-        .loading-spinner {
-            text-align: center;
-            padding: 40px;
-            color: #8e8e8e;
-        }
-        .bx-spin {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
 
-<div id="pcBlocker" class="pc-blocker">
-    <i class='bx bx-mobile-alt'></i>
-    <p>Use your phone — PC is not supported</p>
-</div>
+<div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
 
 <div id="appRoot" class="app-container">
     <div class="header">
         <div class="logo">Galagram</div>
-        <div class="heart-icon" id="requestsHeart">
-            <i class='bx bx-heart' style="font-size: 1.6rem;"></i>
-            <span id="requestBadge" class="heart-badge hidden">0</span>
+        <div class="header-right">
+            <div class="heart-icon" id="requestsHeart">
+                <i class='bx bx-heart' style="font-size: 1.6rem;"></i>
+                <span id="requestBadge" class="heart-badge hidden">0</span>
+            </div>
+            <img id="profileAvatar" class="profile-icon" src="" alt="profile">
         </div>
     </div>
 
     <div class="search-bar">
-        <input type="text" id="searchInput" class="search-input" placeholder="Search by name or username...">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by username...">
     </div>
 
-    <div class="tabs">
-        <div class="tab active" data-tab="all">ALL</div>
+    <div class="tabs" id="tabsContainer">
+        <div class="tab active" data-tab="news">📰 NEWS</div>
+        <div class="tab" data-tab="all">ALL</div>
         <div class="tab" data-tab="available">AVAILABLE</div>
         <div class="tab" data-tab="taken">TAKEN</div>
     </div>
@@ -256,13 +323,14 @@
 </div>
 
 <script type="module">
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
     let currentUser = null;
     let allUsers = [];
+    let newsItems = [];
     let requestsList = [];
-    let currentTab = "all";
+    let currentTab = "news";
     let searchQuery = "";
     
     function showNotification(message, type = "info") {
@@ -273,57 +341,54 @@
         toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
+        setTimeout(() => toast.remove(), 4000);
     }
     
-    // Check session
+    // Session check
     const sessionData = localStorage.getItem('galagram_session');
-    if (!sessionData) {
-        window.location.href = "index.html";
-        throw new Error("No session");
-    }
+    if (!sessionData) { window.location.href = "index.html"; }
     const session = JSON.parse(sessionData);
     const currentUsername = session.username;
     const sessionId = session.sessionId;
     
-    // Real-time session tracking
+    // Session tracking
     import { doc as fDoc, onSnapshot as fOnSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const userRef = fDoc(db, "users", currentUsername);
     const unsubscribeSession = fOnSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.activeSession && data.activeSession !== sessionId) {
-                showNotification('⚠️ Someone else logged into your account. You will be logged out.', 'error');
-                setTimeout(() => {
-                    localStorage.removeItem('galagram_session');
-                    window.location.href = "index.html";
-                }, 2000);
-            }
+        if (docSnap.exists() && docSnap.data().activeSession !== sessionId) {
+            showNotification('⚠️ Session expired. Logging out...', 'error');
+            setTimeout(() => { localStorage.removeItem('galagram_session'); window.location.href = "index.html"; }, 2000);
         }
     });
     
-    // Load current user data
     async function loadCurrentUser() {
         const userDoc = await getDoc(fDoc(db, "users", currentUsername));
         if (userDoc.exists()) {
             currentUser = { id: currentUsername, ...userDoc.data() };
-            if (!currentUser.galaStatus) {
-                await updateDoc(fDoc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] });
-                currentUser.galaStatus = "available";
-                currentUser.requests = [];
-                currentUser.sentRequests = [];
-            }
+            if (!currentUser.galaStatus) await updateDoc(fDoc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] });
             if (!currentUser.requests) await updateDoc(fDoc(db, "users", currentUsername), { requests: [] });
             if (!currentUser.sentRequests) await updateDoc(fDoc(db, "users", currentUsername), { sentRequests: [] });
+            if (!currentUser.verified) await updateDoc(fDoc(db, "users", currentUsername), { verified: "none" });
             requestsList = currentUser.requests || [];
             updateRequestBadge();
+            document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80';
         }
     }
     
-    // Load all users with real-time
+    // Load news with real-time
+    function loadNews() {
+        const newsRef = collection(db, "news");
+        const q = query(newsRef, orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            newsItems = [];
+            snapshot.forEach(docSnap => {
+                newsItems.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            if (currentTab === "news") renderNews();
+        });
+    }
+    
+    // Load users
     let unsubscribeUsers = null;
     function loadUsers() {
         if (unsubscribeUsers) unsubscribeUsers();
@@ -332,79 +397,68 @@
             allUsers = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                if (docSnap.id !== currentUsername && data.galaStatus) {
+                if (docSnap.id !== currentUsername) {
                     allUsers.push({
                         id: docSnap.id,
                         ...data,
-                        galaStatus: data.galaStatus || "available"
+                        galaStatus: data.galaStatus || "available",
+                        verified: data.verified || "none"
                     });
                 }
             });
-            renderUsers();
+            if (currentTab !== "news") renderUsers();
         });
     }
     
-    // Smart match algorithm: finds best match based on gender, interests, compatibility
-    function getSmartMatches(users, currentUserData, limit = 20) {
-        // Score each user based on compatibility factors
-        const scored = users.map(user => {
-            let score = 0;
-            // Different gender preference (BOY-GIRL pairing)
-            if (currentUserData.gender === "BOY" && user.gender === "GIRL") score += 30;
-            else if (currentUserData.gender === "GIRL" && user.gender === "BOY") score += 30;
-            else score += 10; // Same gender still possible but lower priority
-            
-            // Status: available users get higher score
-            if (user.galaStatus === "available") score += 40;
-            else if (user.galaStatus === "taken") score -= 20;
-            
-            // Avoid self and already requested/paired
-            if (currentUserData.requests?.includes(user.id)) score -= 50;
-            if (currentUserData.sentRequests?.includes(user.id)) score -= 30;
-            
-            // Name match with search query
-            if (searchQuery) {
-                const q = searchQuery.toLowerCase();
-                if (user.realName?.toLowerCase().includes(q)) score += 25;
-                if (user.username?.toLowerCase().includes(q)) score += 25;
-            }
-            
-            return { user, score };
-        });
+    function getVerifiedIcon(verified) {
+        if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>';
+        if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>';
+        return '';
+    }
+    
+    function renderNews() {
+        const container = document.getElementById('contentArea');
+        if (!newsItems.length) {
+            container.innerHTML = `<div class="empty-state"><i class='bx bx-news' style="font-size: 3rem;"></i><p>No news yet. Be the first to post!</p></div>`;
+            return;
+        }
+        container.innerHTML = newsItems.map(item => `
+            <div class="news-card" data-newsid="${item.id}">
+                <div class="news-header">
+                    <img class="news-avatar" src="${item.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                    <div>
+                        <div class="news-author">${escapeHtml(item.authorName)} ${getVerifiedIcon(item.authorVerified)}</div>
+                        <div class="news-time">${formatTime(item.createdAt)}</div>
+                    </div>
+                </div>
+                <div class="news-content">
+                    <div class="news-text">${escapeHtml(item.text)}</div>
+                    ${item.imageUrl ? `<img class="news-image" src="${item.imageUrl}" alt="news image">` : ''}
+                </div>
+                <div class="news-stats">
+                    <span><i class='bx bx-heart'></i> ${item.likes?.length || 0}</span>
+                    <span><i class='bx bx-comment'></i> ${item.comments?.length || 0}</span>
+                </div>
+            </div>
+        `).join('');
         
-        scored.sort((a, b) => b.score - a.score);
-        return scored.slice(0, limit).map(s => s.user);
+        document.querySelectorAll('.news-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newsId = card.dataset.newsid;
+                window.location.href = `news.html?id=${newsId}`;
+            });
+        });
     }
     
     function renderUsers() {
         let filtered = [...allUsers];
-        
-        // Filter by search
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            filtered = filtered.filter(u => 
-                u.realName?.toLowerCase().includes(q) || 
-                u.username?.toLowerCase().includes(q)
-            );
+            filtered = filtered.filter(u => u.username?.toLowerCase().includes(q));
         }
-        
-        // Filter by tab
-        if (currentTab === "available") {
-            filtered = filtered.filter(u => u.galaStatus === "available");
-        } else if (currentTab === "taken") {
-            filtered = filtered.filter(u => u.galaStatus === "taken");
-        }
-        
-        // Smart algorithm sorting for "ALL" tab
-        if (currentTab === "all" && currentUser) {
-            filtered = getSmartMatches(filtered, currentUser);
-        } else {
-            // Default sorting for other tabs
-            filtered.sort((a, b) => {
-                if (a.galaStatus === "available" && b.galaStatus !== "available") return -1;
-                return 0;
-            });
-        }
+        if (currentTab === "available") filtered = filtered.filter(u => u.galaStatus === "available");
+        if (currentTab === "taken") filtered = filtered.filter(u => u.galaStatus === "taken");
         
         const container = document.getElementById('contentArea');
         if (!filtered.length) {
@@ -413,35 +467,26 @@
         }
         
         container.innerHTML = filtered.map(user => `
-            <div class="user-card" data-userid="${user.id}" data-username="${user.username}">
-                <img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="avatar">
-                <div class="user-info">
-                    <div class="user-name">${escapeHtml(user.realName)}</div>
-                    <div class="user-username">@${user.username}</div>
+            <div class="user-card" data-userid="${user.id}">
+                <div class="avatar-container">
+                    <img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                    <div class="status-stroke ${user.galaStatus === 'available' ? 'available' : 'taken'}"></div>
                 </div>
-                <div class="status-badge ${user.galaStatus === 'available' ? 'status-available' : 'status-taken'}">
-                    ${user.galaStatus === 'available' ? 'AVAILABLE' : 'TAKEN'}
+                <div class="user-info">
+                    <div class="user-name-row">
+                        <span class="user-name">@${escapeHtml(user.username)}</span>
+                        ${getVerifiedIcon(user.verified)}
+                    </div>
+                    <div class="user-username">${escapeHtml(user.realName)}</div>
                 </div>
             </div>
         `).join('');
         
-        // Add click listeners
         document.querySelectorAll('.user-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                e.stopPropagation();
+            card.addEventListener('click', () => {
                 const userId = card.dataset.userid;
                 window.location.href = `user.html?uid=${encodeURIComponent(userId)}`;
             });
-        });
-    }
-    
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
         });
     }
     
@@ -456,35 +501,43 @@
         }
     }
     
-    // Listen for real-time updates to current user's requests
-    let unsubscribeCurrent = null;
+    function formatTime(timestamp) {
+        if (!timestamp) return 'just now';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return `${diff}s ago`;
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
     function listenToCurrentUser() {
-        if (unsubscribeCurrent) unsubscribeCurrent();
-        unsubscribeCurrent = onSnapshot(fDoc(db, "users", currentUsername), (docSnap) => {
+        onSnapshot(fDoc(db, "users", currentUsername), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 currentUser = { id: currentUsername, ...data };
                 requestsList = data.requests || [];
                 updateRequestBadge();
-                // Re-render to update statuses
-                renderUsers();
+                if (currentTab !== "news") renderUsers();
             }
         });
     }
     
-    // Update user status (for demo, but will be updated via requests)
-    async function initUserStatus() {
-        const userDoc = await getDoc(fDoc(db, "users", currentUsername));
-        if (!userDoc.exists()) return;
-        if (!userDoc.data().galaStatus) {
-            await updateDoc(fDoc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] });
-        }
-    }
-    
-    // Setup event listeners
+    // Event listeners
     document.getElementById('searchInput').addEventListener('input', (e) => {
         searchQuery = e.target.value;
-        renderUsers();
+        if (currentTab !== "news") renderUsers();
     });
     
     document.querySelectorAll('.tab').forEach(tab => {
@@ -492,7 +545,8 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             currentTab = tab.dataset.tab;
-            renderUsers();
+            if (currentTab === "news") renderNews();
+            else renderUsers();
         });
     });
     
@@ -500,7 +554,11 @@
         window.location.href = `requests.html`;
     });
     
-    // Screenshot Protection
+    document.getElementById('profileAvatar').addEventListener('click', () => {
+        window.location.href = `profile.html`;
+    });
+    
+    // Screenshot protection
     (function antiScreenshot() {
         const blackFlash = () => {
             const overlay = document.createElement('div');
@@ -520,13 +578,8 @@
     function handleResize() {
         const blocker = document.getElementById('pcBlocker');
         const app = document.getElementById('appRoot');
-        if(window.innerWidth > 768) {
-            blocker.style.display = 'flex';
-            if(app) app.style.display = 'none';
-        } else {
-            blocker.style.display = 'none';
-            if(app) app.style.display = 'block';
-        }
+        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
+        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
     }
     window.addEventListener('resize', handleResize);
     handleResize();
@@ -534,7 +587,7 @@
     // Initialize
     (async () => {
         await loadCurrentUser();
-        await initUserStatus();
+        loadNews();
         loadUsers();
         listenToCurrentUser();
     })();
