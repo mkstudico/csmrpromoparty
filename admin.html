@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Galagram • Admin</title>
+    <title>Galagram • Admin Panel</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
         import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -26,67 +26,134 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; }
-        .back-btn { font-size: 1.6rem; cursor: pointer; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
+        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
         .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .content { padding: 16px; background: #fafafa; min-height: 85vh; }
-        .user-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
-        .user-info { display: flex; align-items: center; gap: 12px; }
-        .user-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
-        .user-name { font-weight: 600; }
-        .badge-select { padding: 6px 12px; border-radius: 20px; border: 1px solid #dbdbdb; background: white; cursor: pointer; }
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; }
+        .user-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .user-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .user-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1.5px solid #dbdbdb; }
+        .user-details { flex: 1; }
+        .user-name { font-weight: 600; font-size: 0.9rem; }
+        .user-username { font-size: 0.7rem; color: #8e8e8e; }
+        .badge-select { padding: 6px 12px; border-radius: 20px; border: 1px solid #dbdbdb; background: white; cursor: pointer; font-size: 0.75rem; font-weight: 500; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; display: flex; align-items: center; gap: 10px; transition: transform 0.25s; pointer-events: none; }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
+        .loading { text-align: center; padding: 40px; color: #8e8e8e; }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .search-bar { margin-bottom: 16px; }
+        .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.85rem; background: #fafafa; }
+        .stats { background: white; border-radius: 12px; padding: 12px; margin-bottom: 16px; display: flex; justify-content: space-around; text-align: center; }
+        .stat-value { font-size: 1.3rem; font-weight: 700; color: #262626; }
+        .stat-label { font-size: 0.7rem; color: #8e8e8e; }
     </style>
 </head>
 <body>
+
+<div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
+
 <div id="appRoot" class="app-container">
-    <div class="header"><i class='bx bx-arrow-back back-btn' id="backBtn"></i><div class="logo">Admin • Verify Users</div></div>
-    <div class="content" id="contentArea"><div style="text-align:center; padding:40px;">Loading users...</div></div>
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">Verify Users</div>
+    </div>
+    <div class="content">
+        <div class="search-bar">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search users...">
+        </div>
+        <div class="stats" id="statsArea">
+            <div><div class="stat-value" id="totalUsers">0</div><div class="stat-label">Total</div></div>
+            <div><div class="stat-value" id="verifiedBlue">0</div><div class="stat-label">Blue ✓</div></div>
+            <div><div class="stat-value" id="verifiedGray">0</div><div class="stat-label">Gray ✓</div></div>
+        </div>
+        <div id="usersList"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading users...</div></div>
+    </div>
 </div>
 
 <script type="module">
     import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
-    function showNotification(message) {
+    let allUsers = [];
+    
+    function showNotification(message, type = "success") {
+        const existing = document.querySelector('.galagram-toast');
+        if(existing) existing.remove();
         const toast = document.createElement('div');
-        toast.className = 'galagram-toast';
-        toast.innerHTML = `<i class='bx bx-check-circle'></i><span>${message}</span>`;
+        toast.className = `galagram-toast`;
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 10);
         setTimeout(() => toast.remove(), 2000);
     }
     
     const sessionData = localStorage.getItem('galagram_session');
-    if (!sessionData) window.location.href = "index.html";
+    if (!sessionData) { window.location.href = "index.html"; }
     const session = JSON.parse(sessionData);
-    
-    // Simple admin check - you can set a specific admin username
-    if (session.username !== "admin") {
-        showNotification("Admin access only");
-        setTimeout(() => window.location.href = "home.html", 1500);
-    }
+    const currentUsername = session.username;
     
     async function loadUsers() {
         const usersRef = collection(db, "users");
         const snapshot = await getDocs(usersRef);
-        const container = document.getElementById('contentArea');
-        let html = '';
+        allUsers = [];
         snapshot.forEach(docSnap => {
             const user = docSnap.data();
+            allUsers.push({
+                id: docSnap.id,
+                realName: user.realName,
+                username: user.username,
+                profileImage: user.profileImage,
+                verified: user.verified || "none",
+                gender: user.gender,
+                galaStatus: user.galaStatus
+            });
+        });
+        updateStats();
+        renderUsers();
+    }
+    
+    function updateStats() {
+        const total = allUsers.length;
+        const blue = allUsers.filter(u => u.verified === "blue").length;
+        const gray = allUsers.filter(u => u.verified === "gray").length;
+        document.getElementById('totalUsers').textContent = total;
+        document.getElementById('verifiedBlue').textContent = blue;
+        document.getElementById('verifiedGray').textContent = gray;
+    }
+    
+    function renderUsers() {
+        const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+        let filtered = allUsers;
+        if (searchQuery) {
+            filtered = allUsers.filter(u => 
+                u.realName?.toLowerCase().includes(searchQuery) || 
+                u.username?.toLowerCase().includes(searchQuery)
+            );
+        }
+        
+        const container = document.getElementById('usersList');
+        if (!filtered.length) {
+            container.innerHTML = `<div class="loading"><i class='bx bx-user-x'></i><p>No users found</p></div>`;
+            return;
+        }
+        
+        let html = '';
+        filtered.forEach(user => {
             const currentBadge = user.verified || "none";
+            const badgeText = currentBadge === 'blue' ? 'Blue ✓' : (currentBadge === 'gray' ? 'Gray ✓' : 'No badge');
             html += `
-                <div class="user-item" data-id="${docSnap.id}">
+                <div class="user-item" data-id="${user.id}">
                     <div class="user-info">
                         <img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
-                        <div>
+                        <div class="user-details">
                             <div class="user-name">${escapeHtml(user.realName)}</div>
-                            <div style="font-size:0.7rem; color:#8e8e8e;">@${user.username}</div>
+                            <div class="user-username">@${user.username}</div>
                         </div>
                     </div>
-                    <select class="badge-select" data-id="${docSnap.id}">
+                    <select class="badge-select" data-id="${user.id}">
                         <option value="none" ${currentBadge === 'none' ? 'selected' : ''}>No badge</option>
                         <option value="gray" ${currentBadge === 'gray' ? 'selected' : ''}>Gray ✓</option>
                         <option value="blue" ${currentBadge === 'blue' ? 'selected' : ''}>Blue ✓✓</option>
@@ -98,10 +165,14 @@
         
         document.querySelectorAll('.badge-select').forEach(select => {
             select.addEventListener('change', async (e) => {
+                e.stopPropagation();
                 const userId = select.dataset.id;
                 const newBadge = select.value;
                 await updateDoc(doc(db, "users", userId), { verified: newBadge });
-                showNotification(`Badge updated for user`);
+                const user = allUsers.find(u => u.id === userId);
+                if (user) user.verified = newBadge;
+                updateStats();
+                showNotification(`Badge updated for ${user?.realName || 'user'}`);
             });
         });
     }
@@ -117,6 +188,33 @@
     }
     
     document.getElementById('backBtn').addEventListener('click', () => { window.location.href = "home.html"; });
+    document.getElementById('searchInput').addEventListener('input', () => { renderUsers(); });
+    
+    (function antiScreenshot() {
+        const blackFlash = () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = overlay.style.left = '0';
+            overlay.style.width = overlay.style.height = '100%';
+            overlay.style.backgroundColor = '#000000';
+            overlay.style.zIndex = '999999';
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 200);
+        };
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('keydown', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+    })();
+    
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
+        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
     loadUsers();
 </script>
 </body>
