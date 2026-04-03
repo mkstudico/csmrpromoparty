@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Galagram • User Profile</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+            authDomain: "akademia-c56ff.firebaseapp.com",
+            databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+            projectId: "akademia-c56ff",
+            storageBucket: "akademia-c56ff.firebasestorage.app",
+            messagingSenderId: "678278775270",
+            appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+            measurementId: "G-X3CHCJE5LK"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; }
+        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
+        .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .content { padding: 20px; background: #fafafa; min-height: 85vh; }
+        .profile-header { text-align: center; margin-bottom: 24px; }
+        .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #d62976; margin-bottom: 12px; }
+        .avatar-container { position: relative; display: inline-block; }
+        .status-stroke { position: absolute; bottom: 5px; right: 5px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; }
+        .status-stroke.available { background: #22c55e; }
+        .status-stroke.taken { background: #ef4444; }
+        .profile-name { font-size: 1.4rem; font-weight: 600; }
+        .profile-username { font-size: 0.9rem; color: #8e8e8e; margin: 4px 0; }
+        .verified-badge { font-size: 1.2rem; margin-left: 4px; }
+        .verified-badge.blue { color: #0095f6; }
+        .verified-badge.gray { color: #8e8e8e; }
+        .info-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid #efefef; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { font-weight: 600; color: #8e8e8e; font-size: 0.8rem; }
+        .info-value { color: #262626; font-size: 0.9rem; }
+        .btn { padding: 12px; width: 100%; border-radius: 10px; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; margin-top: 12px; transition: 0.15s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: #0095f6; color: white; }
+        .btn-danger { background: #efefef; color: #ed4956; border: 1px solid #ed4956; }
+        .btn-secondary { background: #efefef; color: #262626; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; display: flex; align-items: center; gap: 10px; transition: transform 0.25s; pointer-events: none; }
+        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
+        .loading { text-align: center; padding: 40px; color: #8e8e8e; }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .request-actions { display: flex; gap: 12px; margin-top: 12px; }
+        .request-actions .btn { flex: 1; margin-top: 0; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
+
+<div id="appRoot" class="app-container">
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">User Profile</div>
+    </div>
+    <div class="content" id="contentArea">
+        <div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div>
+    </div>
+</div>
+
+<script type="module">
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const db = window.db;
+    
+    function showNotification(message, type = "info") {
+        const existing = document.querySelector('.galagram-toast');
+        if(existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = `galagram-toast`;
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    const sessionData = localStorage.getItem('galagram_session');
+    if (!sessionData) { window.location.href = "index.html"; }
+    const session = JSON.parse(sessionData);
+    const currentUsername = session.username;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUserId = urlParams.get('uid');
+    if (!targetUserId) { window.location.href = "home.html"; }
+    
+    let targetUser = null;
+    let currentUserData = null;
+    let hasSentRequest = false;
+    let hasIncomingRequest = false;
+    let isPaired = false;
+    let unsubscribeTarget = null;
+    let unsubscribeCurrent = null;
+    
+    async function loadData() {
+        // Load target user
+        const targetDoc = await getDoc(doc(db, "users", targetUserId));
+        const currentDoc = await getDoc(doc(db, "users", currentUsername));
+        
+        if (!targetDoc.exists()) { 
+            showNotification("User not found", "error"); 
+            setTimeout(() => window.location.href = "home.html", 1500); 
+            return; 
+        }
+        if (!currentDoc.exists()) { 
+            window.location.href = "index.html"; 
+            return; 
+        }
+        
+        targetUser = { id: targetUserId, ...targetDoc.data() };
+        currentUserData = { id: currentUsername, ...currentDoc.data() };
+        
+        if (!targetUser.galaStatus) targetUser.galaStatus = "available";
+        if (!currentUserData.requests) currentUserData.requests = [];
+        if (!currentUserData.sentRequests) currentUserData.sentRequests = [];
+        
+        hasSentRequest = currentUserData.sentRequests?.includes(targetUserId) || false;
+        hasIncomingRequest = currentUserData.requests?.includes(targetUserId) || false;
+        isPaired = (targetUser.galaStatus === "taken" && targetUser.pairedWith === currentUsername) || 
+                   (currentUserData.galaStatus === "taken" && currentUserData.pairedWith === targetUserId);
+        
+        renderProfile();
+        
+        // Set up real-time listeners
+        if (unsubscribeTarget) unsubscribeTarget();
+        if (unsubscribeCurrent) unsubscribeCurrent();
+        
+        unsubscribeTarget = onSnapshot(doc(db, "users", targetUserId), (docSnap) => {
+            if (docSnap.exists()) {
+                targetUser = { id: targetUserId, ...docSnap.data() };
+                isPaired = (targetUser.galaStatus === "taken" && targetUser.pairedWith === currentUsername);
+                renderProfile();
+            }
+        });
+        
+        unsubscribeCurrent = onSnapshot(doc(db, "users", currentUsername), (docSnap) => {
+            if (docSnap.exists()) {
+                currentUserData = { id: currentUsername, ...docSnap.data() };
+                if (!currentUserData.requests) currentUserData.requests = [];
+                if (!currentUserData.sentRequests) currentUserData.sentRequests = [];
+                hasSentRequest = currentUserData.sentRequests?.includes(targetUserId) || false;
+                hasIncomingRequest = currentUserData.requests?.includes(targetUserId) || false;
+                isPaired = (currentUserData.galaStatus === "taken" && currentUserData.pairedWith === targetUserId);
+                renderProfile();
+            }
+        });
+    }
+    
+    function getVerifiedIcon(verified) {
+        if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>';
+        if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>';
+        return '';
+    }
+    
+    function renderProfile() {
+        const container = document.getElementById('contentArea');
+        const verifiedIcon = getVerifiedIcon(targetUser.verified);
+        const isSelf = targetUserId === currentUsername;
+        const statusClass = targetUser.galaStatus === 'available' ? 'available' : 'taken';
+        
+        let actionButtons = '';
+        
+        if (!isSelf) {
+            if (isPaired) {
+                actionButtons = `
+                    <button class="btn btn-danger" id="unpairBtn">💔 Unpair / Cancel Gala</button>
+                `;
+            } else if (hasIncomingRequest) {
+                actionButtons = `
+                    <div class="request-actions">
+                        <button class="btn btn-success" id="acceptRequestBtn">✓ Accept Request</button>
+                        <button class="btn btn-danger" id="rejectRequestBtn">✗ Decline</button>
+                    </div>
+                `;
+            } else if (hasSentRequest) {
+                actionButtons = `
+                    <button class="btn btn-secondary" id="cancelRequestBtn">⏳ Request Pending · Cancel</button>
+                `;
+            } else if (targetUser.galaStatus === "available") {
+                actionButtons = `
+                    <button class="btn btn-primary" id="sendRequestBtn">💖 Send Gala Request</button>
+                `;
+            } else {
+                actionButtons = `
+                    <button class="btn btn-secondary" disabled style="opacity:0.6;">❌ This person is already paired</button>
+                `;
+            }
+        }
+        
+        container.innerHTML = `
+            <div class="profile-header">
+                <div class="avatar-container">
+                    <img class="profile-avatar" src="${targetUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100'}" alt="">
+                    <div class="status-stroke ${statusClass}"></div>
+                </div>
+                <div class="profile-name">${escapeHtml(targetUser.realName)} ${verifiedIcon}</div>
+                <div class="profile-username">@${targetUser.username}</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-male-female'></i> Gender</span>
+                    <span class="info-value">${targetUser.gender === 'BOY' ? '👦 Boy' : '👧 Girl'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-phone'></i> Phone</span>
+                    <span class="info-value">${escapeHtml(targetUser.phoneNumber || 'Not shared')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-instagram'></i> Instagram</span>
+                    <span class="info-value">${escapeHtml(targetUser.instagramName || 'Not connected')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-calendar'></i> Member since</span>
+                    <span class="info-value">${targetUser.createdAt ? new Date(targetUser.createdAt).toLocaleDateString() : 'Recently'}</span>
+                </div>
+            </div>
+            
+            ${actionButtons}
+        `;
+        
+        // Attach event listeners
+        if (!isSelf) {
+            if (document.getElementById('sendRequestBtn')) {
+                document.getElementById('sendRequestBtn').addEventListener('click', sendRequest);
+            }
+            if (document.getElementById('cancelRequestBtn')) {
+                document.getElementById('cancelRequestBtn').addEventListener('click', cancelRequest);
+            }
+            if (document.getElementById('acceptRequestBtn')) {
+                document.getElementById('acceptRequestBtn').addEventListener('click', acceptRequest);
+            }
+            if (document.getElementById('rejectRequestBtn')) {
+                document.getElementById('rejectRequestBtn').addEventListener('click', rejectRequest);
+            }
+            if (document.getElementById('unpairBtn')) {
+                document.getElementById('unpairBtn').addEventListener('click', unpairUser);
+            }
+        }
+    }
+    
+    async function sendRequest() {
+        try {
+            await updateDoc(doc(db, "users", targetUserId), {
+                requests: arrayUnion(currentUsername)
+            });
+            await updateDoc(doc(db, "users", currentUsername), {
+                sentRequests: arrayUnion(targetUserId)
+            });
+            showNotification(`✨ Request sent to ${targetUser.realName}! They will be notified.`, "success");
+        } catch(e) { 
+            showNotification("Error: " + e.message, "error"); 
+        }
+    }
+    
+    async function cancelRequest() {
+        try {
+            await updateDoc(doc(db, "users", targetUserId), {
+                requests: arrayRemove(currentUsername)
+            });
+            await updateDoc(doc(db, "users", currentUsername), {
+                sentRequests: arrayRemove(targetUserId)
+            });
+            showNotification("Request cancelled", "success");
+        } catch(e) { 
+            showNotification("Error: " + e.message, "error"); 
+        }
+    }
+    
+    async function acceptRequest() {
+        try {
+            // SECRET PAIRING - Both users become "taken" but NOT visible to others
+            // The galaStatus is set to "taken" which hides them from search results
+            await updateDoc(doc(db, "users", currentUsername), {
+                galaStatus: "taken",
+                pairedWith: targetUserId,
+                requests: arrayRemove(targetUserId)
+            });
+            await updateDoc(doc(db, "users", targetUserId), {
+                galaStatus: "taken",
+                pairedWith: currentUsername,
+                sentRequests: arrayRemove(currentUsername)
+            });
+            showNotification(`🎉 You are now paired with ${targetUser.realName}! This is a secret match. 🎉`, "success");
+            setTimeout(() => { window.location.href = "home.html"; }, 2000);
+        } catch(e) { 
+            showNotification("Error: " + e.message, "error"); 
+        }
+    }
+    
+    async function rejectRequest() {
+        try {
+            await updateDoc(doc(db, "users", currentUsername), {
+                requests: arrayRemove(targetUserId)
+            });
+            await updateDoc(doc(db, "users", targetUserId), {
+                sentRequests: arrayRemove(currentUsername)
+            });
+            showNotification("Request declined", "success");
+        } catch(e) { 
+            showNotification("Error: " + e.message, "error"); 
+        }
+    }
+    
+    async function unpairUser() {
+        try {
+            // Secret unpairing - both become available again
+            await updateDoc(doc(db, "users", currentUsername), {
+                galaStatus: "available",
+                pairedWith: null,
+                sentRequests: arrayRemove(targetUserId)
+            });
+            await updateDoc(doc(db, "users", targetUserId), {
+                galaStatus: "available",
+                pairedWith: null,
+                requests: arrayRemove(currentUsername)
+            });
+            showNotification("Gala pairing cancelled. You are now available again.", "success");
+        } catch(e) { 
+            showNotification("Error: " + e.message, "error"); 
+        }
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    document.getElementById('backBtn').addEventListener('click', () => { 
+        if (unsubscribeTarget) unsubscribeTarget();
+        if (unsubscribeCurrent) unsubscribeCurrent();
+        window.location.href = "home.html"; 
+    });
+    
+    (function antiScreenshot() {
+        const blackFlash = () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = overlay.style.left = '0';
+            overlay.style.width = overlay.style.height = '100%';
+            overlay.style.backgroundColor = '#000000';
+            overlay.style.zIndex = '999999';
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 200);
+        };
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('keydown', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+    })();
+    
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
+        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
+    loadData();
+</script>
+</body>
+</html>
