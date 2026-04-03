@@ -6,7 +6,7 @@
     <title>Galagram • Home</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -26,86 +26,268 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .pc-blocker {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            z-index: 9999;
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
         .pc-blocker i { font-size: 4rem; margin-bottom: 1.2rem; color: #d62976; }
-        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
-        .logo { font-weight: 620; font-size: 1.5rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .header-right { display: flex; align-items: center; gap: 16px; }
-        .heart-icon { position: relative; cursor: pointer; }
-        .heart-badge { position: absolute; top: -8px; right: -8px; background: #ed4956; color: white; font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 20px; min-width: 18px; text-align: center; }
-        .profile-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; cursor: pointer; border: 1.5px solid #dbdbdb; }
-        .search-bar { padding: 12px 16px; background: #fff; border-bottom: 0.5px solid #efefef; }
-        .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; background: #fafafa; }
-        .tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 20px; overflow-x: auto; }
-        .tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
-        .tab.active { color: #0095f6; border-bottom-color: #0095f6; }
-        .content { padding: 16px; background: #fafafa; min-height: 70vh; }
-        .user-card { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); cursor: pointer; transition: 0.15s; }
+        .app-container {
+            display: block;
+            max-width: 480px;
+            margin: 0 auto;
+            background: #ffffff;
+            min-height: 100vh;
+        }
+        .header {
+            background: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 0.5px solid #efefef;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 620;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #f77737, #d62976, #962fbf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .heart-icon {
+            position: relative;
+            cursor: pointer;
+        }
+        .heart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ed4956;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 20px;
+            min-width: 18px;
+            text-align: center;
+        }
+        .profile-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1.5px solid #dbdbdb;
+        }
+        .search-bar {
+            padding: 12px 16px;
+            background: #fff;
+            border-bottom: 0.5px solid #efefef;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #dbdbdb;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: #fafafa;
+        }
+        .tabs {
+            display: flex;
+            padding: 0 16px;
+            background: #fff;
+            border-bottom: 0.5px solid #efefef;
+            gap: 20px;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 12px 0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #8e8e8e;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+        }
+        .tab.active {
+            color: #0095f6;
+            border-bottom-color: #0095f6;
+        }
+        .content {
+            padding: 16px;
+            background: #fafafa;
+            min-height: 70vh;
+        }
+        .user-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            cursor: pointer;
+            transition: 0.15s;
+        }
         .user-card:active { transform: scale(0.98); }
-        .avatar-container { position: relative; }
-        .user-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid #dbdbdb; }
-        .status-stroke { position: absolute; bottom: 0; right: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; }
+        .avatar-container {
+            position: relative;
+        }
+        .user-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #dbdbdb;
+        }
+        .status-stroke {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
         .status-stroke.available { background: #22c55e; box-shadow: 0 0 0 2px #22c55e; }
         .status-stroke.taken { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
-        .user-info { flex: 1; }
-        .user-name-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-        .user-name { font-weight: 600; font-size: 0.85rem; }
-        .verified-badge { font-size: 0.9rem; }
+        .user-info {
+            flex: 1;
+        }
+        .user-name-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .user-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .verified-badge {
+            font-size: 0.9rem;
+        }
         .verified-badge.blue { color: #0095f6; }
         .verified-badge.gray { color: #8e8e8e; }
-        .user-username { font-size: 0.7rem; color: #8e8e8e; }
-        .news-card { background: white; border-radius: 16px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
+        .user-username {
+            font-size: 0.7rem;
+            color: #8e8e8e;
+        }
+        .news-card {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: 0.2s;
+        }
         .news-card:active { transform: scale(0.98); }
-        .news-header { padding: 12px; display: flex; align-items: center; gap: 10px; border-bottom: 0.5px solid #efefef; }
-        .news-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-        .news-author { font-weight: 600; font-size: 0.85rem; }
-        .news-time { font-size: 0.65rem; color: #8e8e8e; }
-        .news-content { padding: 12px; }
-        .news-text { font-size: 0.9rem; margin-bottom: 8px; }
-        .news-image { width: 100%; border-radius: 12px; margin-top: 8px; max-height: 250px; object-fit: cover; }
-        .news-stats { padding: 8px 12px; display: flex; gap: 16px; border-top: 0.5px solid #efefef; color: #8e8e8e; font-size: 0.7rem; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #8e8e8e; }
-        .loading-spinner { text-align: center; padding: 40px; color: #8e8e8e; }
+        .news-header {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 0.5px solid #efefef;
+        }
+        .news-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .news-author {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .news-time {
+            font-size: 0.65rem;
+            color: #8e8e8e;
+        }
+        .news-content {
+            padding: 12px;
+        }
+        .news-text {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .news-image {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 8px;
+            max-height: 250px;
+            object-fit: cover;
+        }
+        .news-stats {
+            padding: 8px 12px;
+            display: flex;
+            gap: 16px;
+            border-top: 0.5px solid #efefef;
+            color: #8e8e8e;
+            font-size: 0.7rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8e8e8e;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: #8e8e8e;
+        }
         .bx-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .hidden { display: none; }
-        
-        /* SUGGESTION POPUP */
-        .suggestion-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .suggestion-popup { background: white; border-radius: 24px; max-width: 340px; width: 85%; max-height: 80vh; overflow-y: auto; padding: 20px; text-align: center; animation: popupSlide 0.3s ease; }
-        @keyframes popupSlide { from { transform: scale(0.9) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-        .suggestion-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #f77737, #d62976); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .suggestion-subtitle { font-size: 0.8rem; color: #8e8e8e; margin-bottom: 20px; }
-        .suggestion-list { margin: 16px 0; }
-        .suggestion-user { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 0.5px solid #efefef; cursor: pointer; transition: 0.15s; border-radius: 12px; }
-        .suggestion-user:active { background: #f0f0f0; }
-        .suggestion-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
-        .suggestion-info { flex: 1; text-align: left; }
-        .suggestion-name { font-weight: 600; font-size: 0.9rem; }
-        .suggestion-bio { font-size: 0.7rem; color: #8e8e8e; }
-        .suggestion-btn { background: #0095f6; color: white; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
-        .close-suggestion { margin-top: 16px; background: #efefef; color: #262626; border: none; padding: 10px; border-radius: 30px; width: 100%; font-weight: 600; cursor: pointer; }
-        
-        /* LOGS PANEL */
-        .logs-panel { position: fixed; bottom: 70px; right: 16px; z-index: 100; }
-        .logs-toggle { background: #262626; color: white; width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        .logs-dropdown { position: absolute; bottom: 60px; right: 0; width: 280px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); max-height: 350px; overflow-y: auto; display: none; }
-        .logs-dropdown.show { display: block; }
-        .log-item { padding: 10px 12px; border-bottom: 0.5px solid #efefef; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; }
-        .log-icon { font-size: 1rem; }
-        .log-icon.accept { color: #22c55e; }
-        .log-icon.reject { color: #ef4444; }
-        .log-icon.request { color: #f59e0b; }
-        .log-text { flex: 1; }
-        .log-time { font-size: 0.6rem; color: #8e8e8e; }
-        
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; display: flex; align-items: center; gap: 10px; transition: transform 0.25s; pointer-events: none; }
+        .galagram-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.25s;
+            pointer-events: none;
+        }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
-        
-        .add-news-btn { position: fixed; bottom: 20px; left: 20px; background: #0095f6; color: white; width: 50px; height: 50px; border-radius: 25px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; }
     </style>
 </head>
 <body>
@@ -132,29 +314,16 @@
         <div class="tab active" data-tab="news">📰 NEWS</div>
         <div class="tab" data-tab="all">ALL</div>
         <div class="tab" data-tab="available">AVAILABLE</div>
+        <div class="tab" data-tab="taken">TAKEN</div>
     </div>
 
     <div class="content" id="contentArea">
         <div class="loading-spinner"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div>
     </div>
-    
-    <div class="add-news-btn" id="addNewsBtn">
-        <i class='bx bx-plus' style="font-size: 1.8rem;"></i>
-    </div>
-    
-    <div class="logs-panel">
-        <div class="logs-toggle" id="logsToggle">
-            <i class='bx bx-history'></i>
-        </div>
-        <div class="logs-dropdown" id="logsDropdown">
-            <div style="padding: 12px; font-weight: 600; border-bottom: 0.5px solid #efefef;">📋 Activity Log</div>
-            <div id="logsList"></div>
-        </div>
-    </div>
 </div>
 
 <script type="module">
-    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
     let currentUser = null;
@@ -163,8 +332,6 @@
     let requestsList = [];
     let currentTab = "news";
     let searchQuery = "";
-    let logs = [];
-    let hasShownSuggestion = false;
     
     function showNotification(message, type = "info") {
         const existing = document.querySelector('.galagram-toast');
@@ -174,70 +341,15 @@
         toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => toast.remove(), 3000);
+        setTimeout(() => toast.remove(), 4000);
     }
     
-    function addLog(action, userName, details) {
-        const log = {
-            id: Date.now(),
-            action: action,
-            userName: userName,
-            details: details,
-            time: new Date()
-        };
-        logs.unshift(log);
-        if (logs.length > 50) logs.pop();
-        renderLogs();
-        // Save logs to localStorage
-        localStorage.setItem('galagram_logs', JSON.stringify(logs));
-    }
-    
-    function renderLogs() {
-        const container = document.getElementById('logsList');
-        if (!logs.length) {
-            container.innerHTML = '<div style="padding: 12px; text-align: center; color: #8e8e8e;">No activity yet</div>';
-            return;
-        }
-        container.innerHTML = logs.map(log => {
-            let icon = 'bx-info-circle';
-            let iconColor = '';
-            if (log.action === 'accept') { icon = 'bx-check-circle'; iconColor = 'accept'; }
-            else if (log.action === 'reject') { icon = 'bx-x-circle'; iconColor = 'reject'; }
-            else if (log.action === 'request') { icon = 'bx-heart'; iconColor = 'request'; }
-            else if (log.action === 'pair') { icon = 'bx-party'; iconColor = 'accept'; }
-            else if (log.action === 'unpair') { icon = 'bx-heart-broken'; iconColor = 'reject'; }
-            return `
-                <div class="log-item">
-                    <i class='bx ${icon} log-icon ${iconColor}'></i>
-                    <div class="log-text">
-                        <strong>${escapeHtml(log.userName)}</strong> ${log.details}
-                    </div>
-                    <div class="log-time">${formatTimeShort(log.time)}</div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    function formatTimeShort(date) {
-        const now = new Date();
-        const diff = Math.floor((now - new Date(date)) / 1000);
-        if (diff < 60) return `${diff}s`;
-        if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-        return `${Math.floor(diff / 86400)}d`;
-    }
-    
+    // Session check
     const sessionData = localStorage.getItem('galagram_session');
     if (!sessionData) { window.location.href = "index.html"; }
     const session = JSON.parse(sessionData);
     const currentUsername = session.username;
     const sessionId = session.sessionId;
-    
-    // Load logs from localStorage
-    const savedLogs = localStorage.getItem('galagram_logs');
-    if (savedLogs) {
-        try { logs = JSON.parse(savedLogs); } catch(e) {}
-    }
     
     // Session tracking
     import { doc as fDoc, onSnapshot as fOnSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -257,13 +369,13 @@
             if (!currentUser.requests) await updateDoc(fDoc(db, "users", currentUsername), { requests: [] });
             if (!currentUser.sentRequests) await updateDoc(fDoc(db, "users", currentUsername), { sentRequests: [] });
             if (!currentUser.verified) await updateDoc(fDoc(db, "users", currentUsername), { verified: "none" });
-            if (!currentUser.bio) await updateDoc(fDoc(db, "users", currentUsername), { bio: "" });
             requestsList = currentUser.requests || [];
             updateRequestBadge();
             document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80';
         }
     }
     
+    // Load news with real-time
     function loadNews() {
         const newsRef = collection(db, "news");
         const q = query(newsRef, orderBy("createdAt", "desc"));
@@ -276,136 +388,12 @@
         });
     }
     
-    // Smart suggestion algorithm - finds best matches
-    function getSmartSuggestions(users, currentUserData, limit = 3) {
-        const scored = users.filter(user => {
-            // Don't suggest self, already paired, same gender, or already requested
-            if (user.id === currentUsername) return false;
-            if (user.galaStatus !== "available") return false;
-            if (currentUserData.gender === user.gender) return false;
-            if (currentUserData.sentRequests?.includes(user.id)) return false;
-            if (currentUserData.requests?.includes(user.id)) return false;
-            return true;
-        }).map(user => {
-            let score = 50; // base score
-            // Different gender gets high score
-            if (currentUserData.gender !== user.gender) score += 30;
-            // Verified users get bonus
-            if (user.verified === "blue") score += 20;
-            else if (user.verified === "gray") score += 10;
-            return { user, score };
-        });
-        scored.sort((a, b) => b.score - a.score);
-        return scored.slice(0, limit).map(s => s.user);
-    }
-    
-    async function showSuggestions() {
-        if (hasShownSuggestion) return;
-        const usersRef = collection(db, "users");
-        const snapshot = await getDocs(usersRef);
-        const availableUsers = [];
-        snapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            if (docSnap.id !== currentUsername && data.galaStatus === "available" && currentUser.gender !== data.gender) {
-                availableUsers.push({ id: docSnap.id, ...data });
-            }
-        });
-        
-        const suggestions = getSmartSuggestions(availableUsers, currentUser, 3);
-        if (suggestions.length === 0) return;
-        
-        hasShownSuggestion = true;
-        const overlay = document.createElement('div');
-        overlay.className = 'suggestion-overlay';
-        overlay.innerHTML = `
-            <div class="suggestion-popup">
-                <div class="suggestion-title">✨ Perfect Matches ✨</div>
-                <div class="suggestion-subtitle">Based on your profile, we found these great matches</div>
-                <div class="suggestion-list" id="suggestionList"></div>
-                <button class="close-suggestion" id="closeSuggestion">Maybe Later</button>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-        
-        const listContainer = overlay.querySelector('#suggestionList');
-        suggestions.forEach(user => {
-            const userDiv = document.createElement('div');
-            userDiv.className = 'suggestion-user';
-            userDiv.innerHTML = `
-                <img class="suggestion-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
-                <div class="suggestion-info">
-                    <div class="suggestion-name">${escapeHtml(user.realName)}</div>
-                    <div class="suggestion-bio">@${user.username} • ${user.gender === 'BOY' ? '👦 Boy' : '👧 Girl'}</div>
-                </div>
-                <button class="suggestion-btn" data-id="${user.id}" data-name="${user.realName}">Request</button>
-            `;
-            listContainer.appendChild(userDiv);
-        });
-        
-        overlay.querySelectorAll('.suggestion-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const targetId = btn.dataset.id;
-                const targetName = btn.dataset.name;
-                await updateDoc(doc(db, "users", targetId), { requests: arrayUnion(currentUsername) });
-                await updateDoc(doc(db, "users", currentUsername), { sentRequests: arrayUnion(targetId) });
-                addLog('request', targetName, `sent you a gala request`);
-                showNotification(`Request sent to ${targetName}!`, 'success');
-                overlay.remove();
-            });
-        });
-        
-        overlay.querySelector('#closeSuggestion').addEventListener('click', () => overlay.remove());
-    }
-    
-    // Auto-reject other requests when one is accepted
-    async function acceptRequestAndRejectOthers(acceptedUserId, acceptedUserName) {
-        const currentRequests = currentUser.requests || [];
-        const otherRequests = currentRequests.filter(id => id !== acceptedUserId);
-        
-        const batch = writeBatch(db);
-        
-        // Accept the chosen one
-        batch.update(doc(db, "users", currentUsername), {
-            galaStatus: "taken",
-            pairedWith: acceptedUserId,
-            requests: arrayRemove(acceptedUserId)
-        });
-        batch.update(doc(db, "users", acceptedUserId), {
-            galaStatus: "taken",
-            pairedWith: currentUsername,
-            sentRequests: arrayRemove(currentUsername)
-        });
-        
-        // Reject all others
-        for (const otherId of otherRequests) {
-            batch.update(doc(db, "users", otherId), {
-                sentRequests: arrayRemove(currentUsername)
-            });
-            // Add log for rejection
-            const otherUser = allUsers.find(u => u.id === otherId);
-            if (otherUser) {
-                addLog('reject', otherUser.realName, `your request was automatically declined (${acceptedUserName} was chosen)`);
-            }
-        }
-        batch.update(doc(db, "users", currentUsername), {
-            requests: []
-        });
-        
-        await batch.commit();
-        
-        addLog('accept', acceptedUserName, `accepted your gala request! 🤍`);
-        addLog('pair', currentUser.realName, `paired with ${acceptedUserName}`);
-        
-        showNotification(`🎉 You are now paired with ${acceptedUserName}! Others were automatically declined.`, 'success');
-        setTimeout(() => window.location.href = "home.html", 1500);
-    }
-    
+    // Load users
     let unsubscribeUsers = null;
     function loadUsers() {
         if (unsubscribeUsers) unsubscribeUsers();
         const q = query(collection(db, "users"));
-        unsubscribeUsers = onSnapshot(q, async (snapshot) => {
+        unsubscribeUsers = onSnapshot(q, (snapshot) => {
             allUsers = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
@@ -419,11 +407,6 @@
                 }
             });
             if (currentTab !== "news") renderUsers();
-            
-            // Show suggestions after loading users (only once)
-            if (!hasShownSuggestion && currentUser && allUsers.length > 0) {
-                setTimeout(() => showSuggestions(), 1500);
-            }
         });
     }
     
@@ -462,7 +445,8 @@
         document.querySelectorAll('.news-card').forEach(card => {
             card.addEventListener('click', (e) => {
                 e.stopPropagation();
-                window.location.href = `news.html?id=${card.dataset.newsid}`;
+                const newsId = card.dataset.newsid;
+                window.location.href = `news.html?id=${newsId}`;
             });
         });
     }
@@ -474,6 +458,7 @@
             filtered = filtered.filter(u => u.username?.toLowerCase().includes(q));
         }
         if (currentTab === "available") filtered = filtered.filter(u => u.galaStatus === "available");
+        if (currentTab === "taken") filtered = filtered.filter(u => u.galaStatus === "taken");
         
         const container = document.getElementById('contentArea');
         if (!filtered.length) {
@@ -499,7 +484,8 @@
         
         document.querySelectorAll('.user-card').forEach(card => {
             card.addEventListener('click', () => {
-                window.location.href = `user.html?uid=${encodeURIComponent(card.dataset.userid)}`;
+                const userId = card.dataset.userid;
+                window.location.href = `user.html?uid=${encodeURIComponent(userId)}`;
             });
         });
     }
@@ -544,13 +530,11 @@
                 requestsList = data.requests || [];
                 updateRequestBadge();
                 if (currentTab !== "news") renderUsers();
-                
-                // Check for auto-rejection when multiple requests exist and user accepts one
-                // This is handled in user.html, but we also check here for any changes
             }
         });
     }
     
+    // Event listeners
     document.getElementById('searchInput').addEventListener('input', (e) => {
         searchQuery = e.target.value;
         if (currentTab !== "news") renderUsers();
@@ -572,14 +556,6 @@
     
     document.getElementById('profileAvatar').addEventListener('click', () => {
         window.location.href = `profile.html`;
-    });
-    
-    document.getElementById('addNewsBtn').addEventListener('click', () => {
-        window.location.href = `add-news.html`;
-    });
-    
-    document.getElementById('logsToggle').addEventListener('click', () => {
-        document.getElementById('logsDropdown').classList.toggle('show');
     });
     
     // Screenshot protection
@@ -608,15 +584,12 @@
     window.addEventListener('resize', handleResize);
     handleResize();
     
-    // Make acceptRequestAndRejectOthers available globally for user.html
-    window.acceptRequestAndRejectOthers = acceptRequestAndRejectOthers;
-    
+    // Initialize
     (async () => {
         await loadCurrentUser();
         loadNews();
         loadUsers();
         listenToCurrentUser();
-        renderLogs();
     })();
 </script>
 </body>
