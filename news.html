@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Galagram • News</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+            authDomain: "akademia-c56ff.firebaseapp.com",
+            databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+            projectId: "akademia-c56ff",
+            storageBucket: "akademia-c56ff.firebasestorage.app",
+            messagingSenderId: "678278775270",
+            appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+            measurementId: "G-X3CHCJE5LK"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; }
+        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
+        .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .content { padding: 16px; background: #fafafa; min-height: 85vh; }
+        .news-detail { background: white; border-radius: 16px; overflow: hidden; margin-bottom: 20px; }
+        .news-header { padding: 16px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid #efefef; }
+        .news-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+        .news-author { font-weight: 600; font-size: 1rem; }
+        .news-time { font-size: 0.7rem; color: #8e8e8e; }
+        .news-text { padding: 16px; font-size: 1rem; line-height: 1.4; }
+        .news-image { width: 100%; max-height: 300px; object-fit: cover; }
+        .comments-section { background: white; border-radius: 16px; padding: 16px; }
+        .comment-input-area { display: flex; gap: 10px; margin-bottom: 20px; }
+        .comment-input { flex: 1; padding: 12px; border: 1px solid #dbdbdb; border-radius: 24px; font-size: 0.85rem; }
+        .comment-btn { background: #0095f6; color: white; border: none; padding: 8px 20px; border-radius: 24px; font-weight: 600; cursor: pointer; }
+        .comment-item { display: flex; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 0.5px solid #efefef; }
+        .comment-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+        .comment-user { font-weight: 600; font-size: 0.8rem; }
+        .comment-text { font-size: 0.85rem; margin-top: 4px; color: #262626; }
+        .loading { text-align: center; padding: 40px; color: #8e8e8e; }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
+        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+<div id="appRoot" class="app-container">
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">News</div>
+    </div>
+    <div class="content" id="contentArea"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div></div>
+</div>
+
+<script type="module">
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const db = window.db;
+    
+    function showNotification(message) {
+        const toast = document.createElement('div');
+        toast.className = 'galagram-toast';
+        toast.innerHTML = `<i class='bx bx-check-circle'></i><span>${message}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    const sessionData = localStorage.getItem('galagram_session');
+    if (!sessionData) window.location.href = "index.html";
+    const session = JSON.parse(sessionData);
+    const currentUsername = session.username;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const newsId = urlParams.get('id');
+    if (!newsId) window.location.href = "home.html";
+    
+    let newsData = null;
+    let currentUser = null;
+    
+    async function loadData() {
+        const newsDoc = await getDoc(doc(db, "news", newsId));
+        const userDoc = await getDoc(doc(db, "users", currentUsername));
+        
+        if (!newsDoc.exists()) { showNotification("News not found"); setTimeout(() => window.location.href = "home.html", 1500); return; }
+        newsData = { id: newsDoc.id, ...newsDoc.data() };
+        currentUser = userDoc.data();
+        render();
+    }
+    
+    function render() {
+        const container = document.getElementById('contentArea');
+        const authorVerified = newsData.authorVerified === 'blue' ? '<i class="bx bx-check-circle" style="color:#0095f6;"></i>' : (newsData.authorVerified === 'gray' ? '<i class="bx bxs-check-circle" style="color:#8e8e8e;"></i>' : '');
+        
+        container.innerHTML = `
+            <div class="news-detail">
+                <div class="news-header">
+                    <img class="news-avatar" src="${newsData.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                    <div>
+                        <div class="news-author">${escapeHtml(newsData.authorName)} ${authorVerified}</div>
+                        <div class="news-time">${new Date(newsData.createdAt?.toDate?.() || newsData.createdAt).toLocaleString()}</div>
+                    </div>
+                </div>
+                <div class="news-text">${escapeHtml(newsData.text)}</div>
+                ${newsData.imageUrl ? `<img class="news-image" src="${newsData.imageUrl}" alt="">` : ''}
+            </div>
+            <div class="comments-section">
+                <div class="comment-input-area">
+                    <input type="text" id="commentInput" class="comment-input" placeholder="Write a comment...">
+                    <button id="postCommentBtn" class="comment-btn">Post</button>
+                </div>
+                <div id="commentsList"></div>
+            </div>
+        `;
+        
+        renderComments();
+        
+        document.getElementById('postCommentBtn').addEventListener('click', postComment);
+        document.getElementById('commentInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') postComment(); });
+    }
+    
+    function renderComments() {
+        const commentsList = document.getElementById('commentsList');
+        const comments = newsData.comments || [];
+        if (!comments.length) {
+            commentsList.innerHTML = '<div style="text-align:center; color:#8e8e8e; padding:20px;">No comments yet. Be the first!</div>';
+            return;
+        }
+        commentsList.innerHTML = comments.map(c => `
+            <div class="comment-item">
+                <img class="comment-avatar" src="${c.avatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'}" alt="">
+                <div style="flex:1">
+                    <div class="comment-user">@${escapeHtml(c.username)}</div>
+                    <div class="comment-text">${escapeHtml(c.text)}</div>
+                    <div style="font-size:0.65rem; color:#8e8e8e; margin-top:4px;">${new Date(c.timestamp?.toDate?.() || c.timestamp).toLocaleString()}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    async function postComment() {
+        const input = document.getElementById('commentInput');
+        const text = input.value.trim();
+        if (!text) return;
+        
+        const comment = {
+            username: currentUsername,
+            text: text,
+            avatar: currentUser.profileImage,
+            timestamp: new Date()
+        };
+        
+        await updateDoc(doc(db, "news", newsId), {
+            comments: arrayUnion(comment)
+        });
+        
+        input.value = '';
+        showNotification("Comment posted!");
+        // Reload data
+        const refreshed = await getDoc(doc(db, "news", newsId));
+        newsData = { id: refreshed.id, ...refreshed.data() };
+        renderComments();
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    document.getElementById('backBtn').addEventListener('click', () => { window.location.href = "home.html"; });
+    
+    (function antiScreenshot() {
+        const blackFlash = () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = overlay.style.left = '0';
+            overlay.style.width = overlay.style.height = '100%';
+            overlay.style.backgroundColor = '#000000';
+            overlay.style.zIndex = '999999';
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 200);
+        };
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+    })();
+    
+    loadData();
+</script>
+</body>
+</html>
