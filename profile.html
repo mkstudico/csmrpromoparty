@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Galagram • Profile</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+            authDomain: "akademia-c56ff.firebaseapp.com",
+            databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+            projectId: "akademia-c56ff",
+            storageBucket: "akademia-c56ff.firebasestorage.app",
+            messagingSenderId: "678278775270",
+            appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+            measurementId: "G-X3CHCJE5LK"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; }
+        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
+        .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .content { padding: 20px; background: #fafafa; min-height: 85vh; }
+        .profile-header { text-align: center; margin-bottom: 24px; }
+        .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #d62976; margin-bottom: 12px; }
+        .profile-name { font-size: 1.4rem; font-weight: 600; }
+        .profile-username { font-size: 0.9rem; color: #8e8e8e; margin: 4px 0; }
+        .verified-badge { font-size: 1.2rem; margin-left: 4px; }
+        .verified-badge.blue { color: #0095f6; }
+        .verified-badge.gray { color: #8e8e8e; }
+        .status-indicator { display: inline-block; padding: 6px 14px; border-radius: 30px; font-size: 0.75rem; font-weight: 600; margin: 12px 0; }
+        .status-available { background: #e3f7e8; color: #1e7b3e; }
+        .status-taken { background: #ffe6e6; color: #c0392b; }
+        .info-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid #efefef; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { font-weight: 600; color: #8e8e8e; font-size: 0.8rem; }
+        .info-value { color: #262626; font-size: 0.9rem; }
+        .btn { padding: 12px; width: 100%; border-radius: 10px; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; margin-top: 12px; }
+        .btn-primary { background: #0095f6; color: white; }
+        .btn-danger { background: #efefef; color: #ed4956; border: 1px solid #ed4956; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; display: flex; align-items: center; gap: 10px; transition: transform 0.25s; pointer-events: none; }
+        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
+        .loading { text-align: center; padding: 40px; color: #8e8e8e; }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
+
+<div id="appRoot" class="app-container">
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">My Profile</div>
+    </div>
+    <div class="content" id="contentArea">
+        <div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div>
+    </div>
+</div>
+
+<script type="module">
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const db = window.db;
+    
+    function showNotification(message, type = "info") {
+        const existing = document.querySelector('.galagram-toast');
+        if(existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = `galagram-toast`;
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    const sessionData = localStorage.getItem('galagram_session');
+    if (!sessionData) { window.location.href = "index.html"; }
+    const session = JSON.parse(sessionData);
+    const currentUsername = session.username;
+    
+    let currentUser = null;
+    
+    async function loadProfile() {
+        const userDoc = await getDoc(doc(db, "users", currentUsername));
+        if (!userDoc.exists()) {
+            showNotification("User not found", "error");
+            setTimeout(() => window.location.href = "index.html", 1500);
+            return;
+        }
+        currentUser = { id: userDoc.id, ...userDoc.data() };
+        renderProfile();
+    }
+    
+    function getVerifiedIcon(verified) {
+        if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>';
+        if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>';
+        return '';
+    }
+    
+    function renderProfile() {
+        const container = document.getElementById('contentArea');
+        const verifiedIcon = getVerifiedIcon(currentUser.verified);
+        const statusClass = currentUser.galaStatus === 'available' ? 'status-available' : 'status-taken';
+        const statusText = currentUser.galaStatus === 'available' ? '✨ Available for Gala' : '💔 Already Taken';
+        
+        container.innerHTML = `
+            <div class="profile-header">
+                <img class="profile-avatar" src="${currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100'}" alt="">
+                <div class="profile-name">${escapeHtml(currentUser.realName)} ${verifiedIcon}</div>
+                <div class="profile-username">@${currentUser.username}</div>
+                <div class="status-indicator ${statusClass}">${statusText}</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-male-female'></i> Gender</span>
+                    <span class="info-value">${currentUser.gender === 'BOY' ? '👦 Boy' : '👧 Girl'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-phone'></i> Phone</span>
+                    <span class="info-value">${escapeHtml(currentUser.phoneNumber || 'Not set')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-instagram'></i> Instagram</span>
+                    <span class="info-value">${escapeHtml(currentUser.instagramName || 'Not connected')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-key'></i> 6-digit Code</span>
+                    <span class="info-value">${currentUser.sixDigitCode}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label"><i class='bx bx-calendar'></i> Joined</span>
+                    <span class="info-value">${new Date(currentUser.createdAt).toLocaleDateString()}</span>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" id="editProfileBtn"><i class='bx bx-edit-alt'></i> Edit Profile</button>
+            <button class="btn btn-danger" id="logoutBtn"><i class='bx bx-log-out'></i> Log Out</button>
+        `;
+        
+        document.getElementById('editProfileBtn').addEventListener('click', () => {
+            window.location.href = "profile-edit.html";
+        });
+        
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await updateDoc(doc(db, "users", currentUsername), { activeSession: null, lastActive: null }).catch(() => {});
+            localStorage.removeItem('galagram_session');
+            showNotification("Logged out successfully", "success");
+            setTimeout(() => { window.location.href = "index.html"; }, 1000);
+        });
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    document.getElementById('backBtn').addEventListener('click', () => {
+        window.location.href = "home.html";
+    });
+    
+    (function antiScreenshot() {
+        const blackFlash = () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = overlay.style.left = '0';
+            overlay.style.width = overlay.style.height = '100%';
+            overlay.style.backgroundColor = '#000000';
+            overlay.style.zIndex = '999999';
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 200);
+        };
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+    })();
+    
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
+        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
+    loadProfile();
+</script>
+</body>
+</html>
