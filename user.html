@@ -28,7 +28,7 @@
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
         .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
         .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .content { padding: 20px; background: #fafafa; min-height: 85vh; }
@@ -36,18 +36,19 @@
         .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #d62976; margin-bottom: 12px; }
         .avatar-container { position: relative; display: inline-block; }
         .status-stroke { position: absolute; bottom: 5px; right: 5px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; }
-        .status-stroke.available { background: #22c55e; }
-        .status-stroke.taken { background: #ef4444; }
-        .profile-name { font-size: 1.4rem; font-weight: 600; }
+        .status-stroke.available { background: #22c55e; box-shadow: 0 0 0 2px #22c55e; }
+        .status-stroke.taken { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
+        .profile-name { font-size: 1.4rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
         .profile-username { font-size: 0.9rem; color: #8e8e8e; margin: 4px 0; }
         .verified-badge { font-size: 1.2rem; margin-left: 4px; }
         .verified-badge.blue { color: #0095f6; }
         .verified-badge.gray { color: #8e8e8e; }
-        .info-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+        .info-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid #efefef; }
         .info-row:last-child { border-bottom: none; }
-        .info-label { font-weight: 600; color: #8e8e8e; font-size: 0.8rem; }
+        .info-label { font-weight: 600; color: #8e8e8e; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
         .info-value { color: #262626; font-size: 0.9rem; }
+        .info-value.private { color: #8e8e8e; font-style: italic; }
         .btn { padding: 12px; width: 100%; border-radius: 10px; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; margin-top: 12px; transition: 0.15s; }
         .btn:active { transform: scale(0.98); }
         .btn-primary { background: #0095f6; color: white; }
@@ -63,7 +64,9 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .request-actions { display: flex; gap: 12px; margin-top: 12px; }
         .request-actions .btn { flex: 1; margin-top: 0; }
-        .hidden { display: none; }
+        .privacy-badge { background: #f0f0f0; padding: 4px 8px; border-radius: 20px; font-size: 0.6rem; color: #8e8e8e; display: inline-block; margin-left: 8px; }
+        .bio-text { font-size: 0.9rem; line-height: 1.4; color: #262626; padding: 8px 0; }
+        .divider { height: 1px; background: #efefef; margin: 16px 0; }
     </style>
 </head>
 <body>
@@ -113,7 +116,6 @@
     let unsubscribeCurrent = null;
     
     async function loadData() {
-        // Load target user
         const targetDoc = await getDoc(doc(db, "users", targetUserId));
         const currentDoc = await getDoc(doc(db, "users", currentUsername));
         
@@ -131,6 +133,7 @@
         currentUserData = { id: currentUsername, ...currentDoc.data() };
         
         if (!targetUser.galaStatus) targetUser.galaStatus = "available";
+        if (!targetUser.bio) targetUser.bio = "";
         if (!currentUserData.requests) currentUserData.requests = [];
         if (!currentUserData.sentRequests) currentUserData.sentRequests = [];
         
@@ -172,11 +175,28 @@
         return '';
     }
     
+    function getGenderIcon(gender) {
+        if (gender === "BOY") return '👦';
+        if (gender === "GIRL") return '👧';
+        return '👤';
+    }
+    
     function renderProfile() {
         const container = document.getElementById('contentArea');
         const verifiedIcon = getVerifiedIcon(targetUser.verified);
         const isSelf = targetUserId === currentUsername;
         const statusClass = targetUser.galaStatus === 'available' ? 'available' : 'taken';
+        const genderIcon = getGenderIcon(targetUser.gender);
+        
+        // Check if same gender (can't request)
+        const isSameGender = currentUserData.gender === targetUser.gender && !isSelf;
+        const isTargetTaken = targetUser.galaStatus === "taken";
+        const canSendRequest = !isSelf && !isSameGender && !isTargetTaken && !isPaired && !hasSentRequest && !hasIncomingRequest;
+        
+        // Privacy: Only show phone number if paired OR self
+        const showPhoneNumber = isPaired || isSelf;
+        // Only show Instagram if paired OR self
+        const showInstagram = isPaired || isSelf;
         
         let actionButtons = '';
         
@@ -196,16 +216,34 @@
                 actionButtons = `
                     <button class="btn btn-secondary" id="cancelRequestBtn">⏳ Request Pending · Cancel</button>
                 `;
-            } else if (targetUser.galaStatus === "available") {
+            } else if (isSameGender) {
                 actionButtons = `
-                    <button class="btn btn-primary" id="sendRequestBtn">💖 Send Gala Request</button>
+                    <button class="btn btn-secondary" disabled style="opacity:0.6; cursor:not-allowed;">
+                        <i class='bx bx-gender-circle'></i> Same Gender - Cannot Request
+                    </button>
                 `;
-            } else {
+            } else if (isTargetTaken) {
                 actionButtons = `
-                    <button class="btn btn-secondary" disabled style="opacity:0.6;">❌ This person is already paired</button>
+                    <button class="btn btn-secondary" disabled style="opacity:0.6;">
+                        <i class='bx bx-lock-alt'></i> Already Taken
+                    </button>
+                `;
+            } else if (canSendRequest) {
+                actionButtons = `
+                    <button class="btn btn-primary" id="sendRequestBtn">
+                        <i class='bx bx-heart'></i> Send Gala Request
+                    </button>
                 `;
             }
         }
+        
+        // Bio section
+        const bioHtml = targetUser.bio ? `
+            <div class="info-card">
+                <div class="info-label"><i class='bx bx-message-detail'></i> Bio</div>
+                <div class="bio-text">${escapeHtml(targetUser.bio)}</div>
+            </div>
+        ` : '';
         
         container.innerHTML = `
             <div class="profile-header">
@@ -213,22 +251,34 @@
                     <img class="profile-avatar" src="${targetUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100'}" alt="">
                     <div class="status-stroke ${statusClass}"></div>
                 </div>
-                <div class="profile-name">${escapeHtml(targetUser.realName)} ${verifiedIcon}</div>
+                <div class="profile-name">
+                    ${escapeHtml(targetUser.realName)} ${verifiedIcon}
+                </div>
                 <div class="profile-username">@${targetUser.username}</div>
+                <div style="margin-top: 8px;">
+                    <span class="privacy-badge"><i class='bx bx-shield-alt-2'></i> ${genderIcon} ${targetUser.gender === 'BOY' ? 'Boy' : 'Girl'}</span>
+                    ${isPaired ? '<span class="privacy-badge"><i class="bx bx-heart"></i> Paired</span>' : ''}
+                </div>
             </div>
+            
+            ${bioHtml}
             
             <div class="info-card">
                 <div class="info-row">
                     <span class="info-label"><i class='bx bx-male-female'></i> Gender</span>
-                    <span class="info-value">${targetUser.gender === 'BOY' ? '👦 Boy' : '👧 Girl'}</span>
+                    <span class="info-value">${genderIcon} ${targetUser.gender === 'BOY' ? 'Boy' : 'Girl'}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label"><i class='bx bx-phone'></i> Phone</span>
-                    <span class="info-value">${escapeHtml(targetUser.phoneNumber || 'Not shared')}</span>
+                    <span class="info-label"><i class='bx bx-phone'></i> Phone Number</span>
+                    <span class="info-value ${!showPhoneNumber ? 'private' : ''}">
+                        ${showPhoneNumber ? escapeHtml(targetUser.phoneNumber || 'Not provided') : '🔒 Hidden until paired'}
+                    </span>
                 </div>
                 <div class="info-row">
                     <span class="info-label"><i class='bx bx-instagram'></i> Instagram</span>
-                    <span class="info-value">${escapeHtml(targetUser.instagramName || 'Not connected')}</span>
+                    <span class="info-value ${!showInstagram ? 'private' : ''}">
+                        ${showInstagram ? escapeHtml(targetUser.instagramName || 'Not connected') : '🔒 Hidden until paired'}
+                    </span>
                 </div>
                 <div class="info-row">
                     <span class="info-label"><i class='bx bx-calendar'></i> Member since</span>
@@ -260,6 +310,14 @@
     }
     
     async function sendRequest() {
+        if (currentUserData.gender === targetUser.gender) {
+            showNotification("Cannot send request to the same gender", "error");
+            return;
+        }
+        if (targetUser.galaStatus === "taken") {
+            showNotification("This user is already taken", "error");
+            return;
+        }
         try {
             await updateDoc(doc(db, "users", targetUserId), {
                 requests: arrayUnion(currentUsername)
@@ -289,8 +347,7 @@
     
     async function acceptRequest() {
         try {
-            // SECRET PAIRING - Both users become "taken" but NOT visible to others
-            // The galaStatus is set to "taken" which hides them from search results
+            // SECRET PAIRING - Both users become "taken" which hides them from others
             await updateDoc(doc(db, "users", currentUsername), {
                 galaStatus: "taken",
                 pairedWith: targetUserId,
@@ -301,7 +358,7 @@
                 pairedWith: currentUsername,
                 sentRequests: arrayRemove(currentUsername)
             });
-            showNotification(`🎉 You are now paired with ${targetUser.realName}! This is a secret match. 🎉`, "success");
+            showNotification(`🎉 You are now secretly paired with ${targetUser.realName}! 🎉`, "success");
             setTimeout(() => { window.location.href = "home.html"; }, 2000);
         } catch(e) { 
             showNotification("Error: " + e.message, "error"); 
@@ -357,6 +414,7 @@
         window.location.href = "home.html"; 
     });
     
+    // Screenshot protection
     (function antiScreenshot() {
         const blackFlash = () => {
             const overlay = document.createElement('div');
@@ -365,6 +423,7 @@
             overlay.style.width = overlay.style.height = '100%';
             overlay.style.backgroundColor = '#000000';
             overlay.style.zIndex = '999999';
+            overlay.style.pointerEvents = 'none';
             document.body.appendChild(overlay);
             setTimeout(() => overlay.remove(), 200);
         };
