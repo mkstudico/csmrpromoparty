@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Galagram • Home</title>
+    <title>Galagram • Sign In</title>
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -18,16 +19,28 @@
             appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
             measurementId: "G-X3CHCJE5LK"
         };
+        
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
+        // Make available globally
         window.db = db;
+        window.doc = doc;
+        window.setDoc = setDoc;
+        window.getDocs = getDocs;
+        window.query = query;
+        window.where = where;
+        window.collection = collection;
+        window.updateDoc = updateDoc;
     </script>
+    <!-- Boxicons -->
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
         body {
             background: #000;
@@ -47,11 +60,16 @@
             align-items: center;
             justify-content: center;
             text-align: center;
+            padding: 2rem;
         }
         .pc-blocker i {
             font-size: 4rem;
             margin-bottom: 1.2rem;
             color: #d62976;
+        }
+        .pc-blocker p {
+            font-size: 1.4rem;
+            font-weight: 500;
         }
         .app-container {
             display: block;
@@ -59,6 +77,7 @@
             margin: 0 auto;
             background: #ffffff;
             min-height: 100vh;
+            position: relative;
         }
         .header {
             background: #ffffff;
@@ -67,10 +86,6 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 0.5px solid #efefef;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background: #fff;
         }
         .logo {
             font-weight: 620;
@@ -82,7 +97,7 @@
         }
         .page {
             padding: 24px 18px;
-            background: #fafafa;
+            background: #ffffff;
             min-height: 85vh;
         }
         .card {
@@ -92,30 +107,29 @@
             margin-bottom: 16px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.04);
         }
-        .home-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .form-group {
+            margin-bottom: 18px;
         }
-        .story-ring {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #d62976;
-            padding: 2px;
+        label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #8e8e8e;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 6px;
         }
-        .promo-card {
-            background: #ffffff;
-            border-radius: 16px;
-            border: 0.5px solid #efefef;
-            margin-top: 20px;
-            padding: 16px;
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #dbdbdb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: #fafafa;
         }
-        .flex-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        input:focus, select:focus {
+            outline: none;
+            border-color: #b3b3b3;
+            background: #fff;
         }
         .btn {
             background: #0095f6;
@@ -133,9 +147,45 @@
             justify-content: center;
             gap: 8px;
         }
-        .btn-outline {
-            background: #efefef;
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .switch-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #00376b;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .small-note {
+            font-size: 0.65rem;
+            color: #8e8e8e;
+            margin-top: 5px;
+        }
+        .protection-card {
+            background: #f8f8f8;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin: 14px 0 10px;
+            border: 0.5px solid #efefef;
+        }
+        .inline-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .inline-check label {
+            margin: 0;
+            text-transform: none;
+            font-weight: 450;
             color: #262626;
+            font-size: 0.85rem;
+        }
+        .hidden {
+            display: none;
         }
         footer {
             text-align: center;
@@ -143,6 +193,45 @@
             padding: 20px;
             color: #a0a0a0;
             border-top: 0.5px solid #efefef;
+        }
+        .profile-preview-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 12px;
+            border: 1.5px solid #dbdbdb;
+        }
+        .img-upload-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .upload-btn-mini {
+            background: #efefef;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: #262626;
+            margin-top: 8px;
+        }
+        #profileImageInput {
+            display: none;
+        }
+        .loader-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         .galagram-toast {
             position: fixed;
@@ -155,21 +244,24 @@
             padding: 12px 20px;
             border-radius: 40px;
             font-size: 0.85rem;
+            font-weight: 500;
             z-index: 10000;
             display: flex;
             align-items: center;
             gap: 10px;
-            transition: transform 0.25s;
+            max-width: 85%;
+            white-space: nowrap;
+            transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             pointer-events: none;
         }
         .galagram-toast.show {
             transform: translateX(-50%) translateY(0);
         }
-        .hidden {
-            display: none;
+        .galagram-toast.error {
+            background: rgba(237, 73, 86, 0.95);
         }
-        i.bx {
-            font-size: 1.5rem;
+        .galagram-toast.success {
+            background: rgba(46, 125, 50, 0.95);
         }
     </style>
 </head>
@@ -178,6 +270,7 @@
 <div id="pcBlocker" class="pc-blocker">
     <i class='bx bx-mobile-alt'></i>
     <p>Use your phone — PC is not supported</p>
+    <small>Galagram is built for mobile moments ✨</small>
 </div>
 
 <div id="appRoot" class="app-container">
@@ -189,89 +282,309 @@
         </div>
     </div>
 
-    <div id="homePage" class="page">
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="page">
         <div class="card">
-            <div class="home-header">
-                <img id="homeProfileImg" class="story-ring" src="https://ui-avatars.com/api/?background=262626&color=fff&rounded=true&size=60" alt="profile">
-                <div>
-                    <strong id="homeUsername" style="font-size: 1rem;">@user</strong>
-                    <div id="homeRealName" style="font-size: 0.75rem; color: #6e6e6e;"></div>
-                </div>
+            <h3 style="margin-bottom: 20px;">🎟️ Welcome back</h3>
+            <div class="form-group">
+                <label>6‑digit identifier</label>
+                <input type="text" id="loginCode" placeholder="e.g., 482719" maxlength="6" inputmode="numeric" autocomplete="off">
             </div>
-            <div class="promo-card">
-                <div class="flex-between">
-                    <span><i class='bx bxs-party' style="color:#d62976;"></i> <strong>Promo night</strong></span>
-                    <span id="displayUserCode" style="font-family: monospace; background:#f2f2f2; padding:4px 12px; border-radius:30px; font-size:0.75rem;">XXXXXX</span>
-                </div>
-                <p style="margin-top: 14px; font-size: 0.9rem;">🎉 Welcome to Galagram! School party is live. Share your unique code to invite friends.</p>
-                <div style="margin-top: 18px; display: flex; gap: 12px;">
-                    <i class='bx bx-camera'></i>
-                    <i class='bx bx-music'></i>
-                    <i class='bx bx-map'></i>
-                </div>
+            <div id="dynamicPasswordField" class="hidden" style="margin-top: 6px;">
+                <input type="password" id="loginPassword" placeholder="Additional password" autocomplete="off">
             </div>
-            <button id="logoutBtn" class="btn btn-outline"><i class='bx bx-log-out'></i> Log out</button>
+            <button id="loginBtn" class="btn"><i class='bx bx-log-in-circle'></i> Log in</button>
+            <div class="switch-link" id="goToSignup">No account? <strong>Create one</strong></div>
         </div>
-        <footer>Galagram ✦ school spirit</footer>
+        <footer>Galagram · exclusive promo party</footer>
+    </div>
+
+    <!-- SIGNUP PAGE -->
+    <div id="signupPage" class="page hidden">
+        <div class="card">
+            <h3 style="margin-bottom: 12px;">✨ Join the party</h3>
+            <div class="img-upload-area">
+                <img id="profilePreview" class="profile-preview-circle" src="https://ui-avatars.com/api/?background=0D8F81&color=fff&rounded=true&size=80&bold=true&name=📸" alt="avatar">
+                <label for="profileImageInput" class="upload-btn-mini"><i class='bx bx-cloud-upload'></i> Upload profile</label>
+                <input type="file" id="profileImageInput" accept="image/jpeg,image/png,image/jpg">
+            </div>
+            <div class="form-group">
+                <label>Real name</label>
+                <input type="text" id="realName" placeholder="Alex Morgan">
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="alex_promo">
+            </div>
+            <div class="form-group">
+                <label>Gender</label>
+                <select id="gender">
+                    <option value="Null">Select</option>
+                    <option value="BOY">BOY</option>
+                    <option value="GIRL">GIRL</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Phone number</label>
+                <input type="tel" id="phone" placeholder="+250 78 123 4567">
+                <div class="small-note">Your contact (any format)</div>
+            </div>
+            <div class="form-group">
+                <label>Instagram name (optional)</label>
+                <input type="text" id="instagramName" placeholder="@alex123">
+            </div>
+            <div class="protection-card">
+                <div class="inline-check">
+                    <input type="checkbox" id="extraProtectionToggle">
+                    <label><i class='bx bx-shield-alt-2'></i> Add password protection</label>
+                </div>
+                <div id="passwordFieldContainer" class="hidden" style="margin-top: 12px;">
+                    <input type="password" id="extraPassword" placeholder="Create strong password">
+                </div>
+            </div>
+            <button id="signupBtn" class="btn"><i class='bx bx-user-plus'></i> Sign up → Get code</button>
+            <div class="switch-link" id="goToLoginFromSignup">Already have an account? <strong>Log in</strong></div>
+        </div>
     </div>
 </div>
 
 <script type="module">
-    import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    
     const db = window.db;
+    const IMGBB_KEY = "99c6aa298645e8a4742979117fc73be6";
     
     function showNotification(message, type = "info") {
         const existingToast = document.querySelector('.galagram-toast');
         if(existingToast) existingToast.remove();
         const toast = document.createElement('div');
         toast.className = `galagram-toast ${type}`;
-        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
+        let icon = 'bx-info-circle';
+        if(type === 'success') icon = 'bx-check-circle';
+        if(type === 'error') icon = 'bx-error-circle';
+        toast.innerHTML = `<i class='bx ${icon}'></i><span>${message}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 10);
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
-        }, 6000);
+        }, 4000);
     }
     
-    // Check session
-    const sessionData = localStorage.getItem('galagram_session');
-    if (!sessionData) {
-        window.location.href = "index.html";
+    function setLoading(button, isLoading, originalText) {
+        if(isLoading) {
+            button.disabled = true;
+            button.innerHTML = `<span class="loader-spinner"></span> ${originalText || 'Processing...'}`;
+        } else {
+            button.disabled = false;
+            button.innerHTML = originalText || button.getAttribute('data-original-text') || 'Submit';
+        }
     }
     
-    const session = JSON.parse(sessionData);
-    const username = session.username;
-    const sessionId = session.sessionId;
+    async function uploadToImgBB(file) {
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if(data.success) return data.data.url;
+        throw new Error('Upload failed');
+    }
     
-    // Real-time session tracking
-    const userRef = doc(db, "users", username);
-    const unsubscribe = onSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.activeSession && data.activeSession !== sessionId) {
-                showNotification('⚠️ Someone else logged into your account. You will be logged out.', 'error');
-                setTimeout(() => {
-                    localStorage.removeItem('galagram_session');
-                    window.location.href = "index.html";
-                }, 2000);
+    let uploadedImageURL = null;
+    const profileInput = document.getElementById('profileImageInput');
+    const profilePreview = document.getElementById('profilePreview');
+    
+    profileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if(file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { profilePreview.src = ev.target.result; };
+            reader.readAsDataURL(file);
+            const uploadLabel = document.querySelector('.upload-btn-mini');
+            const originalText = uploadLabel.innerHTML;
+            uploadLabel.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Uploading...';
+            try {
+                const url = await uploadToImgBB(file);
+                uploadedImageURL = url;
+                showNotification('Profile photo uploaded!', 'success');
+            } catch(err) { 
+                uploadedImageURL = null; 
+                showNotification('Image upload failed', 'error');
+            } finally {
+                uploadLabel.innerHTML = originalText;
             }
         }
     });
     
-    // Load user data
-    const userData = session.userData;
-    document.getElementById('homeProfileImg').src = userData.profileImage || "https://ui-avatars.com/api/?background=262626&color=fff&rounded=true&size=60";
-    document.getElementById('homeUsername').innerHTML = `@${userData.username}`;
-    document.getElementById('homeRealName').innerHTML = userData.realName;
-    document.getElementById('displayUserCode').innerText = userData.sixDigitCode;
+    function generateSixDigit() {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
     
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-        await updateDoc(userRef, { activeSession: null, lastActive: null }).catch(() => {});
-        localStorage.removeItem('galagram_session');
-        unsubscribe();
-        window.location.href = "index.html";
+    async function createAndRedirectSession(username, sixDigitCode, userData) {
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+        const userRef = doc(db, "users", username);
+        await updateDoc(userRef, { activeSession: sessionId, lastActive: new Date().toISOString() });
+        
+        const session = {
+            username: username,
+            sixDigitCode: sixDigitCode,
+            sessionId: sessionId,
+            userData: {
+                realName: userData.realName,
+                username: userData.username,
+                profileImage: userData.profileImage,
+                sixDigitCode: sixDigitCode,
+                gender: userData.gender,
+                phoneNumber: userData.phoneNumber,
+                instagramName: userData.instagramName || ""
+            }
+        };
+        localStorage.setItem('galagram_session', JSON.stringify(session));
+        window.location.href = "home.html";
+    }
+    
+    // SIGNUP
+    const signupBtn = document.getElementById('signupBtn');
+    signupBtn.addEventListener('click', async () => {
+        const realName = document.getElementById('realName').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const gender = document.getElementById('gender').value;
+        const phone = document.getElementById('phone').value.trim();
+        const instaName = document.getElementById('instagramName').value.trim();
+        const extraProtect = document.getElementById('extraProtectionToggle').checked;
+        const password = document.getElementById('extraPassword').value;
+        
+        if(!realName || !username || !phone) {
+            showNotification('Real name, username & phone are required', 'error');
+            return;
+        }
+        if(gender === "Null") {
+            showNotification('Please select a gender', 'error');
+            return;
+        }
+        if(extraProtect && password.length < 4) {
+            showNotification('Password must be at least 4 characters', 'error');
+            return;
+        }
+        
+        setLoading(signupBtn, true, 'Creating account...');
+        try {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("username", "==", username));
+            const snap = await getDocs(q);
+            if(!snap.empty) {
+                showNotification('Username already taken', 'error');
+                setLoading(signupBtn, false, 'Sign up → Get code');
+                return;
+            }
+            const sixCode = generateSixDigit();
+            const profilePic = uploadedImageURL || `https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80&name=${username.charAt(0).toUpperCase()}`;
+            const userData = {
+                realName, username, gender, phoneNumber: phone, instagramName: instaName || "",
+                sixDigitCode: sixCode, hasPassword: extraProtect, password: extraProtect ? password : null,
+                profileImage: profilePic, createdAt: new Date().toISOString(),
+                activeSession: null, galaStatus: "available", requests: [], sentRequests: []
+            };
+            await setDoc(doc(db, "users", username), userData);
+            showNotification(`✅ Account created! Logging you in...`, 'success');
+            await createAndRedirectSession(username, sixCode, userData);
+        } catch(e) { 
+            showNotification('Error: ' + e.message, 'error');
+            setLoading(signupBtn, false, 'Sign up → Get code');
+        }
+    });
+    
+    // LOGIN
+    const loginCodeInput = document.getElementById('loginCode');
+    const dynamicPassDiv = document.getElementById('dynamicPasswordField');
+    const loginPasswordInput = document.getElementById('loginPassword');
+    let currentLoginUserDoc = null;
+    
+    async function checkCodeAndUpdatePasswordField() {
+        const code = loginCodeInput.value.trim();
+        if(code.length !== 6) {
+            dynamicPassDiv.classList.add('hidden');
+            currentLoginUserDoc = null;
+            return;
+        }
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("sixDigitCode", "==", code));
+        const snap = await getDocs(q);
+        if(!snap.empty) {
+            const user = snap.docs[0].data();
+            if(user.hasPassword === true) {
+                dynamicPassDiv.classList.remove('hidden');
+                currentLoginUserDoc = snap.docs[0];
+            } else {
+                dynamicPassDiv.classList.add('hidden');
+                currentLoginUserDoc = snap.docs[0];
+            }
+        } else {
+            dynamicPassDiv.classList.add('hidden');
+            currentLoginUserDoc = null;
+        }
+    }
+    
+    loginCodeInput.addEventListener('input', () => { checkCodeAndUpdatePasswordField(); });
+    
+    const loginBtn = document.getElementById('loginBtn');
+    loginBtn.addEventListener('click', async () => {
+        const code = loginCodeInput.value.trim();
+        if(code.length !== 6) {
+            showNotification('Enter valid 6-digit code', 'error');
+            return;
+        }
+        setLoading(loginBtn, true, 'Signing in...');
+        try {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("sixDigitCode", "==", code));
+            const snap = await getDocs(q);
+            if(snap.empty) {
+                showNotification('No account found with this code', 'error');
+                setLoading(loginBtn, false, 'Log in');
+                return;
+            }
+            const userDoc = snap.docs[0];
+            const user = userDoc.data();
+            if(user.hasPassword) {
+                const providedPass = loginPasswordInput.value;
+                if(!providedPass || providedPass !== user.password) {
+                    showNotification('Incorrect password', 'error');
+                    setLoading(loginBtn, false, 'Log in');
+                    return;
+                }
+            }
+            if(user.activeSession) {
+                showNotification('Account already logged in on another device', 'error');
+                setLoading(loginBtn, false, 'Log in');
+                return;
+            }
+            await createAndRedirectSession(userDoc.id, code, user);
+        } catch(e) {
+            showNotification('Login error: ' + e.message, 'error');
+            setLoading(loginBtn, false, 'Log in');
+        }
+    });
+    
+    // Navigation
+    document.getElementById('goToSignup').addEventListener('click', () => {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('signupPage').classList.remove('hidden');
+        document.getElementById('loginCode').value = '';
+        document.getElementById('loginPassword').value = '';
+    });
+    document.getElementById('goToLoginFromSignup').addEventListener('click', () => {
+        document.getElementById('signupPage').classList.add('hidden');
+        document.getElementById('loginPage').classList.remove('hidden');
+    });
+    
+    document.getElementById('extraProtectionToggle').addEventListener('change', (e) => {
+        const container = document.getElementById('passwordFieldContainer');
+        if(e.target.checked) container.classList.remove('hidden');
+        else {
+            container.classList.add('hidden');
+            document.getElementById('extraPassword').value = '';
+        }
     });
     
     // Screenshot Protection
@@ -283,12 +596,14 @@
             overlay.style.width = overlay.style.height = '100%';
             overlay.style.backgroundColor = '#000000';
             overlay.style.zIndex = '999999';
+            overlay.style.pointerEvents = 'none';
             document.body.appendChild(overlay);
             setTimeout(() => overlay.remove(), 200);
         };
-        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); navigator.clipboard.writeText(''); } });
         document.addEventListener('keydown', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
         document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+        Object.defineProperty(navigator.clipboard, 'writeText', { value: async () => { blackFlash(); throw new Error('blocked'); } });
     })();
     
     function handleResize() {
@@ -304,6 +619,12 @@
     }
     window.addEventListener('resize', handleResize);
     handleResize();
+    
+    // Check if already logged in and redirect to home
+    const storedSession = localStorage.getItem('galagram_session');
+    if(storedSession) {
+        window.location.href = "home.html";
+    }
 </script>
 </body>
 </html>
