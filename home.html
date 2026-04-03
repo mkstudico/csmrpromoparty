@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Galagram • Home</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+            authDomain: "akademia-c56ff.firebaseapp.com",
+            databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+            projectId: "akademia-c56ff",
+            storageBucket: "akademia-c56ff.firebasestorage.app",
+            messagingSenderId: "678278775270",
+            appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+            measurementId: "G-X3CHCJE5LK"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        window.arrayUnion = arrayUnion;
+        window.arrayRemove = arrayRemove;
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .pc-blocker {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            z-index: 9999;
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .pc-blocker i {
+            font-size: 4rem;
+            margin-bottom: 1.2rem;
+            color: #d62976;
+        }
+        .app-container {
+            display: block;
+            max-width: 480px;
+            margin: 0 auto;
+            background: #ffffff;
+            min-height: 100vh;
+        }
+        .header {
+            background: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 0.5px solid #efefef;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 620;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #f77737, #d62976, #962fbf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .heart-icon {
+            position: relative;
+            cursor: pointer;
+        }
+        .heart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ed4956;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 20px;
+            min-width: 18px;
+            text-align: center;
+        }
+        .search-bar {
+            padding: 12px 16px;
+            background: #fff;
+            border-bottom: 0.5px solid #efefef;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #dbdbdb;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: #fafafa;
+        }
+        .tabs {
+            display: flex;
+            padding: 0 16px;
+            background: #fff;
+            border-bottom: 0.5px solid #efefef;
+            gap: 24px;
+        }
+        .tab {
+            padding: 12px 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #8e8e8e;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+        .tab.active {
+            color: #0095f6;
+            border-bottom-color: #0095f6;
+        }
+        .content {
+            padding: 16px;
+            background: #fafafa;
+            min-height: 70vh;
+        }
+        .user-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .user-card:active { transform: scale(0.98); }
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1.5px solid #dbdbdb;
+        }
+        .user-info {
+            flex: 1;
+        }
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .user-username {
+            font-size: 0.7rem;
+            color: #8e8e8e;
+        }
+        .status-badge {
+            font-size: 0.65rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .status-available {
+            background: #e3f7e8;
+            color: #1e7b3e;
+        }
+        .status-taken {
+            background: #ffe6e6;
+            color: #c0392b;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8e8e8e;
+        }
+        .galagram-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.25s;
+            pointer-events: none;
+        }
+        .galagram-toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        i.bx {
+            font-size: 1.3rem;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: #8e8e8e;
+        }
+        .bx-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="pcBlocker" class="pc-blocker">
+    <i class='bx bx-mobile-alt'></i>
+    <p>Use your phone — PC is not supported</p>
+</div>
+
+<div id="appRoot" class="app-container">
+    <div class="header">
+        <div class="logo">Galagram</div>
+        <div class="heart-icon" id="requestsHeart">
+            <i class='bx bx-heart' style="font-size: 1.6rem;"></i>
+            <span id="requestBadge" class="heart-badge hidden">0</span>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by name or username...">
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="all">ALL</div>
+        <div class="tab" data-tab="available">AVAILABLE</div>
+        <div class="tab" data-tab="taken">TAKEN</div>
+    </div>
+
+    <div class="content" id="contentArea">
+        <div class="loading-spinner"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div>
+    </div>
+</div>
+
+<script type="module">
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const db = window.db;
+    
+    let currentUser = null;
+    let allUsers = [];
+    let requestsList = [];
+    let currentTab = "all";
+    let searchQuery = "";
+    
+    function showNotification(message, type = "info") {
+        const existing = document.querySelector('.galagram-toast');
+        if(existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = `galagram-toast`;
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+    
+    // Check session
+    const sessionData = localStorage.getItem('galagram_session');
+    if (!sessionData) {
+        window.location.href = "index.html";
+        throw new Error("No session");
+    }
+    const session = JSON.parse(sessionData);
+    const currentUsername = session.username;
+    const sessionId = session.sessionId;
+    
+    // Real-time session tracking
+    import { doc as fDoc, onSnapshot as fOnSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const userRef = fDoc(db, "users", currentUsername);
+    const unsubscribeSession = fOnSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.activeSession && data.activeSession !== sessionId) {
+                showNotification('⚠️ Someone else logged into your account. You will be logged out.', 'error');
+                setTimeout(() => {
+                    localStorage.removeItem('galagram_session');
+                    window.location.href = "index.html";
+                }, 2000);
+            }
+        }
+    });
+    
+    // Load current user data
+    async function loadCurrentUser() {
+        const userDoc = await getDoc(fDoc(db, "users", currentUsername));
+        if (userDoc.exists()) {
+            currentUser = { id: currentUsername, ...userDoc.data() };
+            if (!currentUser.galaStatus) {
+                await updateDoc(fDoc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] });
+                currentUser.galaStatus = "available";
+                currentUser.requests = [];
+                currentUser.sentRequests = [];
+            }
+            if (!currentUser.requests) await updateDoc(fDoc(db, "users", currentUsername), { requests: [] });
+            if (!currentUser.sentRequests) await updateDoc(fDoc(db, "users", currentUsername), { sentRequests: [] });
+            requestsList = currentUser.requests || [];
+            updateRequestBadge();
+        }
+    }
+    
+    // Load all users with real-time
+    let unsubscribeUsers = null;
+    function loadUsers() {
+        if (unsubscribeUsers) unsubscribeUsers();
+        const q = query(collection(db, "users"));
+        unsubscribeUsers = onSnapshot(q, (snapshot) => {
+            allUsers = [];
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                if (docSnap.id !== currentUsername && data.galaStatus) {
+                    allUsers.push({
+                        id: docSnap.id,
+                        ...data,
+                        galaStatus: data.galaStatus || "available"
+                    });
+                }
+            });
+            renderUsers();
+        });
+    }
+    
+    // Smart match algorithm: finds best match based on gender, interests, compatibility
+    function getSmartMatches(users, currentUserData, limit = 20) {
+        // Score each user based on compatibility factors
+        const scored = users.map(user => {
+            let score = 0;
+            // Different gender preference (BOY-GIRL pairing)
+            if (currentUserData.gender === "BOY" && user.gender === "GIRL") score += 30;
+            else if (currentUserData.gender === "GIRL" && user.gender === "BOY") score += 30;
+            else score += 10; // Same gender still possible but lower priority
+            
+            // Status: available users get higher score
+            if (user.galaStatus === "available") score += 40;
+            else if (user.galaStatus === "taken") score -= 20;
+            
+            // Avoid self and already requested/paired
+            if (currentUserData.requests?.includes(user.id)) score -= 50;
+            if (currentUserData.sentRequests?.includes(user.id)) score -= 30;
+            
+            // Name match with search query
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                if (user.realName?.toLowerCase().includes(q)) score += 25;
+                if (user.username?.toLowerCase().includes(q)) score += 25;
+            }
+            
+            return { user, score };
+        });
+        
+        scored.sort((a, b) => b.score - a.score);
+        return scored.slice(0, limit).map(s => s.user);
+    }
+    
+    function renderUsers() {
+        let filtered = [...allUsers];
+        
+        // Filter by search
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter(u => 
+                u.realName?.toLowerCase().includes(q) || 
+                u.username?.toLowerCase().includes(q)
+            );
+        }
+        
+        // Filter by tab
+        if (currentTab === "available") {
+            filtered = filtered.filter(u => u.galaStatus === "available");
+        } else if (currentTab === "taken") {
+            filtered = filtered.filter(u => u.galaStatus === "taken");
+        }
+        
+        // Smart algorithm sorting for "ALL" tab
+        if (currentTab === "all" && currentUser) {
+            filtered = getSmartMatches(filtered, currentUser);
+        } else {
+            // Default sorting for other tabs
+            filtered.sort((a, b) => {
+                if (a.galaStatus === "available" && b.galaStatus !== "available") return -1;
+                return 0;
+            });
+        }
+        
+        const container = document.getElementById('contentArea');
+        if (!filtered.length) {
+            container.innerHTML = `<div class="empty-state"><i class='bx bx-user-x' style="font-size: 3rem;"></i><p>No users found</p></div>`;
+            return;
+        }
+        
+        container.innerHTML = filtered.map(user => `
+            <div class="user-card" data-userid="${user.id}" data-username="${user.username}">
+                <img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="avatar">
+                <div class="user-info">
+                    <div class="user-name">${escapeHtml(user.realName)}</div>
+                    <div class="user-username">@${user.username}</div>
+                </div>
+                <div class="status-badge ${user.galaStatus === 'available' ? 'status-available' : 'status-taken'}">
+                    ${user.galaStatus === 'available' ? 'AVAILABLE' : 'TAKEN'}
+                </div>
+            </div>
+        `).join('');
+        
+        // Add click listeners
+        document.querySelectorAll('.user-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const userId = card.dataset.userid;
+                window.location.href = `user.html?uid=${encodeURIComponent(userId)}`;
+            });
+        });
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function updateRequestBadge() {
+        const badge = document.getElementById('requestBadge');
+        const count = requestsList.length;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+    
+    // Listen for real-time updates to current user's requests
+    let unsubscribeCurrent = null;
+    function listenToCurrentUser() {
+        if (unsubscribeCurrent) unsubscribeCurrent();
+        unsubscribeCurrent = onSnapshot(fDoc(db, "users", currentUsername), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                currentUser = { id: currentUsername, ...data };
+                requestsList = data.requests || [];
+                updateRequestBadge();
+                // Re-render to update statuses
+                renderUsers();
+            }
+        });
+    }
+    
+    // Update user status (for demo, but will be updated via requests)
+    async function initUserStatus() {
+        const userDoc = await getDoc(fDoc(db, "users", currentUsername));
+        if (!userDoc.exists()) return;
+        if (!userDoc.data().galaStatus) {
+            await updateDoc(fDoc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] });
+        }
+    }
+    
+    // Setup event listeners
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        renderUsers();
+    });
+    
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = tab.dataset.tab;
+            renderUsers();
+        });
+    });
+    
+    document.getElementById('requestsHeart').addEventListener('click', () => {
+        window.location.href = `requests.html`;
+    });
+    
+    // Screenshot Protection
+    (function antiScreenshot() {
+        const blackFlash = () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = overlay.style.left = '0';
+            overlay.style.width = overlay.style.height = '100%';
+            overlay.style.backgroundColor = '#000000';
+            overlay.style.zIndex = '999999';
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 200);
+        };
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('keydown', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+    })();
+    
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if(window.innerWidth > 768) {
+            blocker.style.display = 'flex';
+            if(app) app.style.display = 'none';
+        } else {
+            blocker.style.display = 'none';
+            if(app) app.style.display = 'block';
+        }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
+    // Initialize
+    (async () => {
+        await loadCurrentUser();
+        await initUserStatus();
+        loadUsers();
+        listenToCurrentUser();
+    })();
+</script>
+</body>
+</html>
