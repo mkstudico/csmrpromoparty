@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ (<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -177,6 +177,7 @@
             min-height: 70vh;
             padding-bottom: 80px;
         }
+        /* VERTICAL POSTS & USERS */
         .user-card, .post-card {
             background: white;
             border-radius: 12px;
@@ -408,97 +409,6 @@
         .bx-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .hidden { display: none; }
-
-        /* Survey Modal */
-        .survey-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(8px);
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .survey-container {
-            background: white;
-            border-radius: 24px;
-            width: 90%;
-            max-width: 400px;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding: 20px;
-        }
-        .survey-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            text-align: center;
-            margin-bottom: 16px;
-            background: linear-gradient(135deg, #f77737, #d62976);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .survey-question {
-            margin-bottom: 20px;
-        }
-        .survey-label {
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: block;
-        }
-        .survey-select, .survey-input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #dbdbdb;
-            border-radius: 10px;
-            font-size: 0.9rem;
-        }
-        .survey-subquestion {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-        }
-        .survey-subquestion select {
-            flex: 1;
-        }
-        .survey-progress {
-            height: 4px;
-            background: #efefef;
-            border-radius: 2px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-        .survey-progress-bar {
-            height: 100%;
-            background: #0095f6;
-            width: 0%;
-            transition: width 0.3s;
-        }
-        .survey-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .survey-btn {
-            flex: 1;
-            padding: 10px;
-            border-radius: 30px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-        }
-        .survey-btn-primary {
-            background: #0095f6;
-            color: white;
-        }
-        .survey-btn-secondary {
-            background: #efefef;
-            color: #262626;
-        }
     </style>
 </head>
 <body>
@@ -536,7 +446,7 @@
     
     <div id="fabBtn" class="fab hidden"><i class='bx bx-plus' style="font-size: 1.8rem;"></i></div>
 
-    <!-- Chat Overlay -->
+    <!-- Chat Overlay (triggered by CHAT tab) -->
     <div id="chatOverlay" class="chat-overlay">
         <div class="chat-header">
             <div class="chat-title">💬 Public Chat</div>
@@ -564,7 +474,6 @@
     let searchQuery = "";
     let searchDebounceTimer = null;
     let unsubscribeMessages = null;
-    let recentSuggestions = []; // store IDs of recently shown users to rotate
     
     // Logging function
     async function addLog(type, actor, target, message) {
@@ -618,258 +527,10 @@
             requestsList = currentUser.requests || [];
             updateRequestBadge();
             document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80';
-            
-            // Check if survey is needed
-            if (!currentUser.survey) {
-                showSurvey();
-            }
         }
     }
     
-    // ================= SURVEY SYSTEM =================
-    function showSurvey() {
-        const districts = ["Gasabo","Kicukiro","Nyarugenge","Gisagara","Huye","Kamonyi","Muhanga","Nyamagabe","Nyanza","Nyaruguru","Ruhango","Karongi","Ngororero","Nyabihu","Nyamasheke","Rubavu","Rusizi","Rutsiro","Bugesera","Gatsibo","Kayonza","Kirehe","Ngoma","Nyagatare","Rwamagana","Burera","Gakenke","Gicumbi","Musanze","Rulindo"];
-        const ages = ["16-18","19-21"];
-        const heights = ["Short","Medium","Tall","Taller"];
-        const hobbies = ["Physical fitness","Entertainment","Betting","Eating","Travel","Dancing"];
-        const classes = ["S6 MCE","S6 MCB","S6 MEG","S6 PCB","S6 PCM","S6 LFK"];
-        const kissed = ["YES","NO"];
-        
-        let answers = {
-            district: "",
-            ageRange: "",
-            height: "",
-            hobby: "",
-            classCombo: "",
-            everKissed: ""
-        };
-        let step = 0;
-        const questions = [
-            { label: "Home District", type: "select", options: districts, field: "district" },
-            { label: "Age & Height", type: "group", fields: ["ageRange","height"], sublabels: ["Age","Height"], options: [ages, heights] },
-            { label: "Hobby", type: "select", options: hobbies, field: "hobby" },
-            { label: "Class Combination", type: "select", options: classes, field: "classCombo" },
-            { label: "Ever Kissed?", type: "select", options: kissed, field: "everKissed" }
-        ];
-        
-        const overlay = document.createElement('div');
-        overlay.className = 'survey-overlay';
-        const container = document.createElement('div');
-        container.className = 'survey-container';
-        
-        function renderStep() {
-            const q = questions[step];
-            let innerHtml = `<div class="survey-title">✨ Tell us about yourself ✨</div>`;
-            innerHtml += `<div class="survey-progress"><div class="survey-progress-bar" style="width: ${((step+1)/questions.length)*100}%"></div></div>`;
-            innerHtml += `<div class="survey-question"><div class="survey-label">${q.label}</div>`;
-            if (q.type === "select") {
-                innerHtml += `<select id="survey-${q.field}" class="survey-select">`;
-                q.options.forEach(opt => { innerHtml += `<option value="${opt}">${opt}</option>`; });
-                innerHtml += `</select>`;
-            } else if (q.type === "group") {
-                innerHtml += `<div class="survey-subquestion">`;
-                q.fields.forEach((field, idx) => {
-                    innerHtml += `<select id="survey-${field}" class="survey-select" style="flex:1"><option value="">${q.sublabels[idx]}</option>`;
-                    q.options[idx].forEach(opt => { innerHtml += `<option value="${opt}">${opt}</option>`; });
-                    innerHtml += `</select>`;
-                });
-                innerHtml += `</div>`;
-            }
-            innerHtml += `</div><div class="survey-buttons">`;
-            if (step > 0) innerHtml += `<button class="survey-btn survey-btn-secondary" id="surveyPrev">Back</button>`;
-            innerHtml += `<button class="survey-btn survey-btn-primary" id="surveyNext">${step === questions.length-1 ? "Finish" : "Next"}</button>`;
-            innerHtml += `</div>`;
-            container.innerHTML = innerHtml;
-            
-            // Load existing answers if any
-            if (q.type === "select") {
-                const sel = document.getElementById(`survey-${q.field}`);
-                if (answers[q.field]) sel.value = answers[q.field];
-            } else if (q.type === "group") {
-                q.fields.forEach(field => {
-                    const sel = document.getElementById(`survey-${field}`);
-                    if (answers[field]) sel.value = answers[field];
-                });
-            }
-            
-            document.getElementById('surveyNext').addEventListener('click', () => {
-                if (q.type === "select") {
-                    const val = document.getElementById(`survey-${q.field}`).value;
-                    if (!val) { showNotification("Please select an option", "error"); return; }
-                    answers[q.field] = val;
-                } else if (q.type === "group") {
-                    let allFilled = true;
-                    q.fields.forEach(field => {
-                        const val = document.getElementById(`survey-${field}`).value;
-                        if (!val) allFilled = false;
-                        answers[field] = val;
-                    });
-                    if (!allFilled) { showNotification("Please fill both age and height", "error"); return; }
-                }
-                if (step === questions.length-1) {
-                    finishSurvey();
-                } else {
-                    step++;
-                    renderStep();
-                }
-            });
-            if (step > 0) {
-                document.getElementById('surveyPrev').addEventListener('click', () => {
-                    step--;
-                    renderStep();
-                });
-            }
-        }
-        
-        async function finishSurvey() {
-            // Save survey data to firestore
-            await updateDoc(doc(db, "users", currentUsername), {
-                survey: {
-                    district: answers.district,
-                    ageRange: answers.ageRange,
-                    height: answers.height,
-                    hobby: answers.hobby,
-                    classCombo: answers.classCombo,
-                    everKissed: answers.everKissed,
-                    completedAt: new Date()
-                }
-            });
-            currentUser.survey = { ...answers };
-            showNotification("Survey completed! Your matches will improve.", "success");
-            overlay.remove();
-            // After survey, we can also trigger a suggestion popup (optional)
-            setTimeout(() => showSuggestionPopupIfNeeded(), 1000);
-        }
-        
-        renderStep();
-        overlay.appendChild(container);
-        document.body.appendChild(overlay);
-    }
-    
-    // ================= ADVANCED COMPATIBILITY ALGORITHM =================
-    function computeCompatibilityScore(user, currentUserData) {
-        if (user.id === currentUsername) return -Infinity;
-        if (user.galaStatus !== "available") return -Infinity;
-        if (currentUserData.sentRequests?.includes(user.id)) return -Infinity;
-        if (currentUserData.requests?.includes(user.id)) return -Infinity;
-        
-        let score = 0;
-        
-        // 1. Gender (opposite preferred)
-        if (currentUserData.gender !== user.gender) score += 30;
-        else score -= 20;
-        
-        // 2. Survey data (if available)
-        const mySurvey = currentUserData.survey;
-        const theirSurvey = user.survey;
-        if (mySurvey && theirSurvey) {
-            // District: same district +15
-            if (mySurvey.district === theirSurvey.district) score += 15;
-            // Age range match +10
-            if (mySurvey.ageRange === theirSurvey.ageRange) score += 10;
-            // Height compatibility: same height +5, taller/shorter neutral
-            if (mySurvey.height === theirSurvey.height) score += 5;
-            // Hobby match: +20
-            if (mySurvey.hobby === theirSurvey.hobby) score += 20;
-            // Class combo match: +25
-            if (mySurvey.classCombo === theirSurvey.classCombo) score += 25;
-            // Ever kissed: similar preference? Not crucial, but if both same +5
-            if (mySurvey.everKissed === theirSurvey.everKissed) score += 5;
-        }
-        
-        // 3. Rejection count: users with many rejections get a small boost to be shown more (to help them)
-        const rejectionCount = user.rejectionCount || 0;
-        score += Math.min(rejectionCount, 5) * 2;
-        
-        // 4. New user boost (based on createdAt)
-        if (user.createdAt) {
-            const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000*3600*24);
-            if (daysSinceJoin < 3) score += 15;
-        }
-        
-        // 5. Chat activity (number of messages sent) as engagement indicator
-        const chatActivity = user.chatMessageCount || 0;
-        score += Math.min(chatActivity, 50) * 0.5;
-        
-        // 6. Avoid showing recently suggested users repeatedly (rotation)
-        if (recentSuggestions.includes(user.id)) {
-            score -= 30;
-        }
-        
-        // 7. Verified badge boost
-        if (user.verified === "blue") score += 20;
-        else if (user.verified === "gray") score += 10;
-        
-        return score;
-    }
-    
-    function sortUsersByCompatibility(users, currentUserData) {
-        return users.filter(u => u.galaStatus === "available" && u.id !== currentUsername)
-                    .map(u => ({ user: u, score: computeCompatibilityScore(u, currentUserData) }))
-                    .sort((a,b) => b.score - a.score)
-                    .map(item => item.user);
-    }
-    
-    // Update recent suggestions list (keep last 10)
-    function addToRecentSuggestions(userId) {
-        recentSuggestions.unshift(userId);
-        if (recentSuggestions.length > 10) recentSuggestions.pop();
-    }
-    
-    // ================= SUGGESTION POPUP (daily once) =================
-    let suggestionPopupShownToday = false;
-    async function showSuggestionPopupIfNeeded() {
-        if (!currentUser || currentUser.galaStatus !== "available") return;
-        const today = new Date().toDateString();
-        const lastShown = localStorage.getItem('galagram_suggestion_date');
-        if (lastShown === today) return;
-        
-        // Get top 3 compatible users
-        const compatible = sortUsersByCompatibility(allUsers, currentUser);
-        if (compatible.length === 0) return;
-        
-        const topMatch = compatible[0];
-        addToRecentSuggestions(topMatch.id);
-        
-        // Create popup
-        const overlay = document.createElement('div');
-        overlay.className = 'rec-overlay';
-        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
-        const popup = document.createElement('div');
-        popup.style.cssText = 'background:white;border-radius:24px;width:85%;max-width:320px;padding:24px 20px;text-align:center;animation:popupSlide 0.3s ease;';
-        const pronoun = topMatch.gender === 'BOY' ? 'him' : 'her';
-        popup.innerHTML = `
-            <div style="font-size:1.3rem;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#f77737,#d62976);-webkit-background-clip:text;background-clip:text;color:transparent;">✨ Perfect Match ✨</div>
-            <div style="display:flex;align-items:center;gap:12px;background:#f8f8f8;padding:12px;border-radius:16px;margin:16px 0;">
-                <img src="${topMatch.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">
-                <div><div style="font-weight:600;font-size:1rem;">${escapeHtml(topMatch.realName)}</div><div style="font-size:0.7rem;color:#8e8e8e;">@${topMatch.username}</div></div>
-            </div>
-            <p>Are you interested in ${escapeHtml(topMatch.realName)}? Request ${pronoun} to be your gala!</p>
-            <div style="display:flex;gap:12px;margin-top:16px;">
-                <button id="suggAccept" style="flex:1;padding:10px;border-radius:30px;font-weight:600;background:#0095f6;color:white;border:none;">Request</button>
-                <button id="suggDecline" style="flex:1;padding:10px;border-radius:30px;font-weight:600;background:#efefef;color:#262626;border:none;">No, Thanks</button>
-            </div>
-        `;
-        overlay.appendChild(popup);
-        document.body.appendChild(overlay);
-        
-        popup.querySelector('#suggAccept').addEventListener('click', async () => {
-            try {
-                await updateDoc(doc(db, "users", topMatch.id), { requests: arrayUnion(currentUsername) });
-                await updateDoc(doc(db, "users", currentUsername), { sentRequests: arrayUnion(topMatch.id) });
-                showNotification(`Request sent to ${topMatch.realName}!`, 'success');
-                await addLog('request', currentUsername, topMatch.id, `${currentUsername} requested ${topMatch.realName} (via suggestion popup)`);
-            } catch(e) { showNotification("Error sending request", "error"); }
-            overlay.remove();
-            localStorage.setItem('galagram_suggestion_date', today);
-        });
-        popup.querySelector('#suggDecline').addEventListener('click', () => {
-            overlay.remove();
-            localStorage.setItem('galagram_suggestion_date', today);
-        });
-    }
-    
-    // ================= POSTS RANKING =================
+    // Post score algorithm (engagement + recency + pinned)
     function calculatePostScore(post) {
         const likes = post.likes?.length || 0;
         const comments = post.comments?.length || 0;
@@ -954,11 +615,6 @@
         }
         if (currentTab === "available") filtered = filtered.filter(u => u.galaStatus === "available");
         if (currentTab === "taken") filtered = filtered.filter(u => u.galaStatus === "taken");
-        
-        // Apply smart sorting for ALL and AVAILABLE tabs
-        if (currentTab === "all" || currentTab === "available") {
-            filtered = sortUsersByCompatibility(filtered, currentUser);
-        }
         
         const container = document.getElementById('contentArea');
         if (!filtered.length) {
@@ -1052,7 +708,7 @@
         });
     }
     
-    // CHAT FUNCTIONALITY
+    // CHAT FUNCTIONALITY (triggered by CHAT tab)
     let chatOpen = false;
     const chatOverlay = document.getElementById('chatOverlay');
     const chatMessagesDiv = document.getElementById('chatMessages');
@@ -1097,10 +753,6 @@
                 userVerified: currentUser.verified || "none",
                 timestamp: serverTimestamp()
             });
-            // Increment chat message count for user (for algorithm)
-            const newCount = (currentUser.chatMessageCount || 0) + 1;
-            await updateDoc(doc(db, "users", currentUsername), { chatMessageCount: newCount });
-            currentUser.chatMessageCount = newCount;
             chatInput.value = '';
         } catch(e) { showNotification("Failed to send", "error"); }
     }
@@ -1114,6 +766,7 @@
     closeChat.addEventListener('click', () => {
         chatOverlay.classList.remove('open');
         if (unsubscribeMessages) unsubscribeMessages();
+        // Return to previous tab (posts) after closing
         currentTab = "posts";
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelector('.tab[data-tab="posts"]').classList.add('active');
@@ -1134,7 +787,7 @@
         if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) emojiPicker.style.display = 'none';
     });
     
-    // Tab switching
+    // Tab switching logic
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const tabName = tab.dataset.tab;
