@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Galagram • Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Galagram • Home</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -21,38 +21,405 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         window.db = db;
+        window.arrayUnion = arrayUnion;
+        window.arrayRemove = arrayRemove;
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
-        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
-        .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .admin-tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 20px; }
-        .admin-tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; }
-        .admin-tab.active { color: #0095f6; border-bottom-color: #0095f6; }
-        .content { padding: 16px; background: #fafafa; min-height: 85vh; }
-        .user-item, .post-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-        .user-info, .post-info { display: flex; align-items: center; gap: 12px; flex: 1; }
-        .user-avatar, .post-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
-        .user-details, .post-details { flex: 1; }
-        .user-name, .post-author { font-weight: 600; font-size: 0.9rem; }
-        .user-username, .post-time { font-size: 0.7rem; color: #8e8e8e; }
-        .post-text { font-size: 0.8rem; margin-top: 4px; color: #262626; }
-        .badge-select, .action-btn { padding: 6px 12px; border-radius: 20px; border: 1px solid #dbdbdb; background: white; cursor: pointer; font-size: 0.75rem; margin-left: 8px; }
-        .action-btn.pin { background: #f59e0b; color: white; border: none; }
-        .action-btn.delete { background: #ef4444; color: white; border: none; }
-        .action-btn.edit { background: #0095f6; color: white; border: none; }
-        .search-bar { margin-bottom: 16px; }
-        .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.85rem; }
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; }
-        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
-        .loading { text-align: center; padding: 40px; color: #8e8e8e; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .pc-blocker {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            z-index: 9999;
+            color: white;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .pc-blocker i { font-size: 4rem; margin-bottom: 1.2rem; color: #d62976; }
+        .app-container {
+            display: block;
+            max-width: 480px;
+            margin: 0 auto;
+            background: #ffffff;
+            min-height: 100vh;
+            position: relative;
+        }
+        .header {
+            background: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 0.5px solid #efefef;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .logo {
+            font-weight: 620;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #f77737, #d62976, #962fbf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .heart-icon {
+            position: relative;
+            cursor: pointer;
+        }
+        .heart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ed4956;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 20px;
+            min-width: 18px;
+            text-align: center;
+        }
+        .profile-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1.5px solid #dbdbdb;
+        }
+        .search-bar {
+            padding: 12px 16px;
+            background: #fff;
+            border-bottom: 0.5px solid #efefef;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #dbdbdb;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: #fafafa;
+        }
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 16px;
+            right: 16px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 20;
+            display: none;
+        }
+        .search-suggestions.show {
+            display: block;
+        }
+        .search-suggestion-item {
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            border-bottom: 0.5px solid #efefef;
+        }
+        .search-suggestion-item:active { background: #f0f0f0; }
+        .suggestion-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .tabs {
+            display: flex;
+            padding: 0 16px;
+            background: #fff;
+            border-bottom: 0.5px solid #efefef;
+            gap: 20px;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 12px 0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #8e8e8e;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+        }
+        .tab.active {
+            color: #0095f6;
+            border-bottom-color: #0095f6;
+        }
+        .content {
+            padding: 16px;
+            background: #fafafa;
+            min-height: 70vh;
+            padding-bottom: 80px;
+        }
+        .user-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .user-card:active { transform: scale(0.98); }
+        .avatar-container {
+            position: relative;
+        }
+        .user-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #dbdbdb;
+        }
+        .status-stroke {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .status-stroke.available { background: #22c55e; box-shadow: 0 0 0 2px #22c55e; }
+        .status-stroke.taken { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
+        .user-info {
+            flex: 1;
+        }
+        .user-name-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .user-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .verified-badge {
+            font-size: 0.9rem;
+        }
+        .verified-badge.blue { color: #0095f6; }
+        .verified-badge.gray { color: #8e8e8e; }
+        .user-username {
+            font-size: 0.7rem;
+            color: #8e8e8e;
+        }
+        .post-card {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .post-card:active { transform: scale(0.98); }
+        .post-header {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 0.5px solid #efefef;
+        }
+        .post-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .post-author {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .post-time {
+            font-size: 0.65rem;
+            color: #8e8e8e;
+        }
+        .post-content {
+            padding: 12px;
+        }
+        .post-text {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .post-image {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 8px;
+            max-height: 250px;
+            object-fit: cover;
+        }
+        .post-stats {
+            padding: 8px 12px;
+            display: flex;
+            gap: 16px;
+            border-top: 0.5px solid #efefef;
+            color: #8e8e8e;
+            font-size: 0.7rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #8e8e8e;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: #8e8e8e;
+        }
         .bx-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
+        
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #0095f6;
+            color: white;
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100;
+            transition: 0.2s;
+        }
+        .fab:active { transform: scale(0.95); }
+        
+        /* Recommendation Popup */
+        .rec-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .rec-popup {
+            background: white;
+            border-radius: 24px;
+            max-width: 320px;
+            width: 85%;
+            padding: 24px 20px;
+            text-align: center;
+            animation: popupSlide 0.3s ease;
+        }
+        @keyframes popupSlide {
+            from { transform: scale(0.9) translateY(20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .rec-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #f77737, #d62976);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .rec-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8f8f8;
+            padding: 12px;
+            border-radius: 16px;
+            margin: 16px 0;
+        }
+        .rec-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .rec-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .rec-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .rec-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 30px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        .rec-btn-primary {
+            background: #0095f6;
+            color: white;
+        }
+        .rec-btn-secondary {
+            background: #efefef;
+            color: #262626;
+        }
+        
+        .galagram-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.25s;
+            pointer-events: none;
+        }
+        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
@@ -61,192 +428,319 @@
 
 <div id="appRoot" class="app-container">
     <div class="header">
-        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
-        <div class="logo">Admin Panel</div>
-    </div>
-    
-    <div class="admin-tabs">
-        <div class="admin-tab active" data-tab="users">👥 Users</div>
-        <div class="admin-tab" data-tab="posts">📝 Posts</div>
-    </div>
-    
-    <div class="content">
-        <div class="search-bar">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search...">
+        <div class="logo">Galagram</div>
+        <div class="header-right">
+            <div class="heart-icon" id="requestsHeart">
+                <i class='bx bx-heart' style="font-size: 1.6rem;"></i>
+                <span id="requestBadge" class="heart-badge hidden">0</span>
+            </div>
+            <img id="profileAvatar" class="profile-icon" src="" alt="profile">
         </div>
-        <div id="adminContent"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div></div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by username...">
+        <div id="searchSuggestions" class="search-suggestions"></div>
+    </div>
+
+    <div class="tabs" id="tabsContainer">
+        <div class="tab active" data-tab="posts">📝 POSTS</div>
+        <div class="tab" data-tab="all">ALL</div>
+        <div class="tab" data-tab="available">AVAILABLE</div>
+    </div>
+
+    <div class="content" id="contentArea">
+        <div class="loading-spinner"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div>
+    </div>
+    
+    <!-- Floating Action Button (only visible on posts tab) -->
+    <div id="fabBtn" class="fab hidden">
+        <i class='bx bx-plus' style="font-size: 1.8rem;"></i>
     </div>
 </div>
 
 <script type="module">
-    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
-    let currentTab = "users";
+    let currentUser = null;
     let allUsers = [];
-    let allPosts = [];
+    let postsItems = [];
+    let requestsList = [];
+    let currentTab = "posts";
     let searchQuery = "";
+    let searchDebounceTimer = null;
+    let lastSuggestionDate = null;
     
-    function showNotification(message) {
+    function showNotification(message, type = "info") {
+        const existing = document.querySelector('.galagram-toast');
+        if(existing) existing.remove();
         const toast = document.createElement('div');
-        toast.className = 'galagram-toast';
-        toast.innerHTML = `<i class='bx bx-check-circle'></i><span>${message}</span>`;
+        toast.className = `galagram-toast`;
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => toast.remove(), 2000);
+        setTimeout(() => toast.remove(), 4000);
     }
     
+    // Session check
     const sessionData = localStorage.getItem('galagram_session');
     if (!sessionData) { window.location.href = "index.html"; }
+    const session = JSON.parse(sessionData);
+    const currentUsername = session.username;
+    const sessionId = session.sessionId;
     
-    async function loadUsers() {
-        const usersRef = collection(db, "users");
-        const snapshot = await getDocs(usersRef);
-        allUsers = [];
-        snapshot.forEach(docSnap => {
-            allUsers.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        renderUsers();
+    // Session tracking
+    import { doc as fDoc, onSnapshot as fOnSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const userRef = fDoc(db, "users", currentUsername);
+    const unsubscribeSession = fOnSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists() && docSnap.data().activeSession !== sessionId) {
+            showNotification('⚠️ Session expired. Logging out...', 'error');
+            setTimeout(() => { localStorage.removeItem('galagram_session'); window.location.href = "index.html"; }, 2000);
+        }
+    });
+    
+    async function loadCurrentUser() {
+        const userDoc = await getDoc(fDoc(db, "users", currentUsername));
+        if (userDoc.exists()) {
+            currentUser = { id: currentUsername, ...userDoc.data() };
+            if (!currentUser.galaStatus) await updateDoc(fDoc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] });
+            if (!currentUser.requests) await updateDoc(fDoc(db, "users", currentUsername), { requests: [] });
+            if (!currentUser.sentRequests) await updateDoc(fDoc(db, "users", currentUsername), { sentRequests: [] });
+            if (!currentUser.verified) await updateDoc(fDoc(db, "users", currentUsername), { verified: "none" });
+            requestsList = currentUser.requests || [];
+            updateRequestBadge();
+            document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80';
+            
+            // Load last suggestion date from localStorage
+            const lastSugg = localStorage.getItem('galagram_last_suggestion');
+            if (lastSugg) lastSuggestionDate = new Date(parseInt(lastSugg));
+        }
     }
     
-    async function loadPosts() {
+    // Calculate post score based on interactions and recency
+    function calculatePostScore(post) {
+        const likes = post.likes?.length || 0;
+        const comments = post.comments?.length || 0;
+        const engagementScore = likes * 1.5 + comments * 1.0;
+        
+        const createdAt = post.createdAt?.toDate ? post.createdAt.toDate() : new Date(post.createdAt);
+        const now = new Date();
+        const hoursSince = (now - createdAt) / (1000 * 60 * 60);
+        
+        // Decay factor: high for first 48 hours, then drops
+        let decayFactor = 1.0;
+        if (hoursSince > 48) {
+            decayFactor = Math.max(0.3, 1.0 - (hoursSince - 48) / 168); // decays over a week
+        } else {
+            decayFactor = 1.0 - (hoursSince / 96); // slight decay in first 2 days
+        }
+        
+        // Pinned posts get huge boost
+        const pinnedBoost = post.pinned ? 1000 : 0;
+        
+        return (engagementScore * decayFactor) + pinnedBoost;
+    }
+    
+    // Load posts with real-time updates
+    function loadPosts() {
         const postsRef = collection(db, "news");
-        const q = query(postsRef, orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(q);
-        allPosts = [];
-        snapshot.forEach(docSnap => {
-            allPosts.push({ id: docSnap.id, ...docSnap.data() });
+        const q = query(postsRef);
+        onSnapshot(q, (snapshot) => {
+            postsItems = [];
+            snapshot.forEach(docSnap => {
+                postsItems.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            // Sort by score descending
+            postsItems.sort((a, b) => calculatePostScore(b) - calculatePostScore(a));
+            if (currentTab === "posts") renderPosts();
         });
-        renderPosts();
     }
     
-    function renderUsers() {
-        let filtered = allUsers;
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            filtered = allUsers.filter(u => 
-                u.realName?.toLowerCase().includes(q) || 
-                u.username?.toLowerCase().includes(q)
-            );
-        }
-        const container = document.getElementById('adminContent');
-        if (!filtered.length) {
-            container.innerHTML = `<div class="loading">No users found</div>`;
-            return;
-        }
-        
-        let html = '';
-        filtered.forEach(user => {
-            const currentBadge = user.verified || "none";
-            html += `
-                <div class="user-item">
-                    <div class="user-info">
-                        <img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
-                        <div class="user-details">
-                            <div class="user-name">${escapeHtml(user.realName)}</div>
-                            <div class="user-username">@${user.username}</div>
-                        </div>
-                    </div>
-                    <select class="badge-select" data-id="${user.id}">
-                        <option value="none" ${currentBadge === 'none' ? 'selected' : ''}>No badge</option>
-                        <option value="gray" ${currentBadge === 'gray' ? 'selected' : ''}>Gray ✓</option>
-                        <option value="blue" ${currentBadge === 'blue' ? 'selected' : ''}>Blue ✓✓</option>
-                    </select>
-                </div>
-            `;
-        });
-        container.innerHTML = html;
-        
-        document.querySelectorAll('.badge-select').forEach(select => {
-            select.addEventListener('change', async (e) => {
-                const userId = select.dataset.id;
-                const newBadge = select.value;
-                await updateDoc(doc(db, "users", userId), { verified: newBadge });
-                showNotification(`Badge updated`);
+    // Load users
+    let unsubscribeUsers = null;
+    function loadUsers() {
+        if (unsubscribeUsers) unsubscribeUsers();
+        const q = query(collection(db, "users"));
+        unsubscribeUsers = onSnapshot(q, (snapshot) => {
+            allUsers = [];
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                if (docSnap.id !== currentUsername) {
+                    allUsers.push({
+                        id: docSnap.id,
+                        ...data,
+                        galaStatus: data.galaStatus || "available",
+                        verified: data.verified || "none"
+                    });
+                }
             });
+            if (currentTab !== "posts") renderUsers();
+            // Show gala recommendation if conditions met
+            showGalaRecommendation();
         });
+    }
+    
+    function getVerifiedIcon(verified) {
+        if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>';
+        if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>';
+        return '';
     }
     
     function renderPosts() {
-        let filtered = allPosts;
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            filtered = allPosts.filter(p => 
-                p.text?.toLowerCase().includes(q) || 
-                p.authorName?.toLowerCase().includes(q)
-            );
-        }
-        const container = document.getElementById('adminContent');
-        if (!filtered.length) {
-            container.innerHTML = `<div class="loading">No posts found</div>`;
+        const container = document.getElementById('contentArea');
+        if (!postsItems.length) {
+            container.innerHTML = `<div class="empty-state"><i class='bx bx-news' style="font-size: 3rem;"></i><p>No posts yet. Be the first to share!</p></div>`;
             return;
         }
-        
-        let html = '';
-        filtered.forEach(post => {
-            const isPinned = post.pinned || false;
-            html += `
-                <div class="post-item">
-                    <div class="post-info">
-                        <img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
-                        <div class="post-details">
-                            <div class="post-author">${escapeHtml(post.authorName)}</div>
-                            <div class="post-time">${formatTime(post.createdAt)}</div>
-                            <div class="post-text">${escapeHtml(post.text.substring(0, 80))}${post.text.length > 80 ? '...' : ''}</div>
-                        </div>
-                    </div>
+        container.innerHTML = postsItems.map(post => `
+            <div class="post-card" data-postid="${post.id}">
+                <div class="post-header">
+                    <img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
                     <div>
-                        <button class="action-btn pin" data-id="${post.id}" data-pinned="${isPinned}">${isPinned ? '📌 Unpin' : '📍 Pin'}</button>
-                        <button class="action-btn edit" data-id="${post.id}">✏️ Edit</button>
-                        <button class="action-btn delete" data-id="${post.id}">🗑️ Delete</button>
+                        <div class="post-author">${escapeHtml(post.authorName)} ${getVerifiedIcon(post.authorVerified)}</div>
+                        <div class="post-time">${formatTime(post.createdAt)}</div>
                     </div>
                 </div>
-            `;
-        });
-        container.innerHTML = html;
+                <div class="post-content">
+                    <div class="post-text">${escapeHtml(post.text)}</div>
+                    ${post.imageUrl ? `<img class="post-image" src="${post.imageUrl}" alt="post image">` : ''}
+                </div>
+                <div class="post-stats">
+                    <span><i class='bx bx-heart'></i> ${post.likes?.length || 0}</span>
+                    <span><i class='bx bx-comment'></i> ${post.comments?.length || 0}</span>
+                </div>
+            </div>
+        `).join('');
         
-        // Pin button handler
-        document.querySelectorAll('.action-btn.pin').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const postId = btn.dataset.id;
-                const currentlyPinned = btn.dataset.pinned === 'true';
-                await updateDoc(doc(db, "news", postId), { pinned: !currentlyPinned });
-                showNotification(currentlyPinned ? 'Post unpinned' : 'Post pinned');
-                loadPosts();
-            });
-        });
-        
-        // Edit button handler
-        document.querySelectorAll('.action-btn.edit').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const postId = btn.dataset.id;
-                const post = allPosts.find(p => p.id === postId);
-                const newText = prompt("Edit post content:", post.text);
-                if (newText && newText.trim()) {
-                    await updateDoc(doc(db, "news", postId), { text: newText.trim() });
-                    showNotification('Post updated');
-                    loadPosts();
-                }
-            });
-        });
-        
-        // Delete button handler
-        document.querySelectorAll('.action-btn.delete').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                if (confirm('Delete this post permanently?')) {
-                    const postId = btn.dataset.id;
-                    await deleteDoc(doc(db, "news", postId));
-                    showNotification('Post deleted');
-                    loadPosts();
-                }
+        document.querySelectorAll('.post-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const postId = card.dataset.postid;
+                window.location.href = `news.html?id=${postId}`;
             });
         });
     }
     
+    function renderUsers() {
+        let filtered = [...allUsers];
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter(u => u.username?.toLowerCase().includes(q) || u.realName?.toLowerCase().includes(q));
+        }
+        if (currentTab === "available") filtered = filtered.filter(u => u.galaStatus === "available");
+        
+        const container = document.getElementById('contentArea');
+        if (!filtered.length) {
+            container.innerHTML = `<div class="empty-state"><i class='bx bx-user-x' style="font-size: 3rem;"></i><p>No users found</p></div>`;
+            return;
+        }
+        
+        container.innerHTML = filtered.map(user => `
+            <div class="user-card" data-userid="${user.id}">
+                <div class="avatar-container">
+                    <img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                    <div class="status-stroke ${user.galaStatus === 'available' ? 'available' : 'taken'}"></div>
+                </div>
+                <div class="user-info">
+                    <div class="user-name-row">
+                        <span class="user-name">@${escapeHtml(user.username)}</span>
+                        ${getVerifiedIcon(user.verified)}
+                    </div>
+                    <div class="user-username">${escapeHtml(user.realName)}</div>
+                </div>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.user-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const userId = card.dataset.userid;
+                window.location.href = `user.html?uid=${encodeURIComponent(userId)}`;
+            });
+        });
+    }
+    
+    // Debounced search with live suggestions
+    const searchInput = document.getElementById('searchInput');
+    const suggestionsDiv = document.getElementById('searchSuggestions');
+    
+    function performSearch() {
+        searchQuery = searchInput.value.trim();
+        if (currentTab !== "posts") renderUsers();
+        // Hide suggestions
+        suggestionsDiv.classList.remove('show');
+    }
+    
+    function updateSearchSuggestions() {
+        const queryText = searchInput.value.trim().toLowerCase();
+        if (queryText.length === 0) {
+            suggestionsDiv.classList.remove('show');
+            return;
+        }
+        const matches = allUsers.filter(u => 
+            u.username?.toLowerCase().includes(queryText) || 
+            u.realName?.toLowerCase().includes(queryText)
+        ).slice(0, 5);
+        
+        if (matches.length === 0) {
+            suggestionsDiv.classList.remove('show');
+            return;
+        }
+        
+        suggestionsDiv.innerHTML = matches.map(user => `
+            <div class="search-suggestion-item" data-username="${user.username}">
+                <img class="suggestion-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'}" alt="">
+                <div>
+                    <div style="font-weight: 500;">${escapeHtml(user.realName)}</div>
+                    <div style="font-size: 0.7rem; color: #8e8e8e;">@${user.username}</div>
+                </div>
+            </div>
+        `).join('');
+        suggestionsDiv.classList.add('show');
+        
+        document.querySelectorAll('.search-suggestion-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const username = item.dataset.username;
+                searchInput.value = username;
+                performSearch();
+            });
+        });
+    }
+    
+    searchInput.addEventListener('input', () => {
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            performSearch();
+            updateSearchSuggestions();
+        }, 300);
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.classList.remove('show');
+        }
+    });
+    
+    function updateRequestBadge() {
+        const badge = document.getElementById('requestBadge');
+        const count = requestsList.length;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+    
     function formatTime(timestamp) {
-        if (!timestamp) return 'unknown';
+        if (!timestamp) return 'just now';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return `${diff}s ago`;
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
     }
     
     function escapeHtml(str) {
@@ -259,28 +753,151 @@
         });
     }
     
-    document.getElementById('backBtn').addEventListener('click', () => { window.location.href = "home.html"; });
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-        searchQuery = e.target.value;
-        if (currentTab === 'users') renderUsers();
-        else renderPosts();
-    });
+    function listenToCurrentUser() {
+        onSnapshot(fDoc(db, "users", currentUsername), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                currentUser = { id: currentUsername, ...data };
+                requestsList = data.requests || [];
+                updateRequestBadge();
+                if (currentTab !== "posts") renderUsers();
+            }
+        });
+    }
     
-    document.querySelectorAll('.admin-tab').forEach(tab => {
+    // Gala Recommendation Popup (once per day, only if available)
+    async function showGalaRecommendation() {
+        if (!currentUser) return;
+        if (currentUser.galaStatus !== "available") return;
+        if (currentUser.pairedWith) return;
+        
+        // Check if already shown today
+        const today = new Date().toDateString();
+        const lastShown = localStorage.getItem('galagram_rec_shown');
+        if (lastShown === today) return;
+        
+        // Find best match (opposite gender, not taken, not self, not already requested)
+        const candidates = allUsers.filter(u => 
+            u.galaStatus === "available" && 
+            u.gender !== currentUser.gender &&
+            !currentUser.sentRequests?.includes(u.id) &&
+            !currentUser.requests?.includes(u.id)
+        );
+        
+        if (candidates.length === 0) return;
+        
+        // Pick best candidate (highest score based on verified, etc.)
+        candidates.sort((a, b) => {
+            let scoreA = 0, scoreB = 0;
+            if (a.verified === "blue") scoreA += 20;
+            if (b.verified === "blue") scoreB += 20;
+            return scoreB - scoreA;
+        });
+        const bestMatch = candidates[0];
+        
+        // Create popup
+        const overlay = document.createElement('div');
+        overlay.className = 'rec-overlay';
+        const pronoun = bestMatch.gender === 'BOY' ? 'him' : 'her';
+        overlay.innerHTML = `
+            <div class="rec-popup">
+                <div class="rec-title">✨ Perfect Match ✨</div>
+                <div class="rec-user">
+                    <img class="rec-avatar" src="${bestMatch.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                    <div>
+                        <div class="rec-name">${escapeHtml(bestMatch.realName)}</div>
+                        <div style="font-size: 0.7rem; color: #8e8e8e;">@${bestMatch.username}</div>
+                    </div>
+                </div>
+                <p>Are you interested in ${escapeHtml(bestMatch.realName)}? Request ${pronoun} to be your gala!</p>
+                <div class="rec-buttons">
+                    <button class="rec-btn rec-btn-primary" id="recAcceptBtn">Request</button>
+                    <button class="rec-btn rec-btn-secondary" id="recDeclineBtn">No, Thanks</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        
+        overlay.querySelector('#recAcceptBtn').addEventListener('click', async () => {
+            try {
+                await updateDoc(doc(db, "users", bestMatch.id), {
+                    requests: arrayUnion(currentUsername)
+                });
+                await updateDoc(doc(db, "users", currentUsername), {
+                    sentRequests: arrayUnion(bestMatch.id)
+                });
+                showNotification(`Request sent to ${bestMatch.realName}!`, 'success');
+            } catch(e) { showNotification("Error sending request", "error"); }
+            overlay.remove();
+            localStorage.setItem('galagram_rec_shown', today);
+        });
+        
+        overlay.querySelector('#recDeclineBtn').addEventListener('click', () => {
+            overlay.remove();
+            localStorage.setItem('galagram_rec_shown', today);
+        });
+    }
+    
+    // Auto-reject other requests when one is accepted (implemented in user.html, but also handle here)
+    // This will be called from user.html via global function
+    window.acceptRequestAndRejectOthers = async function(acceptedUserId, acceptedUserName) {
+        const currentRequests = currentUser.requests || [];
+        const otherRequests = currentRequests.filter(id => id !== acceptedUserId);
+        const batch = writeBatch(db);
+        batch.update(doc(db, "users", currentUsername), {
+            galaStatus: "taken",
+            pairedWith: acceptedUserId,
+            requests: arrayRemove(acceptedUserId)
+        });
+        batch.update(doc(db, "users", acceptedUserId), {
+            galaStatus: "taken",
+            pairedWith: currentUsername,
+            sentRequests: arrayRemove(currentUsername)
+        });
+        for (const otherId of otherRequests) {
+            batch.update(doc(db, "users", otherId), {
+                sentRequests: arrayRemove(currentUsername)
+            });
+        }
+        batch.update(doc(db, "users", currentUsername), { requests: [] });
+        await batch.commit();
+        showNotification(`🎉 You are now paired with ${acceptedUserName}! Others were automatically declined.`, 'success');
+        setTimeout(() => window.location.href = "home.html", 1500);
+    };
+    
+    // Tab switching logic
+    document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             currentTab = tab.dataset.tab;
-            document.getElementById('searchInput').value = '';
-            searchQuery = '';
-            if (currentTab === 'users') {
-                loadUsers();
+            
+            // Show/hide FAB button only on posts tab
+            const fab = document.getElementById('fabBtn');
+            if (currentTab === 'posts') {
+                fab.classList.remove('hidden');
             } else {
-                loadPosts();
+                fab.classList.add('hidden');
             }
+            
+            if (currentTab === "posts") renderPosts();
+            else renderUsers();
         });
     });
     
+    document.getElementById('requestsHeart').addEventListener('click', () => {
+        window.location.href = `requests.html`;
+    });
+    
+    document.getElementById('profileAvatar').addEventListener('click', () => {
+        window.location.href = `profile.html`;
+    });
+    
+    document.getElementById('fabBtn').addEventListener('click', () => {
+        window.location.href = `add-news.html`;
+    });
+    
+    // Screenshot protection
     (function antiScreenshot() {
         const blackFlash = () => {
             const overlay = document.createElement('div');
@@ -293,6 +910,7 @@
             setTimeout(() => overlay.remove(), 200);
         };
         document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('keydown', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
         document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
     })();
     
@@ -305,7 +923,18 @@
     window.addEventListener('resize', handleResize);
     handleResize();
     
-    loadUsers();
+    // Initialize
+    (async () => {
+        await loadCurrentUser();
+        loadPosts();
+        loadUsers();
+        listenToCurrentUser();
+        // FAB initial visibility
+        if (currentTab === 'posts') {
+            document.getElementById('fabBtn').classList.remove('hidden');
+        }
+    })();
 </script>
 </body>
 </html>
+
