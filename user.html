@@ -6,7 +6,7 @@
     <title>Galagram • User Profile</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, addDoc, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -28,7 +28,7 @@
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; }
         .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
         .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .content { padding: 20px; background: #fafafa; min-height: 85vh; }
@@ -36,8 +36,8 @@
         .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #d62976; margin-bottom: 12px; }
         .avatar-container { position: relative; display: inline-block; }
         .status-stroke { position: absolute; bottom: 5px; right: 5px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; }
-        .status-stroke.available { background: #22c55e; box-shadow: 0 0 0 2px #22c55e; }
-        .status-stroke.taken { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
+        .status-stroke.available { background: #22c55e; }
+        .status-stroke.taken { background: #ef4444; }
         .profile-name { font-size: 1.4rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
         .profile-username { font-size: 0.9rem; color: #8e8e8e; margin: 4px 0; }
         .verified-badge { font-size: 1.2rem; margin-left: 4px; }
@@ -55,8 +55,6 @@
         .btn-danger { background: #efefef; color: #ed4956; border: 1px solid #ed4956; }
         .btn-secondary { background: #efefef; color: #262626; }
         .btn-success { background: #22c55e; color: white; }
-        .btn-warning { background: #f59e0b; color: white; }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; display: flex; align-items: center; gap: 10px; transition: transform 0.25s; pointer-events: none; }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
         .loading { text-align: center; padding: 40px; color: #8e8e8e; }
@@ -66,7 +64,6 @@
         .request-actions .btn { flex: 1; margin-top: 0; }
         .privacy-badge { background: #f0f0f0; padding: 4px 8px; border-radius: 20px; font-size: 0.6rem; color: #8e8e8e; display: inline-block; margin-left: 8px; }
         .bio-text { font-size: 0.9rem; line-height: 1.4; color: #262626; padding: 8px 0; }
-        .divider { height: 1px; background: #efefef; margin: 16px 0; }
     </style>
 </head>
 <body>
@@ -84,8 +81,21 @@
 </div>
 
 <script type="module">
-    import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, addDoc, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
+    
+    // Logging function
+    async function addLog(type, actor, target, message) {
+        try {
+            await addDoc(collection(db, "logs"), {
+                type: type,
+                actor: actor,
+                target: target,
+                message: message,
+                timestamp: new Date()
+            });
+        } catch(e) { console.warn("Log error:", e); }
+    }
     
     function showNotification(message, type = "info") {
         const existing = document.querySelector('.galagram-toast');
@@ -136,6 +146,7 @@
         if (!targetUser.bio) targetUser.bio = "";
         if (!currentUserData.requests) currentUserData.requests = [];
         if (!currentUserData.sentRequests) currentUserData.sentRequests = [];
+        if (!targetUser.rejectionCount) targetUser.rejectionCount = 0;
         
         hasSentRequest = currentUserData.sentRequests?.includes(targetUserId) || false;
         hasIncomingRequest = currentUserData.requests?.includes(targetUserId) || false;
@@ -144,7 +155,6 @@
         
         renderProfile();
         
-        // Set up real-time listeners
         if (unsubscribeTarget) unsubscribeTarget();
         if (unsubscribeCurrent) unsubscribeCurrent();
         
@@ -188,23 +198,18 @@
         const statusClass = targetUser.galaStatus === 'available' ? 'available' : 'taken';
         const genderIcon = getGenderIcon(targetUser.gender);
         
-        // Check if same gender (can't request)
         const isSameGender = currentUserData.gender === targetUser.gender && !isSelf;
         const isTargetTaken = targetUser.galaStatus === "taken";
         const canSendRequest = !isSelf && !isSameGender && !isTargetTaken && !isPaired && !hasSentRequest && !hasIncomingRequest;
         
-        // Privacy: Only show phone number if paired OR self
         const showPhoneNumber = isPaired || isSelf;
-        // Only show Instagram if paired OR self
         const showInstagram = isPaired || isSelf;
         
         let actionButtons = '';
         
         if (!isSelf) {
             if (isPaired) {
-                actionButtons = `
-                    <button class="btn btn-danger" id="unpairBtn">💔 Unpair / Cancel Gala</button>
-                `;
+                actionButtons = `<button class="btn btn-danger" id="unpairBtn">💔 Unpair / Cancel Gala</button>`;
             } else if (hasIncomingRequest) {
                 actionButtons = `
                     <div class="request-actions">
@@ -213,37 +218,17 @@
                     </div>
                 `;
             } else if (hasSentRequest) {
-                actionButtons = `
-                    <button class="btn btn-secondary" id="cancelRequestBtn">⏳ Request Pending · Cancel</button>
-                `;
+                actionButtons = `<button class="btn btn-secondary" id="cancelRequestBtn">⏳ Request Pending · Cancel</button>`;
             } else if (isSameGender) {
-                actionButtons = `
-                    <button class="btn btn-secondary" disabled style="opacity:0.6; cursor:not-allowed;">
-                        <i class='bx bx-gender-circle'></i> Same Gender - Cannot Request
-                    </button>
-                `;
+                actionButtons = `<button class="btn btn-secondary" disabled style="opacity:0.6;">🚫 Same Gender - Cannot Request</button>`;
             } else if (isTargetTaken) {
-                actionButtons = `
-                    <button class="btn btn-secondary" disabled style="opacity:0.6;">
-                        <i class='bx bx-lock-alt'></i> Already Taken
-                    </button>
-                `;
+                actionButtons = `<button class="btn btn-secondary" disabled style="opacity:0.6;">🔒 Already Taken</button>`;
             } else if (canSendRequest) {
-                actionButtons = `
-                    <button class="btn btn-primary" id="sendRequestBtn">
-                        <i class='bx bx-heart'></i> Send Gala Request
-                    </button>
-                `;
+                actionButtons = `<button class="btn btn-primary" id="sendRequestBtn">💖 Send Gala Request</button>`;
             }
         }
         
-        // Bio section
-        const bioHtml = targetUser.bio ? `
-            <div class="info-card">
-                <div class="info-label"><i class='bx bx-message-detail'></i> Bio</div>
-                <div class="bio-text">${escapeHtml(targetUser.bio)}</div>
-            </div>
-        ` : '';
+        const bioHtml = targetUser.bio ? `<div class="info-card"><div class="info-label"><i class='bx bx-message-detail'></i> Bio</div><div class="bio-text">${escapeHtml(targetUser.bio)}</div></div>` : '';
         
         container.innerHTML = `
             <div class="profile-header">
@@ -251,103 +236,49 @@
                     <img class="profile-avatar" src="${targetUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100'}" alt="">
                     <div class="status-stroke ${statusClass}"></div>
                 </div>
-                <div class="profile-name">
-                    ${escapeHtml(targetUser.realName)} ${verifiedIcon}
-                </div>
+                <div class="profile-name">${escapeHtml(targetUser.realName)} ${verifiedIcon}</div>
                 <div class="profile-username">@${targetUser.username}</div>
-                <div style="margin-top: 8px;">
-                    <span class="privacy-badge"><i class='bx bx-shield-alt-2'></i> ${genderIcon} ${targetUser.gender === 'BOY' ? 'Boy' : 'Girl'}</span>
-                    ${isPaired ? '<span class="privacy-badge"><i class="bx bx-heart"></i> Paired</span>' : ''}
-                </div>
+                <div style="margin-top: 8px;"><span class="privacy-badge"><i class='bx bx-shield-alt-2'></i> ${genderIcon} ${targetUser.gender === 'BOY' ? 'Boy' : 'Girl'}</span></div>
             </div>
-            
             ${bioHtml}
-            
             <div class="info-card">
-                <div class="info-row">
-                    <span class="info-label"><i class='bx bx-male-female'></i> Gender</span>
-                    <span class="info-value">${genderIcon} ${targetUser.gender === 'BOY' ? 'Boy' : 'Girl'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label"><i class='bx bx-phone'></i> Phone Number</span>
-                    <span class="info-value ${!showPhoneNumber ? 'private' : ''}">
-                        ${showPhoneNumber ? escapeHtml(targetUser.phoneNumber || 'Not provided') : '🔒 Hidden until paired'}
-                    </span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label"><i class='bx bx-instagram'></i> Instagram</span>
-                    <span class="info-value ${!showInstagram ? 'private' : ''}">
-                        ${showInstagram ? escapeHtml(targetUser.instagramName || 'Not connected') : '🔒 Hidden until paired'}
-                    </span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label"><i class='bx bx-calendar'></i> Member since</span>
-                    <span class="info-value">${targetUser.createdAt ? new Date(targetUser.createdAt).toLocaleDateString() : 'Recently'}</span>
-                </div>
+                <div class="info-row"><span class="info-label"><i class='bx bx-male-female'></i> Gender</span><span class="info-value">${genderIcon} ${targetUser.gender === 'BOY' ? 'Boy' : 'Girl'}</span></div>
+                <div class="info-row"><span class="info-label"><i class='bx bx-phone'></i> Phone Number</span><span class="info-value ${!showPhoneNumber ? 'private' : ''}">${showPhoneNumber ? escapeHtml(targetUser.phoneNumber || 'Not provided') : '🔒 Hidden until paired'}</span></div>
+                <div class="info-row"><span class="info-label"><i class='bx bx-instagram'></i> Instagram</span><span class="info-value ${!showInstagram ? 'private' : ''}">${showInstagram ? escapeHtml(targetUser.instagramName || 'Not connected') : '🔒 Hidden until paired'}</span></div>
+                <div class="info-row"><span class="info-label"><i class='bx bx-calendar'></i> Member since</span><span class="info-value">${targetUser.createdAt ? new Date(targetUser.createdAt).toLocaleDateString() : 'Recently'}</span></div>
             </div>
-            
             ${actionButtons}
         `;
         
-        // Attach event listeners
         if (!isSelf) {
-            if (document.getElementById('sendRequestBtn')) {
-                document.getElementById('sendRequestBtn').addEventListener('click', sendRequest);
-            }
-            if (document.getElementById('cancelRequestBtn')) {
-                document.getElementById('cancelRequestBtn').addEventListener('click', cancelRequest);
-            }
-            if (document.getElementById('acceptRequestBtn')) {
-                document.getElementById('acceptRequestBtn').addEventListener('click', acceptRequest);
-            }
-            if (document.getElementById('rejectRequestBtn')) {
-                document.getElementById('rejectRequestBtn').addEventListener('click', rejectRequest);
-            }
-            if (document.getElementById('unpairBtn')) {
-                document.getElementById('unpairBtn').addEventListener('click', unpairUser);
-            }
+            if (document.getElementById('sendRequestBtn')) document.getElementById('sendRequestBtn').addEventListener('click', sendRequest);
+            if (document.getElementById('cancelRequestBtn')) document.getElementById('cancelRequestBtn').addEventListener('click', cancelRequest);
+            if (document.getElementById('acceptRequestBtn')) document.getElementById('acceptRequestBtn').addEventListener('click', acceptRequest);
+            if (document.getElementById('rejectRequestBtn')) document.getElementById('rejectRequestBtn').addEventListener('click', rejectRequest);
+            if (document.getElementById('unpairBtn')) document.getElementById('unpairBtn').addEventListener('click', unpairUser);
         }
     }
     
     async function sendRequest() {
-        if (currentUserData.gender === targetUser.gender) {
-            showNotification("Cannot send request to the same gender", "error");
-            return;
-        }
-        if (targetUser.galaStatus === "taken") {
-            showNotification("This user is already taken", "error");
-            return;
-        }
         try {
-            await updateDoc(doc(db, "users", targetUserId), {
-                requests: arrayUnion(currentUsername)
-            });
-            await updateDoc(doc(db, "users", currentUsername), {
-                sentRequests: arrayUnion(targetUserId)
-            });
-            showNotification(`✨ Request sent to ${targetUser.realName}! They will be notified.`, "success");
-        } catch(e) { 
-            showNotification("Error: " + e.message, "error"); 
-        }
+            await updateDoc(doc(db, "users", targetUserId), { requests: arrayUnion(currentUsername) });
+            await updateDoc(doc(db, "users", currentUsername), { sentRequests: arrayUnion(targetUserId) });
+            await addLog('request', currentUsername, targetUserId, `${currentUsername} requested ${targetUser.realName}`);
+            showNotification(`✨ Request sent to ${targetUser.realName}!`, "success");
+        } catch(e) { showNotification("Error: " + e.message, "error"); }
     }
     
     async function cancelRequest() {
         try {
-            await updateDoc(doc(db, "users", targetUserId), {
-                requests: arrayRemove(currentUsername)
-            });
-            await updateDoc(doc(db, "users", currentUsername), {
-                sentRequests: arrayRemove(targetUserId)
-            });
+            await updateDoc(doc(db, "users", targetUserId), { requests: arrayRemove(currentUsername) });
+            await updateDoc(doc(db, "users", currentUsername), { sentRequests: arrayRemove(targetUserId) });
+            await addLog('cancel_request', currentUsername, targetUserId, `${currentUsername} cancelled request to ${targetUser.realName}`);
             showNotification("Request cancelled", "success");
-        } catch(e) { 
-            showNotification("Error: " + e.message, "error"); 
-        }
+        } catch(e) { showNotification("Error: " + e.message, "error"); }
     }
     
     async function acceptRequest() {
         try {
-            // SECRET PAIRING - Both users become "taken" which hides them from others
             await updateDoc(doc(db, "users", currentUsername), {
                 galaStatus: "taken",
                 pairedWith: targetUserId,
@@ -358,30 +289,28 @@
                 pairedWith: currentUsername,
                 sentRequests: arrayRemove(currentUsername)
             });
+            await addLog('accept', currentUsername, targetUserId, `${currentUsername} accepted ${targetUser.realName}`);
+            await addLog('pair', currentUsername, targetUserId, `${currentUsername} paired with ${targetUser.realName}`);
             showNotification(`🎉 You are now secretly paired with ${targetUser.realName}! 🎉`, "success");
-            setTimeout(() => { window.location.href = "home.html"; }, 2000);
-        } catch(e) { 
-            showNotification("Error: " + e.message, "error"); 
-        }
+            setTimeout(() => window.location.href = "home.html", 1500);
+        } catch(e) { showNotification("Error: " + e.message, "error"); }
     }
     
     async function rejectRequest() {
         try {
-            await updateDoc(doc(db, "users", currentUsername), {
-                requests: arrayRemove(targetUserId)
-            });
-            await updateDoc(doc(db, "users", targetUserId), {
-                sentRequests: arrayRemove(currentUsername)
-            });
-            showNotification("Request declined", "success");
-        } catch(e) { 
-            showNotification("Error: " + e.message, "error"); 
-        }
+            await updateDoc(doc(db, "users", currentUsername), { requests: arrayRemove(targetUserId) });
+            await updateDoc(doc(db, "users", targetUserId), { sentRequests: arrayRemove(currentUsername) });
+            // Increment rejection count for the target user (who sent the request)
+            const newRejCount = (targetUser.rejectionCount || 0) + 1;
+            await updateDoc(doc(db, "users", targetUserId), { rejectionCount: newRejCount });
+            await addLog('reject', currentUsername, targetUserId, `${currentUsername} rejected ${targetUser.realName} (rejection count now ${newRejCount})`);
+            showNotification(`Request from ${targetUser.realName} rejected`, "success");
+            loadData(); // refresh
+        } catch(e) { showNotification("Error: " + e.message, "error"); }
     }
     
     async function unpairUser() {
         try {
-            // Secret unpairing - both become available again
             await updateDoc(doc(db, "users", currentUsername), {
                 galaStatus: "available",
                 pairedWith: null,
@@ -392,29 +321,22 @@
                 pairedWith: null,
                 requests: arrayRemove(currentUsername)
             });
+            await addLog('unpair', currentUsername, targetUserId, `${currentUsername} unpaired from ${targetUser.realName}`);
             showNotification("Gala pairing cancelled. You are now available again.", "success");
-        } catch(e) { 
-            showNotification("Error: " + e.message, "error"); 
-        }
+        } catch(e) { showNotification("Error: " + e.message, "error"); }
     }
     
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
-    document.getElementById('backBtn').addEventListener('click', () => { 
+    document.getElementById('backBtn').addEventListener('click', () => {
         if (unsubscribeTarget) unsubscribeTarget();
         if (unsubscribeCurrent) unsubscribeCurrent();
-        window.location.href = "home.html"; 
+        window.location.href = "home.html";
     });
     
-    // Screenshot protection
     (function antiScreenshot() {
         const blackFlash = () => {
             const overlay = document.createElement('div');
@@ -423,12 +345,10 @@
             overlay.style.width = overlay.style.height = '100%';
             overlay.style.backgroundColor = '#000000';
             overlay.style.zIndex = '999999';
-            overlay.style.pointerEvents = 'none';
             document.body.appendChild(overlay);
             setTimeout(() => overlay.remove(), 200);
         };
         document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
-        document.addEventListener('keydown', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
         document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
     })();
     
