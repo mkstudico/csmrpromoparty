@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Galagram • Profile</title>
+    <title>Galagram • My Profile</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc, addDoc, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -28,13 +28,13 @@
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
         .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
         .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .content { padding: 20px; background: #fafafa; min-height: 85vh; }
         .profile-header { text-align: center; margin-bottom: 24px; }
         .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #d62976; margin-bottom: 12px; }
-        .profile-name { font-size: 1.4rem; font-weight: 600; }
+        .profile-name { font-size: 1.4rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
         .profile-username { font-size: 0.9rem; color: #8e8e8e; margin: 4px 0; }
         .verified-badge { font-size: 1.2rem; margin-left: 4px; }
         .verified-badge.blue { color: #0095f6; }
@@ -42,14 +42,33 @@
         .status-indicator { display: inline-block; padding: 6px 14px; border-radius: 30px; font-size: 0.75rem; font-weight: 600; margin: 12px 0; }
         .status-available { background: #e3f7e8; color: #1e7b3e; }
         .status-taken { background: #ffe6e6; color: #c0392b; }
-        .info-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+        .info-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid #efefef; }
         .info-row:last-child { border-bottom: none; }
-        .info-label { font-weight: 600; color: #8e8e8e; font-size: 0.8rem; }
+        .info-label { font-weight: 600; color: #8e8e8e; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
         .info-value { color: #262626; font-size: 0.9rem; }
-        .btn { padding: 12px; width: 100%; border-radius: 10px; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; margin-top: 12px; }
+        .btn { padding: 12px; width: 100%; border-radius: 10px; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; margin-top: 12px; transition: 0.15s; }
+        .btn:active { transform: scale(0.98); }
         .btn-primary { background: #0095f6; color: white; }
         .btn-danger { background: #efefef; color: #ed4956; border: 1px solid #ed4956; }
+        .btn-secondary { background: #efefef; color: #262626; }
+        
+        /* Posts section */
+        .section-title { font-size: 1rem; font-weight: 600; margin: 16px 0 12px 0; display: flex; align-items: center; gap: 8px; }
+        .post-card { background: white; border-radius: 12px; margin-bottom: 12px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .post-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+        .post-author { font-weight: 600; font-size: 0.85rem; }
+        .post-time { font-size: 0.65rem; color: #8e8e8e; }
+        .post-text { font-size: 0.85rem; margin: 8px 0; line-height: 1.4; }
+        .post-image { width: 100%; border-radius: 12px; margin-top: 8px; max-height: 200px; object-fit: cover; }
+        .post-stats { display: flex; gap: 16px; margin-top: 10px; color: #8e8e8e; font-size: 0.7rem; }
+        .post-actions { display: flex; gap: 12px; margin-top: 10px; padding-top: 8px; border-top: 0.5px solid #efefef; }
+        .post-action-btn { background: none; border: none; font-size: 0.75rem; font-weight: 600; padding: 6px 12px; border-radius: 20px; cursor: pointer; }
+        .post-action-btn.edit { color: #0095f6; }
+        .post-action-btn.delete { color: #ed4956; }
+        .empty-posts { text-align: center; padding: 30px; color: #8e8e8e; background: white; border-radius: 16px; }
+        
         .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; display: flex; align-items: center; gap: 10px; transition: transform 0.25s; pointer-events: none; }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
         .loading { text-align: center; padding: 40px; color: #8e8e8e; }
@@ -72,10 +91,23 @@
 </div>
 
 <script type="module">
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc, addDoc, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
-    function showNotification(message, type = "info") {
+    // Logging function
+    async function addLog(type, actor, target, message) {
+        try {
+            await addDoc(collection(db, "logs"), {
+                type: type,
+                actor: actor,
+                target: target || null,
+                message: message,
+                timestamp: new Date()
+            });
+        } catch(e) { console.warn("Log error:", e); }
+    }
+    
+    function showNotification(message, type = "success") {
         const existing = document.querySelector('.galagram-toast');
         if(existing) existing.remove();
         const toast = document.createElement('div');
@@ -92,16 +124,16 @@
     const currentUsername = session.username;
     
     let currentUser = null;
+    let userPosts = [];
+    let unsubscribePosts = null;
     
-    async function loadProfile() {
+    async function loadCurrentUser() {
         const userDoc = await getDoc(doc(db, "users", currentUsername));
-        if (!userDoc.exists()) {
-            showNotification("User not found", "error");
-            setTimeout(() => window.location.href = "index.html", 1500);
-            return;
-        }
+        if (!userDoc.exists()) { window.location.href = "index.html"; return; }
         currentUser = { id: userDoc.id, ...userDoc.data() };
+        if (!currentUser.galaStatus) currentUser.galaStatus = "available";
         renderProfile();
+        loadUserPosts();
     }
     
     function getVerifiedIcon(verified) {
@@ -149,18 +181,107 @@
             
             <button class="btn btn-primary" id="editProfileBtn"><i class='bx bx-edit-alt'></i> Edit Profile</button>
             <button class="btn btn-danger" id="logoutBtn"><i class='bx bx-log-out'></i> Log Out</button>
+            
+            <div class="section-title"><i class='bx bx-news'></i> My Posts</div>
+            <div id="myPostsContainer"></div>
         `;
         
         document.getElementById('editProfileBtn').addEventListener('click', () => {
             window.location.href = "profile-edit.html";
         });
-        
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             await updateDoc(doc(db, "users", currentUsername), { activeSession: null, lastActive: null }).catch(() => {});
             localStorage.removeItem('galagram_session');
-            showNotification("Logged out successfully", "success");
+            showNotification("Logged out");
             setTimeout(() => { window.location.href = "index.html"; }, 1000);
         });
+        
+        renderUserPosts();
+    }
+    
+    function loadUserPosts() {
+        if (unsubscribePosts) unsubscribePosts();
+        const postsRef = collection(db, "news");
+        const q = query(postsRef, where("authorUsername", "==", currentUsername), orderBy("createdAt", "desc"));
+        unsubscribePosts = onSnapshot(q, (snapshot) => {
+            userPosts = [];
+            snapshot.forEach(docSnap => {
+                userPosts.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            renderUserPosts();
+        });
+    }
+    
+    function renderUserPosts() {
+        const container = document.getElementById('myPostsContainer');
+        if (!container) return;
+        
+        if (!userPosts.length) {
+            container.innerHTML = `<div class="empty-posts"><i class='bx bx-empty' style="font-size: 2rem;"></i><p>You haven't posted anything yet.</p><p style="font-size:0.7rem;">Tap + on the home screen to create your first post!</p></div>`;
+            return;
+        }
+        
+        container.innerHTML = userPosts.map(post => `
+            <div class="post-card" data-postid="${post.id}">
+                <div class="post-header">
+                    <img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                    <div>
+                        <div class="post-author">${escapeHtml(post.authorName)}</div>
+                        <div class="post-time">${formatTime(post.createdAt)}</div>
+                    </div>
+                </div>
+                <div class="post-text">${escapeHtml(post.text)}</div>
+                ${post.imageUrl ? `<img class="post-image" src="${post.imageUrl}" alt="post image">` : ''}
+                <div class="post-stats">
+                    <span><i class='bx bx-heart'></i> ${post.likes?.length || 0}</span>
+                    <span><i class='bx bx-comment'></i> ${post.comments?.length || 0}</span>
+                </div>
+                <div class="post-actions">
+                    <button class="post-action-btn edit" data-id="${post.id}"><i class='bx bx-edit-alt'></i> Edit</button>
+                    <button class="post-action-btn delete" data-id="${post.id}"><i class='bx bx-trash'></i> Delete</button>
+                </div>
+            </div>
+        `).join('');
+        
+        // Edit handlers
+        document.querySelectorAll('.post-action-btn.edit').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const postId = btn.dataset.id;
+                const post = userPosts.find(p => p.id === postId);
+                const newText = prompt("Edit your post:", post.text);
+                if (newText && newText.trim() && newText.trim() !== post.text) {
+                    await updateDoc(doc(db, "news", postId), { text: newText.trim() });
+                    await addLog('edit_post', currentUsername, null, `${currentUsername} edited a post: "${post.text.substring(0,30)}..." → "${newText.substring(0,30)}..."`);
+                    showNotification("Post updated!");
+                }
+            });
+        });
+        
+        // Delete handlers
+        document.querySelectorAll('.post-action-btn.delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const postId = btn.dataset.id;
+                const post = userPosts.find(p => p.id === postId);
+                if (confirm("Delete this post permanently?")) {
+                    await deleteDoc(doc(db, "news", postId));
+                    await addLog('delete_post', currentUsername, null, `${currentUsername} deleted a post: "${post.text.substring(0,50)}"`);
+                    showNotification("Post deleted");
+                }
+            });
+        });
+    }
+    
+    function formatTime(timestamp) {
+        if (!timestamp) return 'just now';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return `${diff}s ago`;
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
     }
     
     function escapeHtml(str) {
@@ -174,9 +295,11 @@
     }
     
     document.getElementById('backBtn').addEventListener('click', () => {
+        if (unsubscribePosts) unsubscribePosts();
         window.location.href = "home.html";
     });
     
+    // Screenshot protection
     (function antiScreenshot() {
         const blackFlash = () => {
             const overlay = document.createElement('div');
@@ -201,7 +324,7 @@
     window.addEventListener('resize', handleResize);
     handleResize();
     
-    loadProfile();
+    loadCurrentUser();
 </script>
 </body>
 </html>
