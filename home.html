@@ -6,7 +6,7 @@
     <title>Galagram • Home</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -23,6 +23,10 @@
         window.db = db;
         window.arrayUnion = arrayUnion;
         window.arrayRemove = arrayRemove;
+    </script>
+    <!-- Emoji Picker (lightweight) -->
+    <script type="module">
+        import 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.9.0/index.js';
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
@@ -101,13 +105,21 @@
             min-width: 18px;
             text-align: center;
         }
-        .profile-icon {
+        .profile-icon, .chat-icon {
             width: 32px;
             height: 32px;
             border-radius: 50%;
             object-fit: cover;
             cursor: pointer;
             border: 1.5px solid #dbdbdb;
+        }
+        .chat-icon {
+            background: #0095f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
         }
         .search-bar {
             padding: 12px 16px;
@@ -136,9 +148,7 @@
             z-index: 20;
             display: none;
         }
-        .search-suggestions.show {
-            display: block;
-        }
+        .search-suggestions.show { display: block; }
         .search-suggestion-item {
             padding: 10px 14px;
             display: flex;
@@ -146,13 +156,6 @@
             gap: 10px;
             cursor: pointer;
             border-bottom: 0.5px solid #efefef;
-        }
-        .search-suggestion-item:active { background: #f0f0f0; }
-        .suggestion-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
         }
         .tabs {
             display: flex;
@@ -181,7 +184,7 @@
             min-height: 70vh;
             padding-bottom: 80px;
         }
-        .user-card {
+        .user-card, .post-card {
             background: white;
             border-radius: 12px;
             padding: 12px;
@@ -193,11 +196,9 @@
             cursor: pointer;
             transition: 0.15s;
         }
-        .user-card:active { transform: scale(0.98); }
-        .avatar-container {
-            position: relative;
-        }
-        .user-avatar {
+        .user-card:active, .post-card:active { transform: scale(0.98); }
+        .avatar-container { position: relative; }
+        .user-avatar, .post-avatar {
             width: 52px;
             height: 52px;
             border-radius: 50%;
@@ -215,16 +216,14 @@
         }
         .status-stroke.available { background: #22c55e; box-shadow: 0 0 0 2px #22c55e; }
         .status-stroke.taken { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
-        .user-info {
-            flex: 1;
-        }
-        .user-name-row {
+        .user-info, .post-info { flex: 1; }
+        .user-name-row, .post-author-row {
             display: flex;
             align-items: center;
             gap: 4px;
             flex-wrap: wrap;
         }
-        .user-name {
+        .user-name, .post-author {
             font-weight: 600;
             font-size: 0.85rem;
         }
@@ -233,47 +232,13 @@
         }
         .verified-badge.blue { color: #0095f6; }
         .verified-badge.gray { color: #8e8e8e; }
-        .user-username {
+        .user-username, .post-time {
             font-size: 0.7rem;
             color: #8e8e8e;
         }
-        .post-card {
-            background: white;
-            border-radius: 16px;
-            margin-bottom: 16px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .post-card:active { transform: scale(0.98); }
-        .post-header {
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 0.5px solid #efefef;
-        }
-        .post-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        .post-author {
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        .post-time {
-            font-size: 0.65rem;
-            color: #8e8e8e;
-        }
-        .post-content {
-            padding: 12px;
-        }
         .post-text {
-            font-size: 0.9rem;
-            margin-bottom: 8px;
+            font-size: 0.85rem;
+            margin-top: 8px;
         }
         .post-image {
             width: 100%;
@@ -282,29 +247,11 @@
             max-height: 250px;
             object-fit: cover;
         }
-        .post-stats {
-            padding: 8px 12px;
-            display: flex;
-            gap: 16px;
-            border-top: 0.5px solid #efefef;
-            color: #8e8e8e;
-            font-size: 0.7rem;
-        }
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: #8e8e8e;
         }
-        .loading-spinner {
-            text-align: center;
-            padding: 40px;
-            color: #8e8e8e;
-        }
-        .bx-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .hidden { display: none; }
-        
-        /* Floating Action Button */
         .fab {
             position: fixed;
             bottom: 20px;
@@ -320,87 +267,127 @@
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 100;
-            transition: 0.2s;
         }
-        .fab:active { transform: scale(0.95); }
-        
-        /* Recommendation Popup */
-        .rec-overlay {
+        /* CHAT OVERLAY */
+        .chat-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(4px);
-        }
-        .rec-popup {
             background: white;
-            border-radius: 24px;
-            max-width: 320px;
-            width: 85%;
-            padding: 24px 20px;
-            text-align: center;
-            animation: popupSlide 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
         }
-        @keyframes popupSlide {
-            from { transform: scale(0.9) translateY(20px); opacity: 0; }
-            to { transform: scale(1) translateY(0); opacity: 1; }
+        .chat-overlay.open {
+            transform: translateY(0);
         }
-        .rec-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, #f77737, #d62976);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .rec-user {
+        .chat-header {
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: #f8f8f8;
-            padding: 12px;
-            border-radius: 16px;
-            margin: 16px 0;
+            justify-content: space-between;
+            border-bottom: 0.5px solid #efefef;
+            background: white;
         }
-        .rec-avatar {
-            width: 60px;
-            height: 60px;
+        .chat-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .chat-cancel {
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #262626;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            display: flex;
+            gap: 10px;
+            max-width: 85%;
+        }
+        .message.own {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        .message-avatar {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             object-fit: cover;
         }
-        .rec-name {
-            font-weight: 600;
-            font-size: 1rem;
+        .message-bubble {
+            background: #efefef;
+            padding: 10px 12px;
+            border-radius: 18px;
+            font-size: 0.85rem;
+            max-width: 100%;
+            word-wrap: break-word;
         }
-        .rec-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-        }
-        .rec-btn {
-            flex: 1;
-            padding: 10px;
-            border-radius: 30px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-        }
-        .rec-btn-primary {
+        .message.own .message-bubble {
             background: #0095f6;
             color: white;
         }
-        .rec-btn-secondary {
-            background: #efefef;
-            color: #262626;
+        .message-name {
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
-        
+        .chat-input-area {
+            padding: 12px 16px;
+            border-top: 0.5px solid #efefef;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: white;
+        }
+        .emoji-btn {
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #dbdbdb;
+            border-radius: 24px;
+            font-size: 0.9rem;
+            background: #fafafa;
+        }
+        .send-btn {
+            background: #0095f6;
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        emoji-picker {
+            position: absolute;
+            bottom: 70px;
+            right: 16px;
+            z-index: 1001;
+            width: 280px;
+            max-height: 350px;
+            display: none;
+        }
         .galagram-toast {
             position: fixed;
             top: 20px;
@@ -413,13 +400,13 @@
             border-radius: 40px;
             font-size: 0.85rem;
             z-index: 10000;
-            display: flex;
-            align-items: center;
-            gap: 10px;
             transition: transform 0.25s;
             pointer-events: none;
         }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -434,6 +421,7 @@
                 <i class='bx bx-heart' style="font-size: 1.6rem;"></i>
                 <span id="requestBadge" class="heart-badge hidden">0</span>
             </div>
+            <div id="chatIcon" class="chat-icon"><i class='bx bx-chat'></i></div>
             <img id="profileAvatar" class="profile-icon" src="" alt="profile">
         </div>
     </div>
@@ -447,20 +435,33 @@
         <div class="tab active" data-tab="posts">📝 POSTS</div>
         <div class="tab" data-tab="all">ALL</div>
         <div class="tab" data-tab="available">AVAILABLE</div>
+        <div class="tab" data-tab="taken">TAKEN</div>
     </div>
 
     <div class="content" id="contentArea">
         <div class="loading-spinner"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div>
     </div>
     
-    <!-- Floating Action Button (only visible on posts tab) -->
-    <div id="fabBtn" class="fab hidden">
-        <i class='bx bx-plus' style="font-size: 1.8rem;"></i>
+    <div id="fabBtn" class="fab hidden"><i class='bx bx-plus' style="font-size: 1.8rem;"></i></div>
+
+    <!-- Chat Overlay -->
+    <div id="chatOverlay" class="chat-overlay">
+        <div class="chat-header">
+            <div class="chat-title">💬 Public Chat</div>
+            <i class='bx bx-x chat-cancel' id="closeChat"></i>
+        </div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-input-area">
+            <button id="emojiBtn" class="emoji-btn"><i class='bx bx-smile'></i></button>
+            <input type="text" id="chatInput" class="chat-input" placeholder="Type a message...">
+            <button id="sendChatBtn" class="send-btn"><i class='bx bx-send'></i></button>
+        </div>
+        <emoji-picker id="emojiPicker"></emoji-picker>
     </div>
 </div>
 
 <script type="module">
-    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
     let currentUser = null;
@@ -470,7 +471,21 @@
     let currentTab = "posts";
     let searchQuery = "";
     let searchDebounceTimer = null;
-    let lastSuggestionDate = null;
+    let unsubscribeMessages = null;
+    
+    // Logging function
+    async function addLog(type, actor, target, message) {
+        try {
+            const logsRef = collection(db, "logs");
+            await addDoc(logsRef, {
+                type: type,
+                actor: actor,
+                target: target,
+                message: message,
+                timestamp: new Date()
+            });
+        } catch(e) { console.warn("Log error:", e); }
+    }
     
     function showNotification(message, type = "info") {
         const existing = document.querySelector('.galagram-toast');
@@ -511,53 +526,32 @@
             requestsList = currentUser.requests || [];
             updateRequestBadge();
             document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80';
-            
-            // Load last suggestion date from localStorage
-            const lastSugg = localStorage.getItem('galagram_last_suggestion');
-            if (lastSugg) lastSuggestionDate = new Date(parseInt(lastSugg));
         }
     }
     
-    // Calculate post score based on interactions and recency
     function calculatePostScore(post) {
         const likes = post.likes?.length || 0;
         const comments = post.comments?.length || 0;
         const engagementScore = likes * 1.5 + comments * 1.0;
-        
         const createdAt = post.createdAt?.toDate ? post.createdAt.toDate() : new Date(post.createdAt);
         const now = new Date();
         const hoursSince = (now - createdAt) / (1000 * 60 * 60);
-        
-        // Decay factor: high for first 48 hours, then drops
-        let decayFactor = 1.0;
-        if (hoursSince > 48) {
-            decayFactor = Math.max(0.3, 1.0 - (hoursSince - 48) / 168); // decays over a week
-        } else {
-            decayFactor = 1.0 - (hoursSince / 96); // slight decay in first 2 days
-        }
-        
-        // Pinned posts get huge boost
+        let decayFactor = hoursSince > 48 ? Math.max(0.3, 1.0 - (hoursSince - 48) / 168) : 1.0 - (hoursSince / 96);
         const pinnedBoost = post.pinned ? 1000 : 0;
-        
         return (engagementScore * decayFactor) + pinnedBoost;
     }
     
-    // Load posts with real-time updates
     function loadPosts() {
         const postsRef = collection(db, "news");
         const q = query(postsRef);
         onSnapshot(q, (snapshot) => {
             postsItems = [];
-            snapshot.forEach(docSnap => {
-                postsItems.push({ id: docSnap.id, ...docSnap.data() });
-            });
-            // Sort by score descending
+            snapshot.forEach(docSnap => { postsItems.push({ id: docSnap.id, ...docSnap.data() }); });
             postsItems.sort((a, b) => calculatePostScore(b) - calculatePostScore(a));
             if (currentTab === "posts") renderPosts();
         });
     }
     
-    // Load users
     let unsubscribeUsers = null;
     function loadUsers() {
         if (unsubscribeUsers) unsubscribeUsers();
@@ -567,17 +561,10 @@
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
                 if (docSnap.id !== currentUsername) {
-                    allUsers.push({
-                        id: docSnap.id,
-                        ...data,
-                        galaStatus: data.galaStatus || "available",
-                        verified: data.verified || "none"
-                    });
+                    allUsers.push({ id: docSnap.id, ...data, galaStatus: data.galaStatus || "available", verified: data.verified || "none" });
                 }
             });
             if (currentTab !== "posts") renderUsers();
-            // Show gala recommendation if conditions met
-            showGalaRecommendation();
         });
     }
     
@@ -595,30 +582,26 @@
         }
         container.innerHTML = postsItems.map(post => `
             <div class="post-card" data-postid="${post.id}">
-                <div class="post-header">
+                <div class="post-info">
                     <img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
                     <div>
-                        <div class="post-author">${escapeHtml(post.authorName)} ${getVerifiedIcon(post.authorVerified)}</div>
+                        <div class="post-author-row">
+                            <span class="post-author">${escapeHtml(post.authorName)}</span>
+                            ${getVerifiedIcon(post.authorVerified)}
+                        </div>
                         <div class="post-time">${formatTime(post.createdAt)}</div>
                     </div>
                 </div>
-                <div class="post-content">
-                    <div class="post-text">${escapeHtml(post.text)}</div>
-                    ${post.imageUrl ? `<img class="post-image" src="${post.imageUrl}" alt="post image">` : ''}
-                </div>
-                <div class="post-stats">
+                <div class="post-text">${escapeHtml(post.text)}</div>
+                ${post.imageUrl ? `<img class="post-image" src="${post.imageUrl}" alt="post image">` : ''}
+                <div class="post-stats" style="display: flex; gap: 16px; margin-top: 8px; color:#8e8e8e; font-size:0.7rem;">
                     <span><i class='bx bx-heart'></i> ${post.likes?.length || 0}</span>
                     <span><i class='bx bx-comment'></i> ${post.comments?.length || 0}</span>
                 </div>
             </div>
         `).join('');
-        
         document.querySelectorAll('.post-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const postId = card.dataset.postid;
-                window.location.href = `news.html?id=${postId}`;
-            });
+            card.addEventListener('click', () => window.location.href = `news.html?id=${card.dataset.postid}`);
         });
     }
     
@@ -629,13 +612,13 @@
             filtered = filtered.filter(u => u.username?.toLowerCase().includes(q) || u.realName?.toLowerCase().includes(q));
         }
         if (currentTab === "available") filtered = filtered.filter(u => u.galaStatus === "available");
+        if (currentTab === "taken") filtered = filtered.filter(u => u.galaStatus === "taken");
         
         const container = document.getElementById('contentArea');
         if (!filtered.length) {
             container.innerHTML = `<div class="empty-state"><i class='bx bx-user-x' style="font-size: 3rem;"></i><p>No users found</p></div>`;
             return;
         }
-        
         container.innerHTML = filtered.map(user => `
             <div class="user-card" data-userid="${user.id}">
                 <div class="avatar-container">
@@ -651,92 +634,54 @@
                 </div>
             </div>
         `).join('');
-        
         document.querySelectorAll('.user-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const userId = card.dataset.userid;
-                window.location.href = `user.html?uid=${encodeURIComponent(userId)}`;
-            });
+            card.addEventListener('click', () => window.location.href = `user.html?uid=${encodeURIComponent(card.dataset.userid)}`);
         });
     }
     
-    // Debounced search with live suggestions
+    // Debounced search
     const searchInput = document.getElementById('searchInput');
     const suggestionsDiv = document.getElementById('searchSuggestions');
-    
     function performSearch() {
         searchQuery = searchInput.value.trim();
         if (currentTab !== "posts") renderUsers();
-        // Hide suggestions
         suggestionsDiv.classList.remove('show');
     }
-    
     function updateSearchSuggestions() {
         const queryText = searchInput.value.trim().toLowerCase();
-        if (queryText.length === 0) {
-            suggestionsDiv.classList.remove('show');
-            return;
-        }
-        const matches = allUsers.filter(u => 
-            u.username?.toLowerCase().includes(queryText) || 
-            u.realName?.toLowerCase().includes(queryText)
-        ).slice(0, 5);
-        
-        if (matches.length === 0) {
-            suggestionsDiv.classList.remove('show');
-            return;
-        }
-        
+        if (queryText.length === 0) { suggestionsDiv.classList.remove('show'); return; }
+        const matches = allUsers.filter(u => u.username?.toLowerCase().includes(queryText) || u.realName?.toLowerCase().includes(queryText)).slice(0, 5);
+        if (!matches.length) { suggestionsDiv.classList.remove('show'); return; }
         suggestionsDiv.innerHTML = matches.map(user => `
             <div class="search-suggestion-item" data-username="${user.username}">
                 <img class="suggestion-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'}" alt="">
-                <div>
-                    <div style="font-weight: 500;">${escapeHtml(user.realName)}</div>
-                    <div style="font-size: 0.7rem; color: #8e8e8e;">@${user.username}</div>
-                </div>
+                <div><div style="font-weight:500;">${escapeHtml(user.realName)}</div><div style="font-size:0.7rem; color:#8e8e8e;">@${user.username}</div></div>
             </div>
         `).join('');
         suggestionsDiv.classList.add('show');
-        
         document.querySelectorAll('.search-suggestion-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const username = item.dataset.username;
-                searchInput.value = username;
-                performSearch();
-            });
+            item.addEventListener('click', () => { searchInput.value = item.dataset.username; performSearch(); });
         });
     }
-    
     searchInput.addEventListener('input', () => {
         if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => {
-            performSearch();
-            updateSearchSuggestions();
-        }, 300);
+        searchDebounceTimer = setTimeout(() => { performSearch(); updateSearchSuggestions(); }, 300);
     });
-    
     document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
-            suggestionsDiv.classList.remove('show');
-        }
+        if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) suggestionsDiv.classList.remove('show');
     });
     
     function updateRequestBadge() {
         const badge = document.getElementById('requestBadge');
         const count = requestsList.length;
-        if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
+        if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('hidden'); }
+        else { badge.classList.add('hidden'); }
     }
     
     function formatTime(timestamp) {
         if (!timestamp) return 'just now';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        const now = new Date();
-        const diff = Math.floor((now - date) / 1000);
+        const diff = Math.floor((new Date() - date) / 1000);
         if (diff < 60) return `${diff}s ago`;
         if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
         if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
@@ -745,157 +690,107 @@
     
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
     function listenToCurrentUser() {
         onSnapshot(fDoc(db, "users", currentUsername), (docSnap) => {
             if (docSnap.exists()) {
-                const data = docSnap.data();
-                currentUser = { id: currentUsername, ...data };
-                requestsList = data.requests || [];
+                currentUser = { id: currentUsername, ...docSnap.data() };
+                requestsList = currentUser.requests || [];
                 updateRequestBadge();
                 if (currentTab !== "posts") renderUsers();
             }
         });
     }
     
-    // Gala Recommendation Popup (once per day, only if available)
-    async function showGalaRecommendation() {
-        if (!currentUser) return;
-        if (currentUser.galaStatus !== "available") return;
-        if (currentUser.pairedWith) return;
-        
-        // Check if already shown today
-        const today = new Date().toDateString();
-        const lastShown = localStorage.getItem('galagram_rec_shown');
-        if (lastShown === today) return;
-        
-        // Find best match (opposite gender, not taken, not self, not already requested)
-        const candidates = allUsers.filter(u => 
-            u.galaStatus === "available" && 
-            u.gender !== currentUser.gender &&
-            !currentUser.sentRequests?.includes(u.id) &&
-            !currentUser.requests?.includes(u.id)
-        );
-        
-        if (candidates.length === 0) return;
-        
-        // Pick best candidate (highest score based on verified, etc.)
-        candidates.sort((a, b) => {
-            let scoreA = 0, scoreB = 0;
-            if (a.verified === "blue") scoreA += 20;
-            if (b.verified === "blue") scoreB += 20;
-            return scoreB - scoreA;
-        });
-        const bestMatch = candidates[0];
-        
-        // Create popup
-        const overlay = document.createElement('div');
-        overlay.className = 'rec-overlay';
-        const pronoun = bestMatch.gender === 'BOY' ? 'him' : 'her';
-        overlay.innerHTML = `
-            <div class="rec-popup">
-                <div class="rec-title">✨ Perfect Match ✨</div>
-                <div class="rec-user">
-                    <img class="rec-avatar" src="${bestMatch.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
-                    <div>
-                        <div class="rec-name">${escapeHtml(bestMatch.realName)}</div>
-                        <div style="font-size: 0.7rem; color: #8e8e8e;">@${bestMatch.username}</div>
+    // CHAT FUNCTIONALITY
+    let chatOpen = false;
+    const chatOverlay = document.getElementById('chatOverlay');
+    const chatMessagesDiv = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendChatBtn');
+    const closeChat = document.getElementById('closeChat');
+    const emojiBtn = document.getElementById('emojiBtn');
+    const emojiPicker = document.getElementById('emojiPicker');
+    
+    function loadChatMessages() {
+        if (unsubscribeMessages) unsubscribeMessages();
+        const messagesRef = collection(db, "chatMessages");
+        const q = query(messagesRef, orderBy("timestamp", "asc"), limit(100));
+        unsubscribeMessages = onSnapshot(q, (snapshot) => {
+            chatMessagesDiv.innerHTML = '';
+            snapshot.forEach(docSnap => {
+                const msg = docSnap.data();
+                const isOwn = msg.username === currentUsername;
+                const verifiedIcon = msg.userVerified === 'blue' ? '<i class="bx bx-check-circle" style="color:#0095f6; font-size:0.7rem;"></i>' : (msg.userVerified === 'gray' ? '<i class="bx bxs-check-circle" style="color:#8e8e8e; font-size:0.7rem;"></i>' : '');
+                chatMessagesDiv.innerHTML += `
+                    <div class="message ${isOwn ? 'own' : ''}">
+                        <img class="message-avatar" src="${msg.userAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" alt="">
+                        <div class="message-bubble">
+                            <div class="message-name">@${escapeHtml(msg.username)} ${verifiedIcon}</div>
+                            <div>${escapeHtml(msg.text)}</div>
+                        </div>
                     </div>
-                </div>
-                <p>Are you interested in ${escapeHtml(bestMatch.realName)}? Request ${pronoun} to be your gala!</p>
-                <div class="rec-buttons">
-                    <button class="rec-btn rec-btn-primary" id="recAcceptBtn">Request</button>
-                    <button class="rec-btn rec-btn-secondary" id="recDeclineBtn">No, Thanks</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-        
-        overlay.querySelector('#recAcceptBtn').addEventListener('click', async () => {
-            try {
-                await updateDoc(doc(db, "users", bestMatch.id), {
-                    requests: arrayUnion(currentUsername)
-                });
-                await updateDoc(doc(db, "users", currentUsername), {
-                    sentRequests: arrayUnion(bestMatch.id)
-                });
-                showNotification(`Request sent to ${bestMatch.realName}!`, 'success');
-            } catch(e) { showNotification("Error sending request", "error"); }
-            overlay.remove();
-            localStorage.setItem('galagram_rec_shown', today);
-        });
-        
-        overlay.querySelector('#recDeclineBtn').addEventListener('click', () => {
-            overlay.remove();
-            localStorage.setItem('galagram_rec_shown', today);
+                `;
+            });
+            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
         });
     }
     
-    // Auto-reject other requests when one is accepted (implemented in user.html, but also handle here)
-    // This will be called from user.html via global function
-    window.acceptRequestAndRejectOthers = async function(acceptedUserId, acceptedUserName) {
-        const currentRequests = currentUser.requests || [];
-        const otherRequests = currentRequests.filter(id => id !== acceptedUserId);
-        const batch = writeBatch(db);
-        batch.update(doc(db, "users", currentUsername), {
-            galaStatus: "taken",
-            pairedWith: acceptedUserId,
-            requests: arrayRemove(acceptedUserId)
-        });
-        batch.update(doc(db, "users", acceptedUserId), {
-            galaStatus: "taken",
-            pairedWith: currentUsername,
-            sentRequests: arrayRemove(currentUsername)
-        });
-        for (const otherId of otherRequests) {
-            batch.update(doc(db, "users", otherId), {
-                sentRequests: arrayRemove(currentUsername)
+    async function sendChatMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        try {
+            await addDoc(collection(db, "chatMessages"), {
+                username: currentUsername,
+                text: text,
+                userAvatar: currentUser.profileImage,
+                userVerified: currentUser.verified || "none",
+                timestamp: serverTimestamp()
             });
-        }
-        batch.update(doc(db, "users", currentUsername), { requests: [] });
-        await batch.commit();
-        showNotification(`🎉 You are now paired with ${acceptedUserName}! Others were automatically declined.`, 'success');
-        setTimeout(() => window.location.href = "home.html", 1500);
-    };
+            chatInput.value = '';
+        } catch(e) { showNotification("Failed to send", "error"); }
+    }
     
-    // Tab switching logic
+    document.getElementById('chatIcon').addEventListener('click', () => {
+        chatOverlay.classList.add('open');
+        chatOpen = true;
+        loadChatMessages();
+    });
+    closeChat.addEventListener('click', () => {
+        chatOverlay.classList.remove('open');
+        if (unsubscribeMessages) unsubscribeMessages();
+    });
+    sendBtn.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+    emojiBtn.addEventListener('click', () => {
+        emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+    });
+    emojiPicker.addEventListener('emoji-click', (event) => {
+        chatInput.value += event.detail.unicode;
+        emojiPicker.style.display = 'none';
+    });
+    document.addEventListener('click', (e) => {
+        if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) emojiPicker.style.display = 'none';
+    });
+    
+    // Tabs and FAB
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             currentTab = tab.dataset.tab;
-            
-            // Show/hide FAB button only on posts tab
             const fab = document.getElementById('fabBtn');
-            if (currentTab === 'posts') {
-                fab.classList.remove('hidden');
-            } else {
-                fab.classList.add('hidden');
-            }
-            
+            if (currentTab === 'posts') fab.classList.remove('hidden');
+            else fab.classList.add('hidden');
             if (currentTab === "posts") renderPosts();
             else renderUsers();
         });
     });
-    
-    document.getElementById('requestsHeart').addEventListener('click', () => {
-        window.location.href = `requests.html`;
-    });
-    
-    document.getElementById('profileAvatar').addEventListener('click', () => {
-        window.location.href = `profile.html`;
-    });
-    
-    document.getElementById('fabBtn').addEventListener('click', () => {
-        window.location.href = `add-news.html`;
-    });
+    document.getElementById('requestsHeart').addEventListener('click', () => window.location.href = `requests.html`);
+    document.getElementById('profileAvatar').addEventListener('click', () => window.location.href = `profile.html`);
+    document.getElementById('fabBtn').addEventListener('click', () => window.location.href = `add-news.html`);
     
     // Screenshot protection
     (function antiScreenshot() {
@@ -910,7 +805,6 @@
             setTimeout(() => overlay.remove(), 200);
         };
         document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
-        document.addEventListener('keydown', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
         document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
     })();
     
@@ -923,18 +817,13 @@
     window.addEventListener('resize', handleResize);
     handleResize();
     
-    // Initialize
     (async () => {
         await loadCurrentUser();
         loadPosts();
         loadUsers();
         listenToCurrentUser();
-        // FAB initial visibility
-        if (currentTab === 'posts') {
-            document.getElementById('fabBtn').classList.remove('hidden');
-        }
+        if (currentTab === 'posts') document.getElementById('fabBtn').classList.remove('hidden');
     })();
 </script>
 </body>
 </html>
-
