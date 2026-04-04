@@ -6,7 +6,7 @@
     <title>Galagram • Admin Panel</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -31,17 +31,18 @@
         .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
         .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
         .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .admin-tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 20px; }
-        .admin-tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; }
+        .admin-tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 20px; overflow-x: auto; }
+        .admin-tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
         .admin-tab.active { color: #0095f6; border-bottom-color: #0095f6; }
         .content { padding: 16px; background: #fafafa; min-height: 85vh; }
-        .user-item, .post-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .user-item, .post-item, .log-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .user-info, .post-info { display: flex; align-items: center; gap: 12px; flex: 1; }
         .user-avatar, .post-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
         .user-details, .post-details { flex: 1; }
         .user-name, .post-author { font-weight: 600; font-size: 0.9rem; }
-        .user-username, .post-time { font-size: 0.7rem; color: #8e8e8e; }
+        .user-username, .post-time, .log-time { font-size: 0.7rem; color: #8e8e8e; }
         .post-text { font-size: 0.8rem; margin-top: 4px; color: #262626; }
+        .log-message { font-size: 0.85rem; flex: 1; }
         .badge-select, .action-btn { padding: 6px 12px; border-radius: 20px; border: 1px solid #dbdbdb; background: white; cursor: pointer; font-size: 0.75rem; margin-left: 8px; }
         .action-btn.pin { background: #f59e0b; color: white; border: none; }
         .action-btn.delete { background: #ef4444; color: white; border: none; }
@@ -53,6 +54,12 @@
         .loading { text-align: center; padding: 40px; color: #8e8e8e; }
         .bx-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .log-icon { font-size: 1.2rem; margin-right: 8px; }
+        .log-icon.request { color: #f59e0b; }
+        .log-icon.accept { color: #22c55e; }
+        .log-icon.reject { color: #ef4444; }
+        .log-icon.pair { color: #0095f6; }
+        .log-icon.unpair { color: #8e8e8e; }
     </style>
 </head>
 <body>
@@ -66,25 +73,27 @@
     </div>
     
     <div class="admin-tabs">
-        <div class="admin-tab active" data-tab="users">👥 Users</div>
+        <div class="admin-tab" data-tab="users">👥 Users</div>
         <div class="admin-tab" data-tab="posts">📝 Posts</div>
+        <div class="admin-tab active" data-tab="logs">📋 Logs</div>
     </div>
     
     <div class="content">
         <div class="search-bar">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search...">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search logs...">
         </div>
-        <div id="adminContent"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div></div>
+        <div id="adminContent"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading logs...</div></div>
     </div>
 </div>
 
 <script type="module">
-    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
-    let currentTab = "users";
+    let currentTab = "logs";
     let allUsers = [];
     let allPosts = [];
+    let allLogs = [];
     let searchQuery = "";
     
     function showNotification(message) {
@@ -118,6 +127,17 @@
             allPosts.push({ id: docSnap.id, ...docSnap.data() });
         });
         renderPosts();
+    }
+    
+    async function loadLogs() {
+        const logsRef = collection(db, "logs");
+        const q = query(logsRef, orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+        allLogs = [];
+        snapshot.forEach(docSnap => {
+            allLogs.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderLogs();
     }
     
     function renderUsers() {
@@ -205,7 +225,6 @@
         });
         container.innerHTML = html;
         
-        // Pin button handler
         document.querySelectorAll('.action-btn.pin').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const postId = btn.dataset.id;
@@ -216,7 +235,6 @@
             });
         });
         
-        // Edit button handler
         document.querySelectorAll('.action-btn.edit').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const postId = btn.dataset.id;
@@ -230,7 +248,6 @@
             });
         });
         
-        // Delete button handler
         document.querySelectorAll('.action-btn.delete').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 if (confirm('Delete this post permanently?')) {
@@ -241,6 +258,43 @@
                 }
             });
         });
+    }
+    
+    function renderLogs() {
+        let filtered = allLogs;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = allLogs.filter(log => 
+                log.message?.toLowerCase().includes(q) ||
+                log.actor?.toLowerCase().includes(q) ||
+                log.target?.toLowerCase().includes(q)
+            );
+        }
+        const container = document.getElementById('adminContent');
+        if (!filtered.length) {
+            container.innerHTML = `<div class="loading">No logs found</div>`;
+            return;
+        }
+        
+        let html = '';
+        filtered.forEach(log => {
+            let iconClass = '';
+            let icon = 'bx-info-circle';
+            if (log.type === 'request') { icon = 'bx-heart'; iconClass = 'request'; }
+            else if (log.type === 'accept') { icon = 'bx-check-circle'; iconClass = 'accept'; }
+            else if (log.type === 'reject') { icon = 'bx-x-circle'; iconClass = 'reject'; }
+            else if (log.type === 'pair') { icon = 'bx-party'; iconClass = 'pair'; }
+            else if (log.type === 'unpair') { icon = 'bx-heart-broken'; iconClass = 'unpair'; }
+            
+            html += `
+                <div class="log-item">
+                    <i class='bx ${icon} log-icon ${iconClass}'></i>
+                    <div class="log-message">${escapeHtml(log.message)}</div>
+                    <div class="log-time">${formatTime(log.timestamp)}</div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
     }
     
     function formatTime(timestamp) {
@@ -263,7 +317,8 @@
     document.getElementById('searchInput').addEventListener('input', (e) => {
         searchQuery = e.target.value;
         if (currentTab === 'users') renderUsers();
-        else renderPosts();
+        else if (currentTab === 'posts') renderPosts();
+        else renderLogs();
     });
     
     document.querySelectorAll('.admin-tab').forEach(tab => {
@@ -275,8 +330,10 @@
             searchQuery = '';
             if (currentTab === 'users') {
                 loadUsers();
-            } else {
+            } else if (currentTab === 'posts') {
                 loadPosts();
+            } else {
+                loadLogs();
             }
         });
     });
@@ -305,7 +362,8 @@
     window.addEventListener('resize', handleResize);
     handleResize();
     
-    loadUsers();
+    // Default to logs tab
+    loadLogs();
 </script>
 </body>
 </html>
