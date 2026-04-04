@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Galagram • Admin Analyzer</title>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+            authDomain: "akademia-c56ff.firebaseapp.com",
+            databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+            projectId: "akademia-c56ff",
+            storageBucket: "akademia-c56ff.firebasestorage.app",
+            messagingSenderId: "678278775270",
+            appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+            measurementId: "G-X3CHCJE5LK"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
+        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
+        .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .content { padding: 16px; background: #fafafa; min-height: 85vh; }
+        .search-section { background: white; border-radius: 16px; padding: 16px; margin-bottom: 20px; }
+        .search-input { width: 100%; padding: 12px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; }
+        .tabs { display: flex; gap: 12px; margin-bottom: 16px; overflow-x: auto; }
+        .tab { padding: 8px 16px; background: white; border-radius: 30px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .tab.active { background: #0095f6; color: white; }
+        .data-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+        .data-title { font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-left: 3px solid #0095f6; padding-left: 10px; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid #efefef; }
+        .info-label { font-weight: 600; color: #8e8e8e; }
+        .info-value { color: #262626; word-break: break-word; text-align: right; max-width: 60%; }
+        .badge { background: #efefef; padding: 4px 8px; border-radius: 20px; font-size: 0.7rem; display: inline-block; margin: 2px; }
+        .score-high { color: #22c55e; font-weight: 700; }
+        .score-medium { color: #f59e0b; }
+        .score-low { color: #ef4444; }
+        .empty-state { text-align: center; padding: 40px; color: #8e8e8e; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
+        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
+        .loading { text-align: center; padding: 40px; color: #8e8e8e; }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
+
+<div id="appRoot" class="app-container">
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">Admin Analyzer</div>
+    </div>
+    <div class="content">
+        <div class="search-section">
+            <input type="text" id="userSearch" class="search-input" placeholder="Search by username or UID...">
+        </div>
+        <div id="tabsContainer" class="tabs">
+            <div class="tab active" data-tab="profile">👤 Profile</div>
+            <div class="tab" data-tab="survey">📋 Survey</div>
+            <div class="tab" data-tab="logs">📜 Activity Logs</div>
+            <div class="tab" data-tab="algorithm">🧠 Algorithm Analysis</div>
+        </div>
+        <div id="contentArea">
+            <div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Enter a username to analyze</div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const db = window.db;
+    
+    let currentTab = "profile";
+    let currentUserId = null;
+    let currentUserData = null;
+    let allUsers = [];
+    let userLogs = [];
+    
+    function showNotification(message, type = "info") {
+        const existing = document.querySelector('.galagram-toast');
+        if(existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = `galagram-toast`;
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    const sessionData = localStorage.getItem('galagram_session');
+    if (!sessionData) { window.location.href = "index.html"; }
+    const session = JSON.parse(sessionData);
+    const currentUsername = session.username;
+    
+    // Simple admin check – only allow if username is 'admin' (you can change this)
+    if (currentUsername !== 'admin') {
+        document.getElementById('contentArea').innerHTML = `<div class="empty-state"><i class='bx bx-lock-alt' style="font-size: 3rem;"></i><p>Admin access only. You are not authorized.</p></div>`;
+        document.getElementById('userSearch').disabled = true;
+        document.querySelectorAll('.tab').forEach(t => t.style.opacity = '0.5');
+    }
+    
+    async function loadAllUsers() {
+        const snapshot = await getDocs(collection(db, "users"));
+        allUsers = [];
+        snapshot.forEach(docSnap => {
+            allUsers.push({ id: docSnap.id, ...docSnap.data() });
+        });
+    }
+    
+    async function loadUserData(usernameOrId) {
+        // Try find by username first
+        let userDoc = null;
+        let userId = usernameOrId;
+        const userByName = allUsers.find(u => u.username === usernameOrId);
+        if (userByName) {
+            userId = userByName.id;
+            userDoc = await getDoc(doc(db, "users", userId));
+        } else {
+            userDoc = await getDoc(doc(db, "users", usernameOrId));
+        }
+        if (!userDoc.exists()) {
+            showNotification("User not found", "error");
+            return false;
+        }
+        currentUserId = userDoc.id;
+        currentUserData = { id: userDoc.id, ...userDoc.data() };
+        // Load logs for this user (as actor or target)
+        const logsRef = collection(db, "logs");
+        const q = query(logsRef, where("actor", "==", currentUserId), orderBy("timestamp", "desc"), limit(50));
+        const snapshot = await getDocs(q);
+        userLogs = [];
+        snapshot.forEach(docSnap => userLogs.push({ id: docSnap.id, ...docSnap.data() }));
+        // Also get logs where target is this user
+        const q2 = query(logsRef, where("target", "==", currentUserId), orderBy("timestamp", "desc"), limit(50));
+        const snapshot2 = await getDocs(q2);
+        snapshot2.forEach(docSnap => {
+            if (!userLogs.find(l => l.id === docSnap.id)) userLogs.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        userLogs.sort((a,b) => (b.timestamp?.toDate?.() || 0) - (a.timestamp?.toDate?.() || 0));
+        renderCurrentTab();
+        return true;
+    }
+    
+    // Algorithm compatibility score calculator (same as home.html)
+    function computeCompatibilityScore(user, targetUser) {
+        if (user.id === targetUser.id) return -Infinity;
+        if (targetUser.galaStatus !== "available") return -Infinity;
+        if (user.sentRequests?.includes(targetUser.id)) return -Infinity;
+        if (user.requests?.includes(targetUser.id)) return -Infinity;
+        if (user.gender === targetUser.gender) return -Infinity;
+        
+        let score = 50;
+        if (user.gender !== targetUser.gender) score += 30;
+        const mySurvey = user.survey;
+        const theirSurvey = targetUser.survey;
+        if (mySurvey && theirSurvey) {
+            if (mySurvey.district === theirSurvey.district) score += 25;
+            if (mySurvey.ageRange === theirSurvey.ageRange) score += 15;
+            if (mySurvey.height === theirSurvey.height) score += 10;
+            if (mySurvey.hobby === theirSurvey.hobby) score += 30;
+            if (mySurvey.classCombo === theirSurvey.classCombo) score += 35;
+            if (mySurvey.everKissed === theirSurvey.everKissed) score += 10;
+        }
+        score += Math.min(targetUser.rejectionCount || 0, 8) * 3;
+        if (targetUser.createdAt) {
+            const daysSinceJoin = (Date.now() - new Date(targetUser.createdAt).getTime()) / (1000*3600*24);
+            if (daysSinceJoin < 3) score += 20;
+        }
+        score += Math.min(targetUser.chatMessageCount || 0, 100) * 0.3;
+        if (targetUser.verified === "blue") score += 25;
+        else if (targetUser.verified === "gray") score += 15;
+        return Math.round(score);
+    }
+    
+    function renderCurrentTab() {
+        if (!currentUserData) {
+            document.getElementById('contentArea').innerHTML = `<div class="empty-state"><i class='bx bx-user-x'></i><p>No user selected</p></div>`;
+            return;
+        }
+        if (currentTab === "profile") renderProfile();
+        else if (currentTab === "survey") renderSurvey();
+        else if (currentTab === "logs") renderLogs();
+        else if (currentTab === "algorithm") renderAlgorithm();
+    }
+    
+    function renderProfile() {
+        const container = document.getElementById('contentArea');
+        const user = currentUserData;
+        const verifiedIcon = user.verified === 'blue' ? '✓✓ Blue' : (user.verified === 'gray' ? '✓ Gray' : 'None');
+        container.innerHTML = `
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-user-circle'></i> Basic Information</div>
+                <div class="info-row"><span class="info-label">User ID</span><span class="info-value">${escapeHtml(user.id)}</span></div>
+                <div class="info-row"><span class="info-label">Username</span><span class="info-value">@${escapeHtml(user.username)}</span></div>
+                <div class="info-row"><span class="info-label">Real Name</span><span class="info-value">${escapeHtml(user.realName)}</span></div>
+                <div class="info-row"><span class="info-label">Gender</span><span class="info-value">${user.gender === 'BOY' ? '👦 Boy' : '👧 Girl'}</span></div>
+                <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${escapeHtml(user.phoneNumber || 'Not set')}</span></div>
+                <div class="info-row"><span class="info-label">Instagram</span><span class="info-value">${escapeHtml(user.instagramName || 'Not connected')}</span></div>
+                <div class="info-row"><span class="info-label">6-digit Code</span><span class="info-value">${user.sixDigitCode}</span></div>
+                <div class="info-row"><span class="info-label">Verified Badge</span><span class="info-value">${verifiedIcon}</span></div>
+                <div class="info-row"><span class="info-label">Gala Status</span><span class="info-value">${user.galaStatus === 'available' ? '✨ Available' : '💔 Taken'}</span></div>
+                <div class="info-row"><span class="info-label">Paired With</span><span class="info-value">${user.pairedWith ? escapeHtml(user.pairedWith) : 'None'}</span></div>
+                <div class="info-row"><span class="info-label">Joined</span><span class="info-value">${user.createdAt ? new Date(user.createdAt).toLocaleString() : 'Unknown'}</span></div>
+            </div>
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-stats'></i> Engagement Metrics</div>
+                <div class="info-row"><span class="info-label">Requests Received</span><span class="info-value">${user.requests?.length || 0}</span></div>
+                <div class="info-row"><span class="info-label">Requests Sent</span><span class="info-value">${user.sentRequests?.length || 0}</span></div>
+                <div class="info-row"><span class="info-label">Rejection Count</span><span class="info-value">${user.rejectionCount || 0}</span></div>
+                <div class="info-row"><span class="info-label">Chat Messages</span><span class="info-value">${user.chatMessageCount || 0}</span></div>
+                <div class="info-row"><span class="info-label">Active Session</span><span class="info-value">${user.activeSession ? '✅ Active' : '❌ Offline'}</span></div>
+            </div>
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-image'></i> Profile Photo</div>
+                <img src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100'}" style="width:100px; height:100px; border-radius:50%; margin-top:8px;">
+            </div>
+        `;
+    }
+    
+    function renderSurvey() {
+        const container = document.getElementById('contentArea');
+        const survey = currentUserData.survey;
+        if (!survey) {
+            container.innerHTML = `<div class="empty-state"><i class='bx bx-question-mark'></i><p>User has not completed the survey yet.</p></div>`;
+            return;
+        }
+        container.innerHTML = `
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-home'></i> Home District</div>
+                <div class="info-value">${escapeHtml(survey.district)}</div>
+            </div>
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-calendar'></i> Age Range</div>
+                <div class="info-value">${escapeHtml(survey.ageRange)}</div>
+            </div>
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-line-chart'></i> Height</div>
+                <div class="info-value">${escapeHtml(survey.height)}</div>
+            </div>
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-run'></i> Hobby</div>
+                <div class="info-value">${escapeHtml(survey.hobby)}</div>
+            </div>
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-book'></i> Class Combination</div>
+                <div class="info-value">${escapeHtml(survey.classCombo)}</div>
+            </div>
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-heart'></i> Ever Kissed?</div>
+                <div class="info-value">${escapeHtml(survey.everKissed)}</div>
+            </div>
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-time'></i> Completed At</div>
+                <div class="info-value">${survey.completedAt ? new Date(survey.completedAt).toLocaleString() : 'Unknown'}</div>
+            </div>
+        `;
+    }
+    
+    function renderLogs() {
+        const container = document.getElementById('contentArea');
+        if (!userLogs.length) {
+            container.innerHTML = `<div class="empty-state"><i class='bx bx-history'></i><p>No activity logs found for this user.</p></div>`;
+            return;
+        }
+        let html = `<div class="data-card"><div class="data-title"><i class='bx bx-list-ul'></i> Recent Activity (max 50)</div>`;
+        userLogs.forEach(log => {
+            const icon = log.type === 'request' ? 'bx-heart' : (log.type === 'accept' ? 'bx-check-circle' : (log.type === 'reject' ? 'bx-x-circle' : 'bx-info-circle'));
+            html += `
+                <div class="info-row">
+                    <span class="info-label"><i class='bx ${icon}' style="margin-right:6px;"></i> ${log.type}</span>
+                    <span class="info-value">${escapeHtml(log.message)}<br><small style="color:#aaa;">${log.timestamp ? new Date(log.timestamp.toDate?.() || log.timestamp).toLocaleString() : 'Unknown'}</small></span>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+    
+    function renderAlgorithm() {
+        const container = document.getElementById('contentArea');
+        const user = currentUserData;
+        // Get all opposite gender available users
+        const candidates = allUsers.filter(u => 
+            u.id !== user.id && 
+            u.galaStatus === "available" && 
+            u.gender !== user.gender &&
+            !user.sentRequests?.includes(u.id) &&
+            !user.requests?.includes(u.id)
+        );
+        const scored = candidates.map(u => ({
+            user: u,
+            score: computeCompatibilityScore(user, u)
+        })).sort((a,b) => b.score - a.score).slice(0, 10);
+        
+        const weightsHtml = `
+            <div class="data-card">
+                <div class="data-title"><i class='bx bx-cog'></i> Algorithm Weights (Dynamic)</div>
+                <div class="info-row"><span class="info-label">Gender (opposite)</span><span class="info-value">+30</span></div>
+                <div class="info-row"><span class="info-label">Same District</span><span class="info-value">+25</span></div>
+                <div class="info-row"><span class="info-label">Same Age Range</span><span class="info-value">+15</span></div>
+                <div class="info-row"><span class="info-label">Same Height</span><span class="info-value">+10</span></div>
+                <div class="info-row"><span class="info-label">Same Hobby</span><span class="info-value">+30</span></div>
+                <div class="info-row"><span class="info-label">Same Class Combo</span><span class="info-value">+35</span></div>
+                <div class="info-row"><span class="info-label">Same Kissed Status</span><span class="info-value">+10</span></div>
+                <div class="info-row"><span class="info-label">Rejection Count Boost</span><span class="info-value">+3 per rejection (max +24)</span></div>
+                <div class="info-row"><span class="info-label">New User Boost (days&lt;3)</span><span class="info-value">+20</span></div>
+                <div class="info-row"><span class="info-label">Chat Activity</span><span class="info-value">+0.3 per message (max +30)</span></div>
+                <div class="info-row"><span class="info-label">Blue Verified</span><span class="info-value">+25</span></div>
+                <div class="info-row"><span class="info-label">Gray Verified</span><span class="info-value">+15</span></div>
+                <div class="info-row"><span class="info-label">Rotation Penalty</span><span class="info-value">-40 if recently shown</span></div>
+            </div>
+        `;
+        
+        if (scored.length === 0) {
+            container.innerHTML = weightsHtml + `<div class="empty-state"><i class='bx bx-bar-chart-alt-2'></i><p>No compatible matches available for analysis.</p></div>`;
+            return;
+        }
+        
+        let matchesHtml = `<div class="data-card"><div class="data-title"><i class='bx bx-trending-up'></i> Top Compatible Matches (Score out of ~200)</div>`;
+        scored.forEach((item, idx) => {
+            let scoreClass = '';
+            if (item.score > 100) scoreClass = 'score-high';
+            else if (item.score > 50) scoreClass = 'score-medium';
+            else scoreClass = 'score-low';
+            matchesHtml += `
+                <div class="info-row">
+                    <span class="info-label">${idx+1}. @${escapeHtml(item.user.username)}</span>
+                    <span class="info-value ${scoreClass}">${item.score} pts</span>
+                </div>
+                <div style="font-size:0.7rem; color:#666; margin-bottom:8px;">${escapeHtml(item.user.realName)} • ${item.user.gender === 'BOY' ? 'Boy' : 'Girl'} • ${item.user.survey?.hobby || 'No survey'}</div>
+            `;
+        });
+        matchesHtml += `</div>`;
+        container.innerHTML = weightsHtml + matchesHtml;
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+    
+    // Search with debounce
+    let searchDebounce = null;
+    const searchInput = document.getElementById('userSearch');
+    searchInput.addEventListener('input', () => {
+        if (searchDebounce) clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(async () => {
+            const query = searchInput.value.trim();
+            if (query.length < 2) return;
+            await loadAllUsers();
+            await loadUserData(query);
+        }, 500);
+    });
+    
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = tab.dataset.tab;
+            renderCurrentTab();
+        });
+    });
+    
+    document.getElementById('backBtn').addEventListener('click', () => {
+        window.location.href = "admin.html";
+    });
+    
+    // Screenshot protection
+    (function antiScreenshot() {
+        const blackFlash = () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = overlay.style.left = '0';
+            overlay.style.width = overlay.style.height = '100%';
+            overlay.style.backgroundColor = '#000000';
+            overlay.style.zIndex = '999999';
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 200);
+        };
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+    })();
+    
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
+        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
+    loadAllUsers();
+</script>
+</body>
+</html>
