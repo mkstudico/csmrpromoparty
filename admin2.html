@@ -30,7 +30,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
         .app-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: #ffffff;
             min-height: 100vh;
@@ -87,6 +87,57 @@
             border-color: #0095f6;
             box-shadow: 0 0 0 2px rgba(0,149,246,0.2);
         }
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .user-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #efefef;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        .user-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #0095f6;
+        }
+        .user-card.selected {
+            border: 2px solid #0095f6;
+            background: #f0f9ff;
+        }
+        .user-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 10px;
+            border: 2px solid #dbdbdb;
+        }
+        .user-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .user-username {
+            font-size: 0.75rem;
+            color: #8e8e8e;
+        }
+        .status-badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+        .status-available { background: #e3f7e8; color: #1e7b3e; }
+        .status-taken { background: #ffe6e6; color: #c0392b; }
         .tabs {
             display: flex;
             gap: 12px;
@@ -145,14 +196,6 @@
             max-width: 60%;
             text-align: right;
         }
-        .badge {
-            background: #efefef;
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            display: inline-block;
-            margin: 2px;
-        }
         .score-high { color: #22c55e; font-weight: 700; }
         .score-medium { color: #f59e0b; }
         .score-low { color: #ef4444; }
@@ -198,6 +241,7 @@
             .content { padding: 16px; }
             .info-value { max-width: 55%; font-size: 0.85rem; }
             .tab { padding: 8px 16px; font-size: 0.75rem; }
+            .users-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
         }
     </style>
 </head>
@@ -210,16 +254,25 @@
     </div>
     <div class="content">
         <div class="search-section">
-            <input type="text" id="userSearch" class="search-input" placeholder="Search by username or UID...">
+            <input type="text" id="userSearch" class="search-input" placeholder="Filter users by name or username...">
         </div>
-        <div id="tabsContainer" class="tabs">
-            <div class="tab active" data-tab="profile">👤 Profile</div>
-            <div class="tab" data-tab="survey">📋 Survey</div>
-            <div class="tab" data-tab="logs">📜 Activity Logs</div>
-            <div class="tab" data-tab="algorithm">🧠 Algorithm Analysis</div>
+        
+        <!-- Users Grid -->
+        <div id="usersGrid" class="users-grid">
+            <div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading users...</div>
         </div>
-        <div id="contentArea">
-            <div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Enter a username to analyze</div>
+        
+        <!-- Tabs and Details (hidden until user selected) -->
+        <div id="detailsSection" style="display: none;">
+            <div class="tabs" id="tabsContainer">
+                <div class="tab active" data-tab="profile">👤 Profile</div>
+                <div class="tab" data-tab="survey">📋 Survey</div>
+                <div class="tab" data-tab="logs">📜 Activity Logs</div>
+                <div class="tab" data-tab="algorithm">🧠 Algorithm Analysis</div>
+            </div>
+            <div id="contentArea">
+                <div class="empty-state">Select a user from the grid above</div>
+            </div>
         </div>
     </div>
 </div>
@@ -254,41 +307,72 @@
         snapshot.forEach(docSnap => {
             allUsers.push({ id: docSnap.id, ...docSnap.data() });
         });
+        renderUsersGrid();
     }
     
-    async function loadUserData(usernameOrId) {
-        let userDoc = null;
-        let userId = usernameOrId;
-        const userByName = allUsers.find(u => u.username === usernameOrId);
-        if (userByName) {
-            userId = userByName.id;
-            userDoc = await getDoc(doc(db, "users", userId));
-        } else {
-            userDoc = await getDoc(doc(db, "users", usernameOrId));
+    function renderUsersGrid() {
+        const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+        let filtered = allUsers;
+        if (searchTerm) {
+            filtered = allUsers.filter(u => 
+                u.username?.toLowerCase().includes(searchTerm) || 
+                u.realName?.toLowerCase().includes(searchTerm) ||
+                u.id?.toLowerCase().includes(searchTerm)
+            );
         }
-        if (!userDoc || !userDoc.exists()) {
+        const grid = document.getElementById('usersGrid');
+        if (!filtered.length) {
+            grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class='bx bx-user-x'></i><p>No users found</p></div>`;
+            return;
+        }
+        grid.innerHTML = filtered.map(user => `
+            <div class="user-card" data-userid="${user.id}" data-username="${user.username}">
+                <img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                <div class="user-name">${escapeHtml(user.realName)}</div>
+                <div class="user-username">@${escapeHtml(user.username)}</div>
+                <div class="status-badge ${user.galaStatus === 'available' ? 'status-available' : 'status-taken'}">
+                    ${user.galaStatus === 'available' ? '✨ Available' : '💔 Taken'}
+                </div>
+            </div>
+        `).join('');
+        
+        // Add click handlers
+        document.querySelectorAll('.user-card').forEach(card => {
+            card.addEventListener('click', async () => {
+                // Remove selected class from all
+                document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                const userId = card.dataset.userid;
+                await loadUserData(userId);
+                document.getElementById('detailsSection').style.display = 'block';
+            });
+        });
+    }
+    
+    async function loadUserData(userId) {
+        const userDoc = await getDoc(doc(db, "users", userId));
+        if (!userDoc.exists()) {
             showNotification("User not found", "error");
-            return false;
+            return;
         }
-        currentUserId = userDoc.id;
-        currentUserData = { id: userDoc.id, ...userDoc.data() };
+        currentUserId = userId;
+        currentUserData = { id: userId, ...userDoc.data() };
         
         // Load logs where user is actor
         const logsRef = collection(db, "logs");
-        const q = query(logsRef, where("actor", "==", currentUserId), orderBy("timestamp", "desc"), limit(100));
+        const q = query(logsRef, where("actor", "==", userId), orderBy("timestamp", "desc"), limit(100));
         const snapshot = await getDocs(q);
         userLogs = [];
         snapshot.forEach(docSnap => userLogs.push({ id: docSnap.id, ...docSnap.data() }));
         
         // Also get logs where user is target
-        const q2 = query(logsRef, where("target", "==", currentUserId), orderBy("timestamp", "desc"), limit(100));
+        const q2 = query(logsRef, where("target", "==", userId), orderBy("timestamp", "desc"), limit(100));
         const snapshot2 = await getDocs(q2);
         snapshot2.forEach(docSnap => {
             if (!userLogs.find(l => l.id === docSnap.id)) userLogs.push({ id: docSnap.id, ...docSnap.data() });
         });
         userLogs.sort((a,b) => (b.timestamp?.toDate?.() || 0) - (a.timestamp?.toDate?.() || 0));
         renderCurrentTab();
-        return true;
     }
     
     // Algorithm compatibility score (same as home.html)
@@ -323,10 +407,7 @@
     }
     
     function renderCurrentTab() {
-        if (!currentUserData) {
-            document.getElementById('contentArea').innerHTML = `<div class="empty-state"><i class='bx bx-user-x'></i><p>No user selected</p></div>`;
-            return;
-        }
+        if (!currentUserData) return;
         if (currentTab === "profile") renderProfile();
         else if (currentTab === "survey") renderSurvey();
         else if (currentTab === "logs") renderLogs();
@@ -466,17 +547,10 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
-    // Search with debounce
-    let searchDebounce = null;
+    // Search filtering (re-renders grid)
     const searchInput = document.getElementById('userSearch');
     searchInput.addEventListener('input', () => {
-        if (searchDebounce) clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(async () => {
-            const query = searchInput.value.trim();
-            if (query.length < 2) return;
-            await loadAllUsers();
-            await loadUserData(query);
-        }, 500);
+        renderUsersGrid();
     });
     
     // Tab switching
@@ -493,7 +567,7 @@
         window.location.href = "admin.html";
     });
     
-    // Screenshot protection (kept for consistency)
+    // Screenshot protection
     (function antiScreenshot() {
         const blackFlash = () => {
             const overlay = document.createElement('div');
@@ -509,7 +583,6 @@
         document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
     })();
     
-    // No PC blocker – works on any screen size
     loadAllUsers();
 </script>
 </body>
