@@ -318,18 +318,18 @@
         renderStep();
     }
     
-    // ---------- DYNAMIC COMPATIBILITY ALGORITHM ----------
+    // ---------- DYNAMIC COMPATIBILITY ALGORITHM (only for opposite gender) ----------
     function computeCompatibilityScore(user) {
         if (user.id === currentUsername) return -Infinity;
         if (user.galaStatus !== "available") return -Infinity;
         if (currentUser.sentRequests?.includes(user.id)) return -Infinity;
         if (currentUser.requests?.includes(user.id)) return -Infinity;
-        if (currentUser.gender === user.gender) return -Infinity; // Never suggest same gender
         
-        let score = 50; // Base score
+        let score = 50;
         
-        // Opposite gender bonus
+        // Opposite gender gets high base score
         if (currentUser.gender !== user.gender) score += 30;
+        else return -Infinity; // Same gender users are never shown in AVAILABLE or suggestions, but ALL tab will show them unsorted
         
         // Survey-based scoring
         const mySurvey = currentUser.survey;
@@ -343,22 +343,13 @@
             if (mySurvey.everKissed === theirSurvey.everKissed) score += 10;
         }
         
-        // Rejection boost (people who got rejected need more visibility)
         score += Math.min(user.rejectionCount || 0, 8) * 3;
-        
-        // New user boost
         if (user.createdAt) {
             const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000*3600*24);
             if (daysSinceJoin < 3) score += 20;
         }
-        
-        // Chat activity (engagement)
         score += Math.min(user.chatMessageCount || 0, 100) * 0.3;
-        
-        // Rotation penalty to avoid showing same person repeatedly
         if (recentSuggestions.includes(user.id)) score -= 40;
-        
-        // Verified badge boost
         if (user.verified === "blue") score += 25;
         else if (user.verified === "gray") score += 15;
         
@@ -473,13 +464,25 @@
             const q = searchQuery.toLowerCase();
             filtered = filtered.filter(u => u.username?.toLowerCase().includes(q) || u.realName?.toLowerCase().includes(q));
         }
-        if (currentTab === "available") filtered = filtered.filter(u => u.galaStatus === "available");
-        if (currentTab === "taken") filtered = filtered.filter(u => u.galaStatus === "taken");
         
-        // For ALL and AVAILABLE tabs, show only opposite gender and sorted by compatibility
-        if (currentTab === "all" || currentTab === "available") {
-            filtered = filtered.filter(u => u.gender !== currentUser.gender && u.galaStatus === "available");
+        if (currentTab === "available") {
+            // AVAILABLE: only opposite gender, available, sorted by compatibility
+            filtered = filtered.filter(u => u.galaStatus === "available" && u.gender !== currentUser.gender);
             filtered = getTopSuggestions(filtered, filtered.length);
+        } 
+        else if (currentTab === "taken") {
+            // TAKEN: show all taken users (both genders), no sorting
+            filtered = filtered.filter(u => u.galaStatus === "taken");
+        } 
+        else if (currentTab === "all") {
+            // ALL: show everyone (including same gender) but sorted by compatibility for opposite gender only?
+            // Keep original order (no sorting for same gender, but show them)
+            // We'll separate: opposite gender sorted, then same gender unsorted at bottom
+            const opposite = filtered.filter(u => u.galaStatus === "available" && u.gender !== currentUser.gender);
+            const same = filtered.filter(u => u.galaStatus === "available" && u.gender === currentUser.gender);
+            const taken = filtered.filter(u => u.galaStatus === "taken");
+            const sortedOpposite = getTopSuggestions(opposite, opposite.length);
+            filtered = [...sortedOpposite, ...same, ...taken];
         }
         
         const container = document.getElementById('contentArea');
@@ -507,7 +510,6 @@
     function updateSearchSuggestions() {
         const queryText = searchInput.value.trim().toLowerCase();
         if (!queryText) { suggestionsDiv.classList.remove('show'); return; }
-        // Filter: opposite gender, available, not self, not already requested/sent
         let matches = allUsers.filter(u => 
             (u.username?.toLowerCase().includes(queryText) || u.realName?.toLowerCase().includes(queryText)) &&
             u.gender !== currentUser.gender &&
