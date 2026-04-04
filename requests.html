@@ -70,13 +70,12 @@
     import { getFirestore, doc, getDoc, updateDoc, arrayRemove, addDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
-    // Logging function (same as in home.html)
     async function addLog(type, actor, target, message) {
         try {
             await addDoc(collection(db, "logs"), {
                 type: type,
                 actor: actor,
-                target: target || null,
+                target: target,
                 message: message,
                 timestamp: new Date()
             });
@@ -143,22 +142,18 @@
         }
         document.getElementById('requestsContent').innerHTML = html;
         
-        // Accept button handler (with auto-reject of others)
         document.querySelectorAll('.btn-accept').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const requesterId = btn.dataset.id;
                 const requesterName = btn.dataset.name;
                 
-                // Get current user's requests list again to ensure we have all
                 const currentUserDoc = await getDoc(doc(db, "users", currentUsername));
                 const allRequests = currentUserDoc.data().requests || [];
                 const otherRequests = allRequests.filter(id => id !== requesterId);
                 
-                // Use batch to ensure atomicity
                 const batch = writeBatch(db);
                 
-                // Accept the chosen one
                 batch.update(doc(db, "users", currentUsername), {
                     galaStatus: "taken",
                     pairedWith: requesterId,
@@ -170,25 +165,24 @@
                     sentRequests: arrayRemove(currentUsername)
                 });
                 
-                // Reject all others
+                // Auto-reject others and increment their rejection counts
                 for (const otherId of otherRequests) {
                     batch.update(doc(db, "users", otherId), {
                         sentRequests: arrayRemove(currentUsername)
                     });
-                    // Add log for each auto-rejection
-                    const otherUserDoc = await getDoc(doc(db, "users", otherId));
-                    if (otherUserDoc.exists()) {
-                        const otherName = otherUserDoc.data().realName;
-                        await addLog('reject', currentUsername, otherId, `${currentUsername} automatically rejected ${otherName} (accepted ${requesterName})`);
+                    // Increment rejection count for each auto-rejected user
+                    const otherDoc = await getDoc(doc(db, "users", otherId));
+                    if (otherDoc.exists()) {
+                        const otherName = otherDoc.data().realName;
+                        const currentRej = otherDoc.data().rejectionCount || 0;
+                        batch.update(doc(db, "users", otherId), { rejectionCount: currentRej + 1 });
+                        await addLog('reject', currentUsername, otherId, `${currentUsername} automatically rejected ${otherName} (accepted ${requesterName}) [rejection count now ${currentRej+1}]`);
                     }
                 }
                 
-                // Clear remaining requests array
                 batch.update(doc(db, "users", currentUsername), { requests: [] });
-                
                 await batch.commit();
                 
-                // Add success logs
                 await addLog('accept', currentUsername, requesterId, `${currentUsername} accepted ${requesterName}`);
                 await addLog('pair', currentUsername, requesterId, `${currentUsername} paired with ${requesterName}`);
                 
@@ -197,7 +191,6 @@
             });
         });
         
-        // Reject button handler
         document.querySelectorAll('.btn-reject').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
@@ -205,6 +198,9 @@
                 const requesterDoc = await getDoc(doc(db, "users", requesterId));
                 const requesterName = requesterDoc.exists() ? requesterDoc.data().realName : requesterId;
                 
+                // Increment rejection count for the rejected user
+                const currentRej = requesterDoc.data().rejectionCount || 0;
+                await updateDoc(doc(db, "users", requesterId), { rejectionCount: currentRej + 1 });
                 await updateDoc(doc(db, "users", currentUsername), {
                     requests: arrayRemove(requesterId)
                 });
@@ -212,26 +208,20 @@
                     sentRequests: arrayRemove(currentUsername)
                 });
                 
-                await addLog('reject', currentUsername, requesterId, `${currentUsername} rejected ${requesterName}`);
+                await addLog('reject', currentUsername, requesterId, `${currentUsername} rejected ${requesterName} (rejection count now ${currentRej+1})`);
                 showNotification(`Request from ${requesterName} rejected`, 'success');
-                loadRequests(); // refresh list
+                loadRequests();
             });
         });
     }
     
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
     document.getElementById('backBtn').addEventListener('click', () => { window.location.href = "home.html"; });
     
-    // Screenshot protection
     (function antiScreenshot() {
         const blackFlash = () => {
             const overlay = document.createElement('div');
