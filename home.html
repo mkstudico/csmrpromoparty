@@ -29,7 +29,6 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
-        /* [Your existing styles - keep exactly as before] */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
@@ -43,9 +42,11 @@
         .profile-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; cursor: pointer; border: 1.5px solid #dbdbdb; }
         .search-bar { padding: 12px 16px; background: #fff; border-bottom: 0.5px solid #efefef; position: relative; }
         .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; background: #fafafa; }
-        .search-suggestions { position: absolute; top: 100%; left: 16px; right: 16px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 200px; overflow-y: auto; z-index: 20; display: none; }
+        .search-suggestions { position: absolute; top: 100%; left: 16px; right: 16px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 250px; overflow-y: auto; z-index: 20; display: none; }
         .search-suggestions.show { display: block; }
-        .search-suggestion-item { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 0.5px solid #efefef; }
+        .search-suggestion-item { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 0.5px solid #efefef; transition: background 0.1s; }
+        .search-suggestion-item:active { background: #f0f0f0; }
+        .suggestion-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
         .tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 16px; overflow-x: auto; scrollbar-width: thin; }
         .tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
         .tab.active { color: #0095f6; border-bottom-color: #0095f6; }
@@ -210,7 +211,7 @@
         }
     }
     
-    // ---------- SURVEY (FIXED) ----------
+    // ---------- SURVEY ----------
     function showSurvey() {
         const districts = ["Gasabo","Kicukiro","Nyarugenge","Gisagara","Huye","Kamonyi","Muhanga","Nyamagabe","Nyanza","Nyaruguru","Ruhango","Karongi","Ngororero","Nyabihu","Nyamasheke","Rubavu","Rusizi","Rutsiro","Bugesera","Gatsibo","Kayonza","Kirehe","Ngoma","Nyagatare","Rwamagana","Burera","Gakenke","Gicumbi","Musanze","Rulindo"];
         const ages = ["16-18","19-21"];
@@ -260,7 +261,6 @@
             innerHtml += `</div>`;
             container.innerHTML = innerHtml;
             
-            // Set existing answers
             if (q.type === "select") {
                 const sel = container.querySelector(`#survey-${q.field}`);
                 if (answers[q.field]) sel.value = answers[q.field];
@@ -294,10 +294,7 @@
                     renderStep();
                 }
             });
-            if (prevBtn) prevBtn.addEventListener('click', () => {
-                step--;
-                renderStep();
-            });
+            if (prevBtn) prevBtn.addEventListener('click', () => { step--; renderStep(); });
         }
         
         async function finishSurvey() {
@@ -321,48 +318,75 @@
         renderStep();
     }
     
-    // ---------- COMPATIBILITY & SUGGESTIONS ----------
-    function computeCompatibilityScore(user, currentUserData) {
-        if (user.id === currentUsername || user.galaStatus !== "available" || currentUserData.sentRequests?.includes(user.id) || currentUserData.requests?.includes(user.id)) return -Infinity;
-        let score = 0;
-        if (currentUserData.gender !== user.gender) score += 30;
-        else score -= 20;
-        const mySurvey = currentUserData.survey;
+    // ---------- DYNAMIC COMPATIBILITY ALGORITHM ----------
+    function computeCompatibilityScore(user) {
+        if (user.id === currentUsername) return -Infinity;
+        if (user.galaStatus !== "available") return -Infinity;
+        if (currentUser.sentRequests?.includes(user.id)) return -Infinity;
+        if (currentUser.requests?.includes(user.id)) return -Infinity;
+        if (currentUser.gender === user.gender) return -Infinity; // Never suggest same gender
+        
+        let score = 50; // Base score
+        
+        // Opposite gender bonus
+        if (currentUser.gender !== user.gender) score += 30;
+        
+        // Survey-based scoring
+        const mySurvey = currentUser.survey;
         const theirSurvey = user.survey;
         if (mySurvey && theirSurvey) {
-            if (mySurvey.district === theirSurvey.district) score += 15;
-            if (mySurvey.ageRange === theirSurvey.ageRange) score += 10;
-            if (mySurvey.height === theirSurvey.height) score += 5;
-            if (mySurvey.hobby === theirSurvey.hobby) score += 20;
-            if (mySurvey.classCombo === theirSurvey.classCombo) score += 25;
-            if (mySurvey.everKissed === theirSurvey.everKissed) score += 5;
+            if (mySurvey.district === theirSurvey.district) score += 25;
+            if (mySurvey.ageRange === theirSurvey.ageRange) score += 15;
+            if (mySurvey.height === theirSurvey.height) score += 10;
+            if (mySurvey.hobby === theirSurvey.hobby) score += 30;
+            if (mySurvey.classCombo === theirSurvey.classCombo) score += 35;
+            if (mySurvey.everKissed === theirSurvey.everKissed) score += 10;
         }
-        score += Math.min(user.rejectionCount || 0, 5) * 2;
-        if (user.createdAt) { const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000*3600*24); if (daysSinceJoin < 3) score += 15; }
-        score += Math.min(user.chatMessageCount || 0, 50) * 0.5;
-        if (recentSuggestions.includes(user.id)) score -= 30;
-        if (user.verified === "blue") score += 20;
-        else if (user.verified === "gray") score += 10;
+        
+        // Rejection boost (people who got rejected need more visibility)
+        score += Math.min(user.rejectionCount || 0, 8) * 3;
+        
+        // New user boost
+        if (user.createdAt) {
+            const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000*3600*24);
+            if (daysSinceJoin < 3) score += 20;
+        }
+        
+        // Chat activity (engagement)
+        score += Math.min(user.chatMessageCount || 0, 100) * 0.3;
+        
+        // Rotation penalty to avoid showing same person repeatedly
+        if (recentSuggestions.includes(user.id)) score -= 40;
+        
+        // Verified badge boost
+        if (user.verified === "blue") score += 25;
+        else if (user.verified === "gray") score += 15;
+        
         return score;
     }
     
-    function sortUsersByCompatibility(users, currentUserData) {
-        return users.filter(u => u.galaStatus === "available" && u.id !== currentUsername)
-                    .map(u => ({ user: u, score: computeCompatibilityScore(u, currentUserData) }))
+    function getTopSuggestions(users, count = 5) {
+        return users.filter(u => u.galaStatus === "available" && u.id !== currentUsername && currentUser.gender !== u.gender)
+                    .map(u => ({ user: u, score: computeCompatibilityScore(u) }))
                     .sort((a,b) => b.score - a.score)
+                    .slice(0, count)
                     .map(item => item.user);
     }
     
-    function addToRecentSuggestions(userId) { recentSuggestions.unshift(userId); if (recentSuggestions.length > 10) recentSuggestions.pop(); }
+    function addToRecentSuggestions(userId) {
+        recentSuggestions.unshift(userId);
+        if (recentSuggestions.length > 10) recentSuggestions.pop();
+    }
     
     async function showSuggestionPopupIfNeeded() {
         if (!currentUser || currentUser.galaStatus !== "available") return;
         const today = new Date().toDateString();
         if (localStorage.getItem('galagram_suggestion_date') === today) return;
-        const compatible = sortUsersByCompatibility(allUsers, currentUser);
-        if (compatible.length === 0) return;
-        const topMatch = compatible[0];
+        const suggestions = getTopSuggestions(allUsers, 3);
+        if (suggestions.length === 0) return;
+        const topMatch = suggestions[0];
         addToRecentSuggestions(topMatch.id);
+        
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
         const popup = document.createElement('div');
@@ -395,7 +419,7 @@
         popup.querySelector('#suggDecline').addEventListener('click', () => { overlay.remove(); localStorage.setItem('galagram_suggestion_date', today); });
     }
     
-    // ---------- POSTS & USERS ----------
+    // ---------- POSTS RANKING ----------
     function calculatePostScore(post) {
         const likes = post.likes?.length || 0, comments = post.comments?.length || 0;
         const engagementScore = likes * 1.5 + comments * 1.0;
@@ -445,12 +469,24 @@
     
     function renderUsers() {
         let filtered = [...allUsers];
-        if (searchQuery) { const q = searchQuery.toLowerCase(); filtered = filtered.filter(u => u.username?.toLowerCase().includes(q) || u.realName?.toLowerCase().includes(q)); }
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter(u => u.username?.toLowerCase().includes(q) || u.realName?.toLowerCase().includes(q));
+        }
         if (currentTab === "available") filtered = filtered.filter(u => u.galaStatus === "available");
         if (currentTab === "taken") filtered = filtered.filter(u => u.galaStatus === "taken");
-        if (currentTab === "all" || currentTab === "available") filtered = sortUsersByCompatibility(filtered, currentUser);
+        
+        // For ALL and AVAILABLE tabs, show only opposite gender and sorted by compatibility
+        if (currentTab === "all" || currentTab === "available") {
+            filtered = filtered.filter(u => u.gender !== currentUser.gender && u.galaStatus === "available");
+            filtered = getTopSuggestions(filtered, filtered.length);
+        }
+        
         const container = document.getElementById('contentArea');
-        if (!filtered.length) { container.innerHTML = `<div class="empty-state"><i class='bx bx-user-x' style="font-size: 3rem;"></i><p>No users found</p></div>`; return; }
+        if (!filtered.length) {
+            container.innerHTML = `<div class="empty-state"><i class='bx bx-user-x' style="font-size: 3rem;"></i><p>No users found</p></div>`;
+            return;
+        }
         container.innerHTML = filtered.map(user => `
             <div class="user-card" data-userid="${user.id}">
                 <div class="post-header"><div class="avatar-container"><img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div class="status-stroke ${user.galaStatus === 'available' ? 'available' : 'taken'}"></div></div>
@@ -460,21 +496,48 @@
         document.querySelectorAll('.user-card').forEach(card => card.addEventListener('click', () => window.location.href = `user.html?uid=${encodeURIComponent(card.dataset.userid)}`));
     }
     
-    // ---------- SEARCH ----------
+    // ---------- SEARCH SUGGESTIONS (only opposite gender, available) ----------
     const searchInput = document.getElementById('searchInput');
     const suggestionsDiv = document.getElementById('searchSuggestions');
-    function performSearch() { searchQuery = searchInput.value.trim(); if (currentTab !== "posts" && currentTab !== "chat") renderUsers(); suggestionsDiv.classList.remove('show'); }
+    function performSearch() {
+        searchQuery = searchInput.value.trim();
+        if (currentTab !== "posts" && currentTab !== "chat") renderUsers();
+        suggestionsDiv.classList.remove('show');
+    }
     function updateSearchSuggestions() {
         const queryText = searchInput.value.trim().toLowerCase();
         if (!queryText) { suggestionsDiv.classList.remove('show'); return; }
-        const matches = allUsers.filter(u => u.username?.toLowerCase().includes(queryText) || u.realName?.toLowerCase().includes(queryText)).slice(0, 5);
+        // Filter: opposite gender, available, not self, not already requested/sent
+        let matches = allUsers.filter(u => 
+            (u.username?.toLowerCase().includes(queryText) || u.realName?.toLowerCase().includes(queryText)) &&
+            u.gender !== currentUser.gender &&
+            u.galaStatus === "available" &&
+            !currentUser.sentRequests?.includes(u.id) &&
+            !currentUser.requests?.includes(u.id)
+        ).slice(0, 5);
+        
         if (!matches.length) { suggestionsDiv.classList.remove('show'); return; }
-        suggestionsDiv.innerHTML = matches.map(user => `<div class="search-suggestion-item" data-username="${user.username}"><img class="suggestion-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'}" alt=""><div><div style="font-weight:500;">${escapeHtml(user.realName)}</div><div style="font-size:0.7rem; color:#8e8e8e;">@${user.username}</div></div></div>`).join('');
+        suggestionsDiv.innerHTML = matches.map(user => `
+            <div class="search-suggestion-item" data-username="${user.username}" data-userid="${user.id}">
+                <img class="suggestion-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" alt="">
+                <div><div style="font-weight:500;">${escapeHtml(user.realName)}</div><div style="font-size:0.7rem; color:#8e8e8e;">@${user.username}</div></div>
+            </div>
+        `).join('');
         suggestionsDiv.classList.add('show');
-        document.querySelectorAll('.search-suggestion-item').forEach(item => item.addEventListener('click', () => { searchInput.value = item.dataset.username; performSearch(); }));
+        document.querySelectorAll('.search-suggestion-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const userId = item.dataset.userid;
+                window.location.href = `user.html?uid=${userId}`;
+            });
+        });
     }
-    searchInput.addEventListener('input', () => { if (searchDebounceTimer) clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(() => { performSearch(); updateSearchSuggestions(); }, 300); });
-    document.addEventListener('click', (e) => { if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) suggestionsDiv.classList.remove('show'); });
+    searchInput.addEventListener('input', () => {
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => { performSearch(); updateSearchSuggestions(); }, 300);
+    });
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) suggestionsDiv.classList.remove('show');
+    });
     
     function updateRequestBadge() { const badge = document.getElementById('requestBadge'); const count = requestsList.length; if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('hidden'); } else badge.classList.add('hidden'); }
     function formatTime(timestamp) { if (!timestamp) return 'just now'; const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp); const diff = Math.floor((new Date() - date) / 1000); if (diff < 60) return `${diff}s ago`; if (diff < 3600) return `${Math.floor(diff / 60)}m ago`; if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`; return `${Math.floor(diff / 86400)}d ago`; }
