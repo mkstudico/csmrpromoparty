@@ -37,7 +37,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
+        .pc-blocker i { font-size: 4rem; margin-bottom: 1.2rem; color: #d62976; }
+        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; position: relative; }
         .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
         .logo { font-weight: 620; font-size: 1.5rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .header-right { display: flex; align-items: center; gap: 16px; }
@@ -48,12 +49,15 @@
         .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; background: #fafafa; }
         .search-suggestions { position: absolute; top: 100%; left: 16px; right: 16px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 250px; overflow-y: auto; z-index: 20; display: none; }
         .search-suggestions.show { display: block; }
-        .search-suggestion-item { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 0.5px solid #efefef; }
-        .tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 16px; overflow-x: auto; }
+        .search-suggestion-item { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 0.5px solid #efefef; transition: background 0.1s; }
+        .search-suggestion-item:active { background: #f0f0f0; }
+        .suggestion-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+        .tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 16px; overflow-x: auto; scrollbar-width: thin; }
         .tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
         .tab.active { color: #0095f6; border-bottom-color: #0095f6; }
         .content { padding: 16px; background: #fafafa; min-height: 70vh; padding-bottom: 80px; }
         .user-card, .post-card { background: white; border-radius: 12px; margin-bottom: 12px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); cursor: pointer; transition: 0.15s; display: block; }
+        .user-card:active, .post-card:active { transform: scale(0.98); }
         .post-header, .user-info-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .avatar-container { position: relative; }
         .user-avatar, .post-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #dbdbdb; }
@@ -127,7 +131,7 @@
     function showNotification(message, type = "info") { const existing = document.querySelector('.galagram-toast'); if(existing) existing.remove(); const toast = document.createElement('div'); toast.className = `galagram-toast`; toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`; document.body.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => toast.remove(), 4000); }
     const sessionData = localStorage.getItem('galagram_session'); if (!sessionData) { window.location.href = "index.html"; } const session = JSON.parse(sessionData); const currentUsername = session.username;
     async function loadCurrentUser() { const userDoc = await getDoc(doc(db, "users", currentUsername)); if (userDoc.exists()) { currentUser = { id: currentUsername, ...userDoc.data() }; if (!currentUser.galaStatus) await updateDoc(doc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] }); if (!currentUser.requests) await updateDoc(doc(db, "users", currentUsername), { requests: [] }); if (!currentUser.sentRequests) await updateDoc(doc(db, "users", currentUsername), { sentRequests: [] }); if (!currentUser.verified) await updateDoc(doc(db, "users", currentUsername), { verified: "none" }); requestsList = currentUser.requests || []; updateRequestBadge(); document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'; if (!currentUser.survey) showSurvey(); } }
-    function showSurvey() { /* survey code same as previous version – omitted for brevity, but can be added if needed */ }
+    function showSurvey() { /* survey code same as earlier – omitted for brevity, but you can keep it */ }
     function computeCompatibilityScore(user) { if (user.id === currentUsername || user.galaStatus !== "available" || currentUser.sentRequests?.includes(user.id) || currentUser.requests?.includes(user.id) || currentUser.gender === user.gender) return -Infinity; let score = 50; if (currentUser.gender !== user.gender) score += 30; const mySurvey = currentUser.survey, theirSurvey = user.survey; if (mySurvey && theirSurvey) { if (mySurvey.district === theirSurvey.district) score += 25; if (mySurvey.ageRange === theirSurvey.ageRange) score += 15; if (mySurvey.height === theirSurvey.height) score += 10; if (mySurvey.hobby === theirSurvey.hobby) score += 30; if (mySurvey.classCombo === theirSurvey.classCombo) score += 35; if (mySurvey.everKissed === theirSurvey.everKissed) score += 10; } score += Math.min(user.rejectionCount || 0, 8) * 3; if (user.createdAt) { const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000*3600*24); if (daysSinceJoin < 3) score += 20; } score += Math.min(user.chatMessageCount || 0, 100) * 0.3; if (recentSuggestions.includes(user.id)) score -= 40; if (user.verified === "blue") score += 25; else if (user.verified === "gray") score += 15; return score; }
     function getTopSuggestions(users, count = 5) { return users.filter(u => u.galaStatus === "available" && u.id !== currentUsername && currentUser.gender !== u.gender).map(u => ({ user: u, score: computeCompatibilityScore(u) })).sort((a,b) => b.score - a.score).slice(0, count).map(item => item.user); }
     function addToRecentSuggestions(userId) { recentSuggestions.unshift(userId); if (recentSuggestions.length > 10) recentSuggestions.pop(); }
