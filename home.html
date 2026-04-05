@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Galagram • Home</title>
     <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#ffffff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Galagram">
-<link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Galagram">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
         import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -35,6 +35,7 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
+        /* [All styles remain exactly as in the original] */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
@@ -195,10 +196,18 @@
     
     import { doc as fDoc, onSnapshot as fOnSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const userRef = fDoc(db, "users", currentUsername);
+    // MULTI-DEVICE SUPPORT: Check if current sessionId is still in the user's sessions array
     const unsubscribeSession = fOnSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists() && docSnap.data().activeSession !== sessionId) {
-            showNotification('⚠️ Session expired. Logging out...', 'error');
-            setTimeout(() => { localStorage.removeItem('galagram_session'); window.location.href = "index.html"; }, 2000);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const sessions = data.sessions || [];
+            if (!sessions.includes(sessionId)) {
+                showNotification('⚠️ Your session has expired. Please log in again.', 'error');
+                setTimeout(() => { 
+                    localStorage.removeItem('galagram_session'); 
+                    window.location.href = "index.html"; 
+                }, 2000);
+            }
         }
     });
     
@@ -217,8 +226,9 @@
         }
     }
     
-    // ---------- SURVEY ----------
+    // ---------- SURVEY (unchanged) ----------
     function showSurvey() {
+        // ... (same as original) ...
         const districts = ["Gasabo","Kicukiro","Nyarugenge","Gisagara","Huye","Kamonyi","Muhanga","Nyamagabe","Nyanza","Nyaruguru","Ruhango","Karongi","Ngororero","Nyabihu","Nyamasheke","Rubavu","Rusizi","Rutsiro","Bugesera","Gatsibo","Kayonza","Kirehe","Ngoma","Nyagatare","Rwamagana","Burera","Gakenke","Gicumbi","Musanze","Rulindo"];
         const ages = ["16-18","19-21"];
         const heights = ["Short","Medium","Tall","Taller"];
@@ -320,24 +330,18 @@
             overlay.remove();
             setTimeout(() => showSuggestionPopupIfNeeded(), 1000);
         }
-        
         renderStep();
     }
     
-    // ---------- DYNAMIC COMPATIBILITY ALGORITHM (only for opposite gender) ----------
+    // ---------- COMPATIBILITY (unchanged) ----------
     function computeCompatibilityScore(user) {
         if (user.id === currentUsername) return -Infinity;
         if (user.galaStatus !== "available") return -Infinity;
         if (currentUser.sentRequests?.includes(user.id)) return -Infinity;
         if (currentUser.requests?.includes(user.id)) return -Infinity;
-        
         let score = 50;
-        
-        // Opposite gender gets high base score
         if (currentUser.gender !== user.gender) score += 30;
-        else return -Infinity; // Same gender users are never shown in AVAILABLE or suggestions, but ALL tab will show them unsorted
-        
-        // Survey-based scoring
+        else return -Infinity;
         const mySurvey = currentUser.survey;
         const theirSurvey = user.survey;
         if (mySurvey && theirSurvey) {
@@ -348,7 +352,6 @@
             if (mySurvey.classCombo === theirSurvey.classCombo) score += 35;
             if (mySurvey.everKissed === theirSurvey.everKissed) score += 10;
         }
-        
         score += Math.min(user.rejectionCount || 0, 8) * 3;
         if (user.createdAt) {
             const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000*3600*24);
@@ -358,7 +361,6 @@
         if (recentSuggestions.includes(user.id)) score -= 40;
         if (user.verified === "blue") score += 25;
         else if (user.verified === "gray") score += 15;
-        
         return score;
     }
     
@@ -416,7 +418,7 @@
         popup.querySelector('#suggDecline').addEventListener('click', () => { overlay.remove(); localStorage.setItem('galagram_suggestion_date', today); });
     }
     
-    // ---------- POSTS RANKING ----------
+    // ---------- POSTS (unchanged) ----------
     function calculatePostScore(post) {
         const likes = post.likes?.length || 0, comments = post.comments?.length || 0;
         const engagementScore = likes * 1.5 + comments * 1.0;
@@ -472,18 +474,13 @@
         }
         
         if (currentTab === "available") {
-            // AVAILABLE: only opposite gender, available, sorted by compatibility
             filtered = filtered.filter(u => u.galaStatus === "available" && u.gender !== currentUser.gender);
             filtered = getTopSuggestions(filtered, filtered.length);
         } 
         else if (currentTab === "taken") {
-            // TAKEN: show all taken users (both genders), no sorting
             filtered = filtered.filter(u => u.galaStatus === "taken");
         } 
         else if (currentTab === "all") {
-            // ALL: show everyone (including same gender) but sorted by compatibility for opposite gender only?
-            // Keep original order (no sorting for same gender, but show them)
-            // We'll separate: opposite gender sorted, then same gender unsorted at bottom
             const opposite = filtered.filter(u => u.galaStatus === "available" && u.gender !== currentUser.gender);
             const same = filtered.filter(u => u.galaStatus === "available" && u.gender === currentUser.gender);
             const taken = filtered.filter(u => u.galaStatus === "taken");
@@ -505,7 +502,7 @@
         document.querySelectorAll('.user-card').forEach(card => card.addEventListener('click', () => window.location.href = `user.html?uid=${encodeURIComponent(card.dataset.userid)}`));
     }
     
-    // ---------- SEARCH SUGGESTIONS (only opposite gender, available) ----------
+    // ---------- SEARCH (unchanged) ----------
     const searchInput = document.getElementById('searchInput');
     const suggestionsDiv = document.getElementById('searchSuggestions');
     function performSearch() {
@@ -548,11 +545,11 @@
     });
     
     function updateRequestBadge() { const badge = document.getElementById('requestBadge'); const count = requestsList.length; if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('hidden'); } else badge.classList.add('hidden'); }
-    function formatTime(timestamp) { if (!timestamp) return 'just now'; const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp); const diff = Math.floor((new Date() - date) / 1000); if (diff < 60) return `${diff}s ago`; if (diff < 3600) return `${Math.floor(diff / 60)}m ago`; if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`; return `${Math.floor(diff / 86400)}d ago`; }
+    function formatTime(timestamp) { if (!timestamp) return 'just now'; const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp); const diff = Math.floor((new Date() - date) / 1000); if (diff < 60) return `${diff}s ago`; if (diff < 3600) return ${Math.floor(diff / 60)}m ago`; if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`; return `${Math.floor(diff / 86400)}d ago`; }
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')); }
     function listenToCurrentUser() { onSnapshot(fDoc(db, "users", currentUsername), (docSnap) => { if (docSnap.exists()) { currentUser = { id: currentUsername, ...docSnap.data() }; requestsList = currentUser.requests || []; updateRequestBadge(); if (currentTab !== "posts" && currentTab !== "chat") renderUsers(); } }); }
     
-    // ---------- CHAT ----------
+    // ---------- CHAT (unchanged) ----------
     let chatOpen = false;
     const chatOverlay = document.getElementById('chatOverlay'), chatMessagesDiv = document.getElementById('chatMessages'), chatInput = document.getElementById('chatInput'), sendBtn = document.getElementById('sendChatBtn'), closeChat = document.getElementById('closeChat'), emojiBtn = document.getElementById('emojiBtn'), emojiPicker = document.getElementById('emojiPicker');
     function loadChatMessages() { if (unsubscribeMessages) unsubscribeMessages(); const q = query(collection(db, "chatMessages"), orderBy("timestamp", "asc"), limit(100)); unsubscribeMessages = onSnapshot(q, (snapshot) => { chatMessagesDiv.innerHTML = ''; snapshot.forEach(docSnap => { const msg = docSnap.data(); const isOwn = msg.username === currentUsername; const verifiedIcon = msg.userVerified === 'blue' ? '<i class="bx bx-check-circle" style="color:#0095f6; font-size:0.7rem;"></i>' : (msg.userVerified === 'gray' ? '<i class="bx bxs-check-circle" style="color:#8e8e8e; font-size:0.7rem;"></i>' : ''); chatMessagesDiv.innerHTML += `<div class="message ${isOwn ? 'own' : ''}"><img class="message-avatar" src="${msg.userAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" alt=""><div class="message-bubble"><div class="message-name">@${escapeHtml(msg.username)} ${verifiedIcon}</div><div>${escapeHtml(msg.text)}</div></div></div>`; }); chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight; }); }
@@ -564,13 +561,13 @@
     emojiPicker.addEventListener('emoji-click', (event) => { chatInput.value += event.detail.unicode; emojiPicker.style.display = 'none'; });
     document.addEventListener('click', (e) => { if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) emojiPicker.style.display = 'none'; });
     
-    // ---------- TAB SWITCHING ----------
+    // ---------- TAB SWITCHING (unchanged) ----------
     document.querySelectorAll('.tab').forEach(tab => { tab.addEventListener('click', () => { const tabName = tab.dataset.tab; if (tabName === 'chat') { openChat(); return; } document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); currentTab = tabName; const fab = document.getElementById('fabBtn'); if (currentTab === 'posts') fab.classList.remove('hidden'); else fab.classList.add('hidden'); if (currentTab === "posts") renderPosts(); else renderUsers(); }); });
     document.getElementById('requestsHeart').addEventListener('click', () => window.location.href = `requests.html`);
     document.getElementById('profileAvatar').addEventListener('click', () => window.location.href = `profile.html`);
     document.getElementById('fabBtn').addEventListener('click', () => window.location.href = `add-news.html`);
     
-    // ---------- SCREENSHOT PROTECTION ----------
+    // ---------- SCREENSHOT PROTECTION (unchanged) ----------
     (function antiScreenshot() { const blackFlash = () => { const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); }; document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } }); document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); }); })();
     
     function handleResize() { const blocker = document.getElementById('pcBlocker'); const app = document.getElementById('appRoot'); if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; } else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; } }
@@ -578,7 +575,7 @@
     
     (async () => { await loadCurrentUser(); loadPosts(); loadUsers(); listenToCurrentUser(); if (currentTab === 'posts') document.getElementById('fabBtn').classList.remove('hidden'); })();
 </script>
-    <script>
+<script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js')
