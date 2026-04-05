@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Galagram • Add News</title>
+    <title>Galagram • Add Post</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-        
+        import { getFirestore, doc, getDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
             authDomain: "akademia-c56ff.firebaseapp.com",
@@ -36,194 +40,42 @@
         .form-group { margin-bottom: 18px; }
         label { font-size: 0.7rem; font-weight: 600; color: #8e8e8e; text-transform: uppercase; display: block; margin-bottom: 6px; }
         textarea { width: 100%; padding: 12px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; background: #fafafa; font-family: inherit; resize: vertical; min-height: 100px; }
-        textarea:focus { outline: none; border-color: #b3b3b3; background: #fff; }
         .img-upload-area { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
         .image-preview { width: 100%; max-height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 12px; display: none; }
         .upload-btn { background: #efefef; padding: 8px 20px; border-radius: 30px; font-size: 0.75rem; font-weight: 500; cursor: pointer; display: inline-block; }
-        #newsImageInput { display: none; }
+        #postImageInput { display: none; }
         .btn { padding: 12px; width: 100%; border-radius: 10px; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; margin-top: 12px; }
         .btn-primary { background: #0095f6; color: white; }
         .btn-secondary { background: #efefef; color: #262626; }
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; display: flex; align-items: center; gap: 10px; transition: transform 0.25s; pointer-events: none; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
         .loader-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
 <div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
-
 <div id="appRoot" class="app-container">
-    <div class="header">
-        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
-        <div class="logo">Add Post</div>
-    </div>
-    <div class="content">
-        <div class="card">
-            <div class="form-group">
-                <label>What's poppin?</label>
-                <textarea id="newsText" placeholder="Share updates, announcements, or exciting news about the gala party..."></textarea>
-            </div>
-            
-            <div class="img-upload-area">
-                <img id="imagePreview" class="image-preview" src="" alt="preview">
-                <label for="newsImageInput" class="upload-btn"><i class='bx bx-image-add'></i> Add Image (optional)</label>
-                <input type="file" id="newsImageInput" accept="image/jpeg,image/png,image/jpg">
-            </div>
-            
-            <button id="postBtn" class="btn btn-primary"><i class='bx bx-send'></i> Post News</button>
-            <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
-        </div>
-    </div>
+    <div class="header"><i class='bx bx-arrow-back back-btn' id="backBtn"></i><div class="logo">Create Post</div></div>
+    <div class="content"><div class="card"><div class="form-group"><label>What's on your mind?</label><textarea id="postText" placeholder="Share something with the Galagram community..."></textarea></div><div class="img-upload-area"><img id="imagePreview" class="image-preview" src=""><label for="postImageInput" class="upload-btn"><i class='bx bx-image-add'></i> Add Image (optional)</label><input type="file" id="postImageInput" accept="image/jpeg,image/png,image/jpg"></div><button id="postBtn" class="btn btn-primary"><i class='bx bx-send'></i> Post</button><button id="cancelBtn" class="btn btn-secondary">Cancel</button></div></div>
 </div>
-
 <script type="module">
-    import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     const IMGBB_KEY = "99c6aa298645e8a4742979117fc73be6";
-    
-    function showNotification(message, type = "info") {
-        const existing = document.querySelector('.galagram-toast');
-        if(existing) existing.remove();
-        const toast = document.createElement('div');
-        toast.className = `galagram-toast`;
-        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => toast.remove(), 3000);
-    }
-    
-    function setLoading(button, isLoading, originalText) {
-        if(isLoading) {
-            button.disabled = true;
-            button.innerHTML = `<span class="loader-spinner"></span> Posting...`;
-        } else {
-            button.disabled = false;
-            button.innerHTML = originalText;
-        }
-    }
-    
-    async function uploadToImgBB(file) {
-        const formData = new FormData();
-        formData.append('image', file);
-        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
-        const data = await res.json();
-        if(data.success) return data.data.url;
-        throw new Error('Upload failed');
-    }
-    
-    const sessionData = localStorage.getItem('galagram_session');
-    if (!sessionData) { window.location.href = "index.html"; }
-    const session = JSON.parse(sessionData);
-    const currentUsername = session.username;
-    
-    let currentUser = null;
-    let uploadedImageURL = null;
-    
-    async function loadUser() {
-        const userDoc = await getDoc(doc(db, "users", currentUsername));
-        if (userDoc.exists()) {
-            currentUser = userDoc.data();
-        }
-    }
-    
-    const imageInput = document.getElementById('newsImageInput');
-    const imagePreview = document.getElementById('imagePreview');
-    
-    imageInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if(file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                imagePreview.src = ev.target.result;
-                imagePreview.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
-            const uploadLabel = document.querySelector('.upload-btn');
-            const originalText = uploadLabel.innerHTML;
-            uploadLabel.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Uploading...';
-            try {
-                const url = await uploadToImgBB(file);
-                uploadedImageURL = url;
-                showNotification('Image uploaded!', 'success');
-            } catch(err) { 
-                uploadedImageURL = null; 
-                showNotification('Upload failed', 'error');
-                imagePreview.style.display = 'none';
-            } finally {
-                uploadLabel.innerHTML = originalText;
-            }
-        }
-    });
-    
-    document.getElementById('postBtn').addEventListener('click', async () => {
-        const newsText = document.getElementById('newsText').value.trim();
-        if (!newsText) {
-            showNotification('Please write something', 'error');
-            return;
-        }
-        
-        const postBtn = document.getElementById('postBtn');
-        setLoading(postBtn, true, 'Post News');
-        
-        try {
-            const newsData = {
-                text: newsText,
-                authorName: currentUser.realName,
-                authorUsername: currentUsername,
-                authorAvatar: currentUser.profileImage,
-                authorVerified: currentUser.verified || "none",
-                createdAt: new Date(),
-                likes: [],
-                comments: []
-            };
-            
-            if (uploadedImageURL) {
-                newsData.imageUrl = uploadedImageURL;
-            }
-            
-            await addDoc(collection(db, "news"), newsData);
-            showNotification('News posted successfully!', 'success');
-            setTimeout(() => { window.location.href = "home.html"; }, 1500);
-        } catch(e) {
-            showNotification('Error: ' + e.message, 'error');
-            setLoading(postBtn, false, 'Post News');
-        }
-    });
-    
-    document.getElementById('cancelBtn').addEventListener('click', () => {
-        window.location.href = "home.html";
-    });
-    
-    document.getElementById('backBtn').addEventListener('click', () => {
-        window.location.href = "home.html";
-    });
-    
-    (function antiScreenshot() {
-        const blackFlash = () => {
-            const overlay = document.createElement('div');
-            overlay.style.position = 'fixed';
-            overlay.style.top = overlay.style.left = '0';
-            overlay.style.width = overlay.style.height = '100%';
-            overlay.style.backgroundColor = '#000000';
-            overlay.style.zIndex = '999999';
-            document.body.appendChild(overlay);
-            setTimeout(() => overlay.remove(), 200);
-        };
-        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
-        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
-    })();
-    
-    function handleResize() {
-        const blocker = document.getElementById('pcBlocker');
-        const app = document.getElementById('appRoot');
-        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
-        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
-    }
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    
+    async function addLog(type, actor, target, message) { try { await addDoc(collection(db, "logs"), { type, actor, target, message, timestamp: new Date() }); } catch(e) {} }
+    function showNotification(msg) { const existing=document.querySelector('.galagram-toast'); if(existing) existing.remove(); const toast=document.createElement('div'); toast.className='galagram-toast'; toast.innerHTML=`<i class='bx bx-check-circle'></i><span>${msg}</span>`; document.body.appendChild(toast); setTimeout(()=>toast.classList.add('show'),10); setTimeout(()=>toast.remove(),3000); }
+    function setLoading(btn, loading, text) { if(loading){ btn.disabled=true; btn.innerHTML=`<span class="loader-spinner"></span> Posting...`; } else { btn.disabled=false; btn.innerHTML=text; } }
+    async function uploadToImgBB(file) { const fd=new FormData(); fd.append('image',file); const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:'POST',body:fd}); const data=await res.json(); if(data.success) return data.data.url; throw new Error('Upload failed'); }
+    const sessionData=localStorage.getItem('galagram_session'); if(!sessionData) window.location.href="index.html"; const session=JSON.parse(sessionData); const currentUsername=session.username;
+    let currentUser=null, uploadedImageURL=null;
+    async function loadUser(){ const userDoc=await getDoc(doc(db,"users",currentUsername)); if(userDoc.exists()) currentUser=userDoc.data(); else window.location.href="index.html"; }
+    document.getElementById('postImageInput').addEventListener('change',async(e)=>{ const file=e.target.files[0]; if(file){ const reader=new FileReader(); reader.onload=ev=>{ document.getElementById('imagePreview').src=ev.target.result; document.getElementById('imagePreview').style.display='block'; }; reader.readAsDataURL(file); const label=document.querySelector('.upload-btn'); const orig=label.innerHTML; label.innerHTML='<i class="bx bx-loader-alt bx-spin"></i> Uploading...'; try{ const url=await uploadToImgBB(file); uploadedImageURL=url; showNotification('Image uploaded'); }catch(err){ uploadedImageURL=null; showNotification('Upload failed'); }finally{ label.innerHTML=orig; } } });
+    document.getElementById('postBtn').addEventListener('click',async()=>{ const text=document.getElementById('postText').value.trim(); if(!text){ showNotification('Please write something'); return; } setLoading(postBtn,true,'Post'); try{ await addDoc(collection(db,"news"),{ text, authorName:currentUser.realName, authorUsername:currentUsername, authorAvatar:currentUser.profileImage, authorVerified:currentUser.verified||"none", createdAt:new Date(), likes:[], comments:[], imageUrl:uploadedImageURL||null, pinned:false }); await addLog('post',currentUsername,null,`${currentUsername} created a new post`); showNotification('Post created!'); setTimeout(()=>window.location.href="home.html",1000); }catch(e){ showNotification('Error: '+e.message); setLoading(postBtn,false,'Post'); } });
+    document.getElementById('cancelBtn').addEventListener('click',()=>window.location.href="home.html"); document.getElementById('backBtn').addEventListener('click',()=>window.location.href="home.html");
+    (function antiScreenshot(){ const blackFlash=()=>{ const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); }; document.addEventListener('keyup',e=>{ if(e.key==='PrintScreen'){ blackFlash(); e.preventDefault(); } }); document.addEventListener('contextmenu',e=>{ e.preventDefault(); blackFlash(); }); })();
+    function handleResize(){ const blocker=document.getElementById('pcBlocker'); const app=document.getElementById('appRoot'); if(window.innerWidth>768){ blocker.style.display='flex'; if(app) app.style.display='none'; }else{ blocker.style.display='none'; if(app) app.style.display='block'; } }
+    window.addEventListener('resize',handleResize); handleResize();
     loadUser();
 </script>
 </body>
