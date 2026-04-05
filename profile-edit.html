@@ -5,15 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Galagram • Edit Profile</title>
     <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#ffffff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Galagram">
-<link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
         import { getFirestore, doc, getDoc, updateDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-        
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
             authDomain: "akademia-c56ff.firebaseapp.com",
@@ -42,7 +40,6 @@
         .form-group { margin-bottom: 18px; }
         label { font-size: 0.7rem; font-weight: 600; color: #8e8e8e; text-transform: uppercase; display: block; margin-bottom: 6px; }
         input { width: 100%; padding: 12px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; background: #fafafa; }
-        input:focus { outline: none; border-color: #b3b3b3; background: #fff; }
         .img-upload-area { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
         .profile-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; border: 2px solid #dbdbdb; }
         .upload-btn { background: #efefef; padding: 8px 20px; border-radius: 30px; font-size: 0.75rem; font-weight: 500; cursor: pointer; }
@@ -50,221 +47,36 @@
         .btn { padding: 12px; width: 100%; border-radius: 10px; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; margin-top: 12px; }
         .btn-primary { background: #0095f6; color: white; }
         .btn-secondary { background: #efefef; color: #262626; }
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; display: flex; align-items: center; gap: 10px; transition: transform 0.25s; pointer-events: none; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
         .loader-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.6s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
 <div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
-
 <div id="appRoot" class="app-container">
-    <div class="header">
-        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
-        <div class="logo">Edit Profile</div>
-    </div>
-    <div class="content">
-        <div class="card">
-            <div class="img-upload-area">
-                <img id="profilePreview" class="profile-preview" src="" alt="profile">
-                <label for="profileImageInput" class="upload-btn"><i class='bx bx-cloud-upload'></i> Change Photo</label>
-                <input type="file" id="profileImageInput" accept="image/jpeg,image/png,image/jpg">
-            </div>
-            
-            <div class="form-group">
-                <label>Real name</label>
-                <input type="text" id="realName" placeholder="Your real name">
-            </div>
-            <div class="form-group">
-                <label>Phone number</label>
-                <input type="tel" id="phone" placeholder="+250 ...">
-            </div>
-            <div class="form-group">
-                <label>Instagram name</label>
-                <input type="text" id="instagramName" placeholder="@username">
-            </div>
-            
-            <button id="saveBtn" class="btn btn-primary">Save Changes</button>
-            <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
-        </div>
-    </div>
+    <div class="header"><i class='bx bx-arrow-back back-btn' id="backBtn"></i><div class="logo">Edit Profile</div></div>
+    <div class="content"><div class="card"><div class="img-upload-area"><img id="profilePreview" class="profile-preview" src=""><label for="profileImageInput" class="upload-btn"><i class='bx bx-cloud-upload'></i> Change Photo</label><input type="file" id="profileImageInput" accept="image/jpeg,image/png,image/jpg"></div><div class="form-group"><label>Real name</label><input type="text" id="realName" placeholder="Your real name"></div><div class="form-group"><label>Phone number</label><input type="tel" id="phone" placeholder="+250 ..."></div><div class="form-group"><label>Instagram name</label><input type="text" id="instagramName" placeholder="@username"></div><button id="saveBtn" class="btn btn-primary">Save Changes</button><button id="cancelBtn" class="btn btn-secondary">Cancel</button></div></div>
 </div>
-
 <script type="module">
     import { getFirestore, doc, getDoc, updateDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     const IMGBB_KEY = "99c6aa298645e8a4742979117fc73be6";
-    
-    // Logging function
-    async function addLog(type, actor, target, message) {
-        try {
-            await addDoc(collection(db, "logs"), {
-                type: type,
-                actor: actor,
-                target: target || null,
-                message: message,
-                timestamp: new Date()
-            });
-        } catch(e) { console.warn("Log error:", e); }
-    }
-    
-    function showNotification(message, type = "info") {
-        const existing = document.querySelector('.galagram-toast');
-        if(existing) existing.remove();
-        const toast = document.createElement('div');
-        toast.className = `galagram-toast`;
-        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => toast.remove(), 3000);
-    }
-    
-    function setLoading(button, isLoading, originalText) {
-        if(isLoading) {
-            button.disabled = true;
-            button.innerHTML = `<span class="loader-spinner"></span> Saving...`;
-        } else {
-            button.disabled = false;
-            button.innerHTML = originalText;
-        }
-    }
-    
-    async function uploadToImgBB(file) {
-        const formData = new FormData();
-        formData.append('image', file);
-        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
-        const data = await res.json();
-        if(data.success) return data.data.url;
-        throw new Error('Upload failed');
-    }
-    
-    const sessionData = localStorage.getItem('galagram_session');
-    if (!sessionData) { window.location.href = "index.html"; }
-    const session = JSON.parse(sessionData);
-    const currentUsername = session.username;
-    
-    let currentUser = null;
-    let uploadedImageURL = null;
-    
-    async function loadUserData() {
-        const userDoc = await getDoc(doc(db, "users", currentUsername));
-        if (userDoc.exists()) {
-            currentUser = { id: userDoc.id, ...userDoc.data() };
-            document.getElementById('realName').value = currentUser.realName || '';
-            document.getElementById('phone').value = currentUser.phoneNumber || '';
-            document.getElementById('instagramName').value = currentUser.instagramName || '';
-            document.getElementById('profilePreview').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100';
-        }
-    }
-    
-    const profileInput = document.getElementById('profileImageInput');
-    const profilePreview = document.getElementById('profilePreview');
-    
-    profileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if(file) {
-            const reader = new FileReader();
-            reader.onload = (ev) => { profilePreview.src = ev.target.result; };
-            reader.readAsDataURL(file);
-            const uploadLabel = document.querySelector('.upload-btn');
-            const originalText = uploadLabel.innerHTML;
-            uploadLabel.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Uploading...';
-            try {
-                const url = await uploadToImgBB(file);
-                uploadedImageURL = url;
-                showNotification('Photo uploaded!', 'success');
-            } catch(err) { 
-                uploadedImageURL = null; 
-                showNotification('Upload failed', 'error');
-            } finally {
-                uploadLabel.innerHTML = originalText;
-            }
-        }
-    });
-    
-    document.getElementById('saveBtn').addEventListener('click', async () => {
-        const realName = document.getElementById('realName').value.trim();
-        const phone = document.getElementById('phone').value.trim();
-        const instagramName = document.getElementById('instagramName').value.trim();
-        
-        if (!realName) {
-            showNotification('Real name is required', 'error');
-            return;
-        }
-        
-        const saveBtn = document.getElementById('saveBtn');
-        setLoading(saveBtn, true, 'Save Changes');
-        
-        try {
-            const updateData = {
-                realName: realName,
-                phoneNumber: phone,
-                instagramName: instagramName
-            };
-            if (uploadedImageURL) {
-                updateData.profileImage = uploadedImageURL;
-                // Update session data
-                session.userData.profileImage = uploadedImageURL;
-                localStorage.setItem('galagram_session', JSON.stringify(session));
-            }
-            await updateDoc(doc(db, "users", currentUsername), updateData);
-            
-            // Log profile update
-            await addLog('profile_update', currentUsername, null, `${currentUsername} updated their profile (name, phone, instagram, or photo)`);
-            
-            showNotification('Profile updated successfully!', 'success');
-            setTimeout(() => { window.location.href = "profile.html"; }, 1500);
-        } catch(e) {
-            showNotification('Error: ' + e.message, 'error');
-            setLoading(saveBtn, false, 'Save Changes');
-        }
-    });
-    
-    document.getElementById('cancelBtn').addEventListener('click', () => {
-        window.location.href = "profile.html";
-    });
-    
-    document.getElementById('backBtn').addEventListener('click', () => {
-        window.location.href = "profile.html";
-    });
-    
-    // Screenshot protection
-    (function antiScreenshot() {
-        const blackFlash = () => {
-            const overlay = document.createElement('div');
-            overlay.style.position = 'fixed';
-            overlay.style.top = overlay.style.left = '0';
-            overlay.style.width = overlay.style.height = '100%';
-            overlay.style.backgroundColor = '#000000';
-            overlay.style.zIndex = '999999';
-            document.body.appendChild(overlay);
-            setTimeout(() => overlay.remove(), 200);
-        };
-        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
-        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
-    })();
-    
-    function handleResize() {
-        const blocker = document.getElementById('pcBlocker');
-        const app = document.getElementById('appRoot');
-        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
-        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
-    }
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    
+    async function addLog(type, actor, target, message) { try { await addDoc(collection(db, "logs"), { type, actor, target, message, timestamp: new Date() }); } catch(e) {} }
+    function showNotification(msg, type='info') { const existing=document.querySelector('.galagram-toast'); if(existing) existing.remove(); const toast=document.createElement('div'); toast.className='galagram-toast'; toast.innerHTML=`<i class='bx ${type==='error'?'bx-error-circle':'bx-check-circle'}'></i><span>${msg}</span>`; document.body.appendChild(toast); setTimeout(()=>toast.classList.add('show'),10); setTimeout(()=>toast.remove(),3000); }
+    function setLoading(btn, loading, orig) { if(loading) { btn.disabled=true; btn.innerHTML=`<span class="loader-spinner"></span> Saving...`; } else { btn.disabled=false; btn.innerHTML=orig; } }
+    async function uploadToImgBB(file) { const fd=new FormData(); fd.append('image',file); const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:'POST',body:fd}); const data=await res.json(); if(data.success) return data.data.url; throw new Error('Upload failed'); }
+    const sessionData=localStorage.getItem('galagram_session'); if(!sessionData){ window.location.href="index.html"; } const session=JSON.parse(sessionData); const currentUsername=session.username;
+    let currentUser=null, uploadedImageURL=null;
+    async function loadUserData(){ const userDoc=await getDoc(doc(db,"users",currentUsername)); if(userDoc.exists()){ currentUser={id:userDoc.id,...userDoc.data()}; document.getElementById('realName').value=currentUser.realName||''; document.getElementById('phone').value=currentUser.phoneNumber||''; document.getElementById('instagramName').value=currentUser.instagramName||''; document.getElementById('profilePreview').src=currentUser.profileImage||'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100'; } }
+    document.getElementById('profileImageInput').addEventListener('change',async(e)=>{ const file=e.target.files[0]; if(file){ const reader=new FileReader(); reader.onload=ev=>{ document.getElementById('profilePreview').src=ev.target.result; }; reader.readAsDataURL(file); const label=document.querySelector('.upload-btn'); const orig=label.innerHTML; label.innerHTML='<i class="bx bx-loader-alt bx-spin"></i> Uploading...'; try{ const url=await uploadToImgBB(file); uploadedImageURL=url; showNotification('Photo uploaded!','success'); }catch(err){ uploadedImageURL=null; showNotification('Upload failed','error'); }finally{ label.innerHTML=orig; } } });
+    document.getElementById('saveBtn').addEventListener('click',async()=>{ const realName=document.getElementById('realName').value.trim(); const phone=document.getElementById('phone').value.trim(); const instagramName=document.getElementById('instagramName').value.trim(); if(!realName){ showNotification('Real name is required','error'); return; } const saveBtn=document.getElementById('saveBtn'); setLoading(saveBtn,true,'Save Changes'); try{ const updateData={realName,phoneNumber:phone,instagramName}; if(uploadedImageURL){ updateData.profileImage=uploadedImageURL; session.userData.profileImage=uploadedImageURL; localStorage.setItem('galagram_session',JSON.stringify(session)); } await updateDoc(doc(db,"users",currentUsername),updateData); await addLog('profile_update',currentUsername,null,`${currentUsername} updated their profile`); showNotification('Profile updated successfully!','success'); setTimeout(()=>{ window.location.href="profile.html"; },1500); }catch(e){ showNotification('Error: '+e.message,'error'); setLoading(saveBtn,false,'Save Changes'); } });
+    document.getElementById('cancelBtn').addEventListener('click',()=>{ window.location.href="profile.html"; }); document.getElementById('backBtn').addEventListener('click',()=>{ window.location.href="profile.html"; });
+    (function antiScreenshot(){ const blackFlash=()=>{ const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); }; document.addEventListener('keyup',e=>{ if(e.key==='PrintScreen'){ blackFlash(); e.preventDefault(); } }); document.addEventListener('contextmenu',e=>{ e.preventDefault(); blackFlash(); }); })();
+    function handleResize(){ const blocker=document.getElementById('pcBlocker'); const app=document.getElementById('appRoot'); if(window.innerWidth>768){ blocker.style.display='flex'; if(app) app.style.display='none'; }else{ blocker.style.display='none'; if(app) app.style.display='block'; } }
+    window.addEventListener('resize',handleResize); handleResize();
     loadUserData();
-</script>
-    <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(reg => console.log('Service Worker registered', reg))
-        .catch(err => console.log('Service Worker registration failed', err));
-    });
-  }
 </script>
 </body>
 </html>
