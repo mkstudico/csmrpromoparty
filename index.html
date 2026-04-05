@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Galagram • Sign In</title>
     <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#ffffff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Galagram">
-<link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Galagram">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
@@ -158,6 +158,12 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #0095f6;
+            color: #0095f6;
+            margin-top: 8px;
+        }
         .switch-link {
             text-align: center;
             margin-top: 20px;
@@ -269,6 +275,43 @@
         .galagram-toast.success {
             background: rgba(46, 125, 50, 0.95);
         }
+        /* Recent codes styles */
+        .recent-codes {
+            margin-top: 16px;
+        }
+        .recent-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #8e8e8e;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .codes-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .code-chip {
+            background: #efefef;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .code-chip:active {
+            background: #dbdbdb;
+            transform: scale(0.96);
+        }
+        .clear-history {
+            font-size: 0.7rem;
+            color: #ed4956;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -300,6 +343,18 @@
                 <input type="password" id="loginPassword" placeholder="Additional password" autocomplete="off">
             </div>
             <button id="loginBtn" class="btn"><i class='bx bx-log-in-circle'></i> Log in</button>
+            
+            <!-- Recent codes history -->
+            <div class="recent-codes" id="recentCodesContainer">
+                <div class="recent-title">
+                    <span>📱 Your recent accounts</span>
+                    <span class="clear-history" id="clearHistoryBtn">Clear all</span>
+                </div>
+                <div class="codes-list" id="codesList">
+                    <!-- dynamically populated -->
+                </div>
+            </div>
+            
             <div class="switch-link" id="goToSignup">No account? <strong>Create one</strong></div>
         </div>
         <footer>Galagram · exclusive promo party</footer>
@@ -360,6 +415,67 @@
     const db = window.db;
     const IMGBB_KEY = "99c6aa298645e8a4742979117fc73be6";
     
+    // ---------- LOCALSTORAGE HISTORY UTILITIES ----------
+    const HISTORY_KEY = 'galagram_codes_history';
+    
+    function getCodeHistory() {
+        const stored = localStorage.getItem(HISTORY_KEY);
+        return stored ? JSON.parse(stored) : [];
+    }
+    
+    function saveCodeHistory(history) {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+    
+    function addCodeToHistory(code, username) {
+        let history = getCodeHistory();
+        // Remove existing entry with same code (to keep latest at top)
+        history = history.filter(entry => entry.code !== code);
+        history.unshift({ code, username, timestamp: new Date().toISOString() });
+        // Keep only last 20 entries
+        if (history.length > 20) history.pop();
+        saveCodeHistory(history);
+        renderRecentCodes();
+    }
+    
+    function clearCodeHistory() {
+        saveCodeHistory([]);
+        renderRecentCodes();
+        showNotification('History cleared', 'success');
+    }
+    
+    function renderRecentCodes() {
+        const container = document.getElementById('codesList');
+        const history = getCodeHistory();
+        if (!history.length) {
+            container.innerHTML = '<div style="font-size:0.7rem; color:#aaa; padding:6px 0;">No saved accounts yet. Sign up or log in to see them here.</div>';
+            return;
+        }
+        container.innerHTML = history.map(entry => `
+            <div class="code-chip" data-code="${entry.code}" data-username="${escapeHtml(entry.username)}">
+                ${entry.code} <span style="font-size:0.65rem; opacity:0.7;">(${escapeHtml(entry.username)})</span>
+            </div>
+        `).join('');
+        
+        // Add click handlers to chips
+        document.querySelectorAll('.code-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const code = chip.dataset.code;
+                document.getElementById('loginCode').value = code;
+                // Trigger the check for password field
+                const event = new Event('input', { bubbles: true });
+                document.getElementById('loginCode').dispatchEvent(event);
+                showNotification(`Code ${code} filled`, 'success');
+            });
+        });
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+    
+    // ---------- NOTIFICATION ----------
     function showNotification(message, type = "info") {
         const existingToast = document.querySelector('.galagram-toast');
         if(existingToast) existingToast.remove();
@@ -377,6 +493,7 @@
         }, 4000);
     }
     
+    // ---------- LOADING & IMAGE UPLOAD ----------
     function setLoading(button, isLoading, originalText) {
         if(isLoading) {
             button.disabled = true;
@@ -422,6 +539,7 @@
         }
     });
     
+    // ---------- SIGNUP & LOGIN ----------
     function generateSixDigit() {
         return Math.floor(100000 + Math.random() * 900000).toString();
     }
@@ -446,6 +564,8 @@
             }
         };
         localStorage.setItem('galagram_session', JSON.stringify(session));
+        // Add code to history after successful login/signup
+        addCodeToHistory(sixDigitCode, username);
         window.location.href = "home.html";
     }
     
@@ -565,6 +685,8 @@
                 setLoading(loginBtn, false, 'Log in');
                 return;
             }
+            // Add to history on successful login
+            addCodeToHistory(code, userDoc.id);
             await createAndRedirectSession(userDoc.id, code, user);
         } catch(e) {
             showNotification('Login error: ' + e.message, 'error');
@@ -590,6 +712,13 @@
         else {
             container.classList.add('hidden');
             document.getElementById('extraPassword').value = '';
+        }
+    });
+    
+    // Clear history button
+    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+        if(confirm('Clear all saved account codes?')) {
+            clearCodeHistory();
         }
     });
     
@@ -626,13 +755,16 @@
     window.addEventListener('resize', handleResize);
     handleResize();
     
-    // Check if already logged in and redirect to home
+    // Auto-login if session exists (already redirects)
     const storedSession = localStorage.getItem('galagram_session');
     if(storedSession) {
         window.location.href = "home.html";
     }
+    
+    // Initial render of recent codes
+    renderRecentCodes();
 </script>
-    <script>
+<script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js')
