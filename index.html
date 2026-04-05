@@ -164,6 +164,9 @@
             color: #0095f6;
             margin-top: 8px;
         }
+        .btn-outline:active {
+            background: rgba(0,149,246,0.1);
+        }
         .switch-link {
             text-align: center;
             margin-top: 20px;
@@ -275,7 +278,6 @@
         .galagram-toast.success {
             background: rgba(46, 125, 50, 0.95);
         }
-        /* Recent codes styles */
         .recent-codes {
             margin-top: 16px;
         }
@@ -311,6 +313,14 @@
             font-size: 0.7rem;
             color: #ed4956;
             cursor: pointer;
+        }
+        .pwa-button {
+            margin-top: 16px;
+            background: #262626;
+            border: none;
+        }
+        .pwa-button i {
+            color: white;
         }
     </style>
 </head>
@@ -354,6 +364,11 @@
                     <!-- dynamically populated -->
                 </div>
             </div>
+            
+            <!-- PWA Install Button (hidden by default, shown only when not installed) -->
+            <button id="pwaInstallBtn" class="btn btn-outline pwa-button hidden">
+                <i class='bx bx-download'></i> Install App
+            </button>
             
             <div class="switch-link" id="goToSignup">No account? <strong>Create one</strong></div>
         </div>
@@ -414,6 +429,51 @@
     
     const db = window.db;
     const IMGBB_KEY = "99c6aa298645e8a4742979117fc73be6";
+    
+    // ---------- PWA INSTALLATION ----------
+    let deferredPrompt = null;
+    const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        // Show the install button only if the app is not already installed
+        if (!isAppInstalled()) {
+            pwaInstallBtn.classList.remove('hidden');
+        }
+    });
+    
+    // Detect if the app is already installed (standalone mode)
+    function isAppInstalled() {
+        // Check if running in standalone mode (PWA installed)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                            (window.navigator.standalone === true);
+        return isStandalone;
+    }
+    
+    pwaInstallBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+            // Fallback: show a message or redirect to a help page
+            showNotification('Your browser may not support automatic installation. Try adding to home screen manually.', 'info');
+            return;
+        }
+        // Show the install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to install prompt: ${outcome}`);
+        // Clear the deferredPrompt so it can be garbage collected
+        deferredPrompt = null;
+        // Hide the button after install prompt is shown (user will install or cancel)
+        pwaInstallBtn.classList.add('hidden');
+    });
+    
+    // Also hide the button if we detect standalone mode after page load
+    if (isAppInstalled()) {
+        pwaInstallBtn.classList.add('hidden');
+    }
     
     // ---------- LOCALSTORAGE HISTORY UTILITIES ----------
     const HISTORY_KEY = 'galagram_codes_history';
