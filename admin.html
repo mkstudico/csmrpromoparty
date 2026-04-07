@@ -56,6 +56,8 @@
         .form-group select, .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #dbdbdb; border-radius: 10px; }
         .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
         .checkbox-group label { display: flex; align-items: center; gap: 6px; font-weight: normal; }
+        .multi-user-select { width: 100%; padding: 8px; border: 1px solid #dbdbdb; border-radius: 10px; min-height: 120px; }
+        .select-all-btn { background: #efefef; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.7rem; margin-top: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -112,7 +114,8 @@
         snapshot.forEach(docSnap => {
             allUsers.push({ id: docSnap.id, ...docSnap.data() });
         });
-        renderUsers();
+        if (currentTab === 'notifiers') renderNotifiers();
+        else renderUsers();
     }
     
     async function loadPosts() {
@@ -137,7 +140,7 @@
         renderLogs();
     }
     
-    // ------------------- NOTIFIER UI -------------------
+    // ------------------- NOTIFIER UI (MULTI-SELECT) -------------------
     function renderNotifiers() {
         const container = document.getElementById('adminContent');
         let filtered = allUsers;
@@ -151,13 +154,14 @@
         }
         
         let html = `<div class="notifier-form">
-            <h4 style="margin-bottom:12px;">✉️ Send a notifier</h4>
+            <h4 style="margin-bottom:12px;">✉️ Send notifier to multiple users</h4>
             <div class="form-group">
-                <label>Select user</label>
-                <select id="notifierUserSelect">
-                    <option value="">-- Choose user --</option>
+                <label>Select users (Ctrl+Click or tap multiple)</label>
+                <select multiple id="notifierUserSelect" class="multi-user-select" size="5">
                     ${filtered.map(u => `<option value="${u.id}">${escapeHtml(u.realName)} (@${u.username})</option>`).join('')}
                 </select>
+                <button type="button" id="selectAllBtn" class="select-all-btn">✓ Select All</button>
+                <button type="button" id="clearAllBtn" class="select-all-btn" style="margin-left:8px;">✗ Clear All</button>
             </div>
             <div class="form-group">
                 <label>Notification type</label>
@@ -178,24 +182,36 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Message to user</label>
+                <label>Message to users</label>
                 <textarea id="notifierMessage" rows="3" placeholder="Write your message..."></textarea>
             </div>
-            <button id="sendNotifierBtn" class="action-btn send" style="width:100%;">📨 Send Notifier</button>
+            <button id="sendNotifierBtn" class="action-btn send" style="width:100%;">📨 Send to Selected Users</button>
         </div>`;
         
         container.innerHTML = html;
         
-        // Toggle update fields visibility
         const typeSelect = document.getElementById('notifierType');
         const updateFieldsDiv = document.getElementById('updateFieldsContainer');
         typeSelect.addEventListener('change', () => {
             updateFieldsDiv.style.display = typeSelect.value === 'update' ? 'block' : 'none';
         });
         
+        // Select / Clear All buttons
+        const multiSelect = document.getElementById('notifierUserSelect');
+        document.getElementById('selectAllBtn').addEventListener('click', () => {
+            for (let i = 0; i < multiSelect.options.length; i++) {
+                multiSelect.options[i].selected = true;
+            }
+        });
+        document.getElementById('clearAllBtn').addEventListener('click', () => {
+            for (let i = 0; i < multiSelect.options.length; i++) {
+                multiSelect.options[i].selected = false;
+            }
+        });
+        
         document.getElementById('sendNotifierBtn').addEventListener('click', async () => {
-            const userId = document.getElementById('notifierUserSelect').value;
-            if (!userId) { showNotification("Select a user"); return; }
+            const selectedOptions = multiSelect.selectedOptions;
+            if (selectedOptions.length === 0) { showNotification("Select at least one user"); return; }
             const type = typeSelect.value;
             const message = document.getElementById('notifierMessage').value.trim();
             if (!message) { showNotification("Message is required"); return; }
@@ -207,22 +223,31 @@
                 if (fieldsToUpdate.length === 0) { showNotification("Select at least one field to update"); return; }
             }
             
-            try {
-                await addDoc(collection(db, "notifiers"), {
-                    userId: userId,
-                    type: type,
-                    message: message,
-                    fields: fieldsToUpdate,
-                    completed: false,
-                    createdAt: new Date(),
-                    adminNote: ""
-                });
-                showNotification(`Notifier sent to ${userId}`);
-                document.getElementById('notifierMessage').value = '';
-                if (typeSelect.value === 'update') {
-                    document.querySelectorAll('#updateFieldsContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
-                }
-            } catch(e) { showNotification("Error: "+e.message); }
+            const userIds = Array.from(selectedOptions).map(opt => opt.value);
+            let successCount = 0;
+            for (const userId of userIds) {
+                try {
+                    await addDoc(collection(db, "notifiers"), {
+                        userId: userId,
+                        type: type,
+                        message: message,
+                        fields: fieldsToUpdate,
+                        completed: false,
+                        createdAt: new Date(),
+                        adminNote: ""
+                    });
+                    successCount++;
+                } catch(e) { console.error(`Failed for ${userId}:`, e); }
+            }
+            showNotification(`Notifier sent to ${successCount} user(s)`);
+            document.getElementById('notifierMessage').value = '';
+            if (typeSelect.value === 'update') {
+                document.querySelectorAll('#updateFieldsContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+            // Clear selection
+            for (let i = 0; i < multiSelect.options.length; i++) {
+                multiSelect.options[i].selected = false;
+            }
         });
     }
     
