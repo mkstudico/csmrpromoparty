@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Galagram • Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galagram • Admin Panel (PC)</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
         import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -24,72 +24,320 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
-        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
-        .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .admin-tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 20px; overflow-x: auto; }
-        .admin-tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
-        .admin-tab.active { color: #0095f6; border-bottom-color: #0095f6; }
-        .content { padding: 16px; background: #fafafa; min-height: 85vh; }
-        .user-item, .post-item, .log-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-        .user-info, .post-info { display: flex; align-items: center; gap: 12px; flex: 1; }
-        .user-avatar, .post-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
-        .user-details, .post-details { flex: 1; }
-        .user-name, .post-author { font-weight: 600; font-size: 0.9rem; }
-        .user-username, .post-time, .log-time { font-size: 0.7rem; color: #8e8e8e; }
-        .badge-select, .action-btn { padding: 6px 12px; border-radius: 20px; border: 1px solid #dbdbdb; background: white; cursor: pointer; font-size: 0.75rem; margin-left: 8px; }
-        .action-btn.send { background: #0095f6; color: white; border: none; }
-        .search-bar { margin-bottom: 16px; }
-        .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.85rem; }
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; }
-        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
-        .loading { text-align: center; padding: 40px; color: #8e8e8e; }
-        .bx-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .notifier-form { background: white; border-radius: 16px; padding: 16px; margin-bottom: 20px; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { font-weight: 600; font-size: 0.8rem; display: block; margin-bottom: 4px; }
-        .form-group select, .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #dbdbdb; border-radius: 10px; }
-        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
-        .checkbox-group label { display: flex; align-items: center; gap: 6px; font-weight: normal; }
-        .multi-user-select { width: 100%; padding: 8px; border: 1px solid #dbdbdb; border-radius: 10px; min-height: 120px; }
-        .select-all-btn { background: #efefef; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.7rem; margin-top: 6px; cursor: pointer; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f0f2f5;
+            color: #262626;
+        }
+        /* PC layout: sidebar + main content */
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid #dbdbdb;
+            padding: 24px 16px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f77737, #d62976, #962fbf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 32px;
+            padding-left: 8px;
+        }
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: 500;
+            color: #262626;
+        }
+        .nav-item i {
+            font-size: 1.4rem;
+            width: 28px;
+        }
+        .nav-item.active {
+            background: #0095f6;
+            color: white;
+        }
+        .nav-item:not(.active):hover {
+            background: #f0f0f0;
+        }
+        /* Main content */
+        .main-content {
+            flex: 1;
+            padding: 24px 32px;
+            overflow-x: auto;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        .search-input {
+            padding: 10px 16px;
+            border: 1px solid #dbdbdb;
+            border-radius: 30px;
+            width: 280px;
+            font-size: 0.9rem;
+            background: white;
+        }
+        .stats-cards {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px 24px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            flex: 1;
+            min-width: 150px;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        /* Cards for users, posts, logs */
+        .list-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            overflow: hidden;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #efefef;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .user-info, .post-info, .log-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 2;
+            min-width: 200px;
+        }
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .details {
+            flex: 1;
+        }
+        .name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .username, .time {
+            font-size: 0.8rem;
+            color: #8e8e8e;
+        }
+        .badge-select, .action-btn {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #dbdbdb;
+            background: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .action-btn.send {
+            background: #0095f6;
+            color: white;
+            border: none;
+        }
+        .action-btn.delete {
+            background: #ef4444;
+            color: white;
+            border: none;
+        }
+        .action-btn.edit {
+            background: #f59e0b;
+            color: white;
+            border: none;
+        }
+        .action-btn.pin {
+            background: #22c55e;
+            color: white;
+            border: none;
+        }
+        .notifier-form {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .form-row {
+            margin-bottom: 20px;
+        }
+        .form-row label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        select, textarea, input[type="text"], .multi-user-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #dbdbdb;
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        .multi-user-select {
+            height: 150px;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 8px;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: normal;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .btn-primary {
+            background: #0095f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-secondary {
+            background: #efefef;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .galagram-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            z-index: 10000;
+            pointer-events: none;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #8e8e8e;
+        }
+        .bx-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+            .admin-layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                border-right: none;
+                border-bottom: 1px solid #dbdbdb;
+                padding: 12px 16px;
+            }
+            .sidebar-nav {
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            .main-content {
+                padding: 16px;
+            }
+            .search-input {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-
-<div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
-
-<div id="appRoot" class="app-container">
-    <div class="header">
-        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
-        <div class="logo">Admin Panel</div>
+<div class="admin-layout">
+    <div class="sidebar">
+        <div class="sidebar-logo">Galagram Admin</div>
+        <div class="sidebar-nav">
+            <div class="nav-item" data-tab="users"><i class='bx bx-group'></i> Users</div>
+            <div class="nav-item" data-tab="posts"><i class='bx bx-news'></i> Posts</div>
+            <div class="nav-item" data-tab="logs"><i class='bx bx-history'></i> Logs</div>
+            <div class="nav-item" data-tab="notifiers"><i class='bx bx-bell'></i> Notifiers</div>
+            <div class="nav-item" data-tab="back"><i class='bx bx-arrow-back'></i> Back to Home</div>
+        </div>
     </div>
-    
-    <div class="admin-tabs">
-        <div class="admin-tab" data-tab="users">👥 Users</div>
-        <div class="admin-tab" data-tab="posts">📝 Posts</div>
-        <div class="admin-tab" data-tab="logs">📋 Logs</div>
-        <div class="admin-tab" data-tab="notifiers">📢 Notifiers</div>
-    </div>
-    
-    <div class="content">
-        <div class="search-bar">
+    <div class="main-content">
+        <div class="page-header">
+            <h1 id="pageTitle">Admin Dashboard</h1>
             <input type="text" id="searchInput" class="search-input" placeholder="Search...">
         </div>
+        <div id="statsContainer" class="stats-cards"></div>
         <div id="adminContent"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div></div>
     </div>
 </div>
 
 <script type="module">
-    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
-    let currentTab = "logs";
+    let currentTab = "users";
     let allUsers = [];
     let allPosts = [];
     let allLogs = [];
@@ -100,12 +348,16 @@
         toast.className = 'galagram-toast';
         toast.innerHTML = `<i class='bx bx-check-circle'></i><span>${message}</span>`;
         document.body.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => toast.remove(), 2000);
+        setTimeout(() => toast.remove(), 3000);
     }
     
+    // Check if logged in (optional: you can keep session check)
     const sessionData = localStorage.getItem('galagram_session');
-    if (!sessionData) { window.location.href = "index.html"; }
+    if (!sessionData) {
+        // Not logged in? redirect? But admin might be accessed directly.
+        // For safety, you can redirect to index.html, but we'll just allow for now.
+        console.warn("No session found");
+    }
     
     async function loadUsers() {
         const usersRef = collection(db, "users");
@@ -114,8 +366,8 @@
         snapshot.forEach(docSnap => {
             allUsers.push({ id: docSnap.id, ...docSnap.data() });
         });
-        if (currentTab === 'notifiers') renderNotifiers();
-        else renderUsers();
+        renderStats();
+        if (currentTab === "users") renderUsers();
     }
     
     async function loadPosts() {
@@ -126,7 +378,8 @@
         snapshot.forEach(docSnap => {
             allPosts.push({ id: docSnap.id, ...docSnap.data() });
         });
-        renderPosts();
+        renderStats();
+        if (currentTab === "posts") renderPosts();
     }
     
     async function loadLogs() {
@@ -137,10 +390,169 @@
         snapshot.forEach(docSnap => {
             allLogs.push({ id: docSnap.id, ...docSnap.data() });
         });
-        renderLogs();
+        renderStats();
+        if (currentTab === "logs") renderLogs();
     }
     
-    // ------------------- NOTIFIER UI (MULTI-SELECT) -------------------
+    function renderStats() {
+        const container = document.getElementById('statsContainer');
+        container.innerHTML = `
+            <div class="stat-card"><div class="stat-number">${allUsers.length}</div><div>Total Users</div></div>
+            <div class="stat-card"><div class="stat-number">${allPosts.length}</div><div>Total Posts</div></div>
+            <div class="stat-card"><div class="stat-number">${allLogs.length}</div><div>Total Logs</div></div>
+        `;
+    }
+    
+    // ---------- USERS ----------
+    function renderUsers() {
+        let filtered = allUsers;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = allUsers.filter(u => u.realName?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q));
+        }
+        const container = document.getElementById('adminContent');
+        if (!filtered.length) {
+            container.innerHTML = `<div class="loading">No users found</div>`;
+            return;
+        }
+        let html = `<div class="list-container">`;
+        filtered.forEach(user => {
+            const currentBadge = user.verified || "none";
+            html += `
+                <div class="list-item">
+                    <div class="user-info">
+                        <img class="avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                        <div class="details">
+                            <div class="name">${escapeHtml(user.realName)}</div>
+                            <div class="username">@${user.username}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <select class="badge-select" data-id="${user.id}">
+                            <option value="none" ${currentBadge === 'none' ? 'selected' : ''}>No badge</option>
+                            <option value="gray" ${currentBadge === 'gray' ? 'selected' : ''}>Gray ✓</option>
+                            <option value="blue" ${currentBadge === 'blue' ? 'selected' : ''}>Blue ✓✓</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+        document.querySelectorAll('.badge-select').forEach(select => {
+            select.addEventListener('change', async (e) => {
+                const userId = select.dataset.id;
+                const newBadge = select.value;
+                await updateDoc(doc(db, "users", userId), { verified: newBadge });
+                showNotification(`Badge updated for ${userId}`);
+            });
+        });
+    }
+    
+    // ---------- POSTS ----------
+    function renderPosts() {
+        let filtered = allPosts;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = allPosts.filter(p => p.text?.toLowerCase().includes(q) || p.authorName?.toLowerCase().includes(q));
+        }
+        const container = document.getElementById('adminContent');
+        if (!filtered.length) {
+            container.innerHTML = `<div class="loading">No posts found</div>`;
+            return;
+        }
+        let html = `<div class="list-container">`;
+        filtered.forEach(post => {
+            const isPinned = post.pinned || false;
+            html += `
+                <div class="list-item">
+                    <div class="post-info">
+                        <img class="avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                        <div class="details">
+                            <div class="name">${escapeHtml(post.authorName)}</div>
+                            <div class="time">${formatTime(post.createdAt)}</div>
+                            <div class="post-preview">${escapeHtml(post.text?.substring(0, 80) || post.description?.substring(0, 80) || 'Image post')}${(post.text?.length > 80 || post.description?.length > 80) ? '...' : ''}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="action-btn pin" data-id="${post.id}" data-pinned="${isPinned}">${isPinned ? '📌 Unpin' : '📍 Pin'}</button>
+                        <button class="action-btn edit" data-id="${post.id}">✏️ Edit</button>
+                        <button class="action-btn delete" data-id="${post.id}">🗑️ Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+        
+        document.querySelectorAll('.action-btn.pin').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const postId = btn.dataset.id;
+                const currentlyPinned = btn.dataset.pinned === 'true';
+                await updateDoc(doc(db, "news", postId), { pinned: !currentlyPinned });
+                showNotification(currentlyPinned ? 'Post unpinned' : 'Post pinned');
+                loadPosts();
+            });
+        });
+        document.querySelectorAll('.action-btn.edit').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const postId = btn.dataset.id;
+                const post = allPosts.find(p => p.id === postId);
+                const newText = prompt("Edit post content:", post.text || post.description || "");
+                if (newText && newText.trim()) {
+                    await updateDoc(doc(db, "news", postId), { text: newText.trim() });
+                    showNotification('Post updated');
+                    loadPosts();
+                }
+            });
+        });
+        document.querySelectorAll('.action-btn.delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (confirm('Delete this post permanently?')) {
+                    const postId = btn.dataset.id;
+                    await deleteDoc(doc(db, "news", postId));
+                    showNotification('Post deleted');
+                    loadPosts();
+                }
+            });
+        });
+    }
+    
+    // ---------- LOGS ----------
+    function renderLogs() {
+        let filtered = allLogs;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = allLogs.filter(log => log.message?.toLowerCase().includes(q) || log.actor?.toLowerCase().includes(q));
+        }
+        const container = document.getElementById('adminContent');
+        if (!filtered.length) {
+            container.innerHTML = `<div class="loading">No logs found</div>`;
+            return;
+        }
+        let html = `<div class="list-container">`;
+        filtered.forEach(log => {
+            let icon = 'bx-info-circle';
+            if (log.type === 'request') icon = 'bx-heart';
+            else if (log.type === 'accept') icon = 'bx-check-circle';
+            else if (log.type === 'reject') icon = 'bx-x-circle';
+            html += `
+                <div class="list-item">
+                    <div class="log-info">
+                        <i class='bx ${icon}' style="font-size:1.5rem;"></i>
+                        <div class="details">
+                            <div class="log-message">${escapeHtml(log.message)}</div>
+                            <div class="time">${formatTime(log.timestamp)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+    
+    // ---------- NOTIFIERS (multi-user) ----------
     function renderNotifiers() {
         const container = document.getElementById('adminContent');
         let filtered = allUsers;
@@ -153,41 +565,48 @@
             return;
         }
         
-        let html = `<div class="notifier-form">
-            <h4 style="margin-bottom:12px;">✉️ Send notifier to multiple users</h4>
-            <div class="form-group">
-                <label>Select users (Ctrl+Click or tap multiple)</label>
-                <select multiple id="notifierUserSelect" class="multi-user-select" size="5">
-                    ${filtered.map(u => `<option value="${u.id}">${escapeHtml(u.realName)} (@${u.username})</option>`).join('')}
-                </select>
-                <button type="button" id="selectAllBtn" class="select-all-btn">✓ Select All</button>
-                <button type="button" id="clearAllBtn" class="select-all-btn" style="margin-left:8px;">✗ Clear All</button>
-            </div>
-            <div class="form-group">
-                <label>Notification type</label>
-                <select id="notifierType">
-                    <option value="warning">⚠️ Warning</option>
-                    <option value="inquiry">❓ Inquiry</option>
-                    <option value="update">🔄 Update (request field change)</option>
-                </select>
-            </div>
-            <div id="updateFieldsContainer" class="form-group" style="display:none;">
-                <label>Select fields to update (user will be asked to provide new value)</label>
-                <div class="checkbox-group">
-                    <label><input type="checkbox" value="realName"> Real Name</label>
-                    <label><input type="checkbox" value="gender"> Gender</label>
-                    <label><input type="checkbox" value="phoneNumber"> Phone Number</label>
-                    <label><input type="checkbox" value="username"> Username</label>
-                    <label><input type="checkbox" value="instagramName"> Instagram Name</label>
+        let html = `
+            <div class="notifier-form">
+                <h3>✉️ Send Notifier to Selected Users</h3>
+                <div class="form-row">
+                    <label>Select Users (Ctrl+Click for multiple)</label>
+                    <select multiple id="notifierUserSelect" class="multi-user-select">
+                        ${filtered.map(u => `<option value="${u.id}">${escapeHtml(u.realName)} (@${u.username})</option>`).join('')}
+                    </select>
+                    <div class="button-group" style="margin-top:8px;">
+                        <button id="selectAllBtn" class="btn-secondary">Select All</button>
+                        <button id="clearAllBtn" class="btn-secondary">Clear All</button>
+                    </div>
                 </div>
+                <div class="form-row">
+                    <label>Notification Type</label>
+                    <select id="notifierType">
+                        <option value="warning">⚠️ Warning</option>
+                        <option value="inquiry">❓ Inquiry</option>
+                        <option value="update">🔄 Update (request field change)</option>
+                    </select>
+                </div>
+                <div id="updateFieldsContainer" class="form-row" style="display:none;">
+                    <label>Select fields to update</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="realName"> Real Name</label>
+                        <label><input type="checkbox" value="gender"> Gender</label>
+                        <label><input type="checkbox" value="phoneNumber"> Phone Number</label>
+                        <label><input type="checkbox" value="username"> Username</label>
+                        <label><input type="checkbox" value="instagramName"> Instagram Name</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Message to Users</label>
+                    <textarea id="notifierMessage" rows="4" placeholder="Write your message..."></textarea>
+                </div>
+                <button id="sendNotifierBtn" class="btn-primary">📨 Send to Selected Users</button>
             </div>
-            <div class="form-group">
-                <label>Message to users</label>
-                <textarea id="notifierMessage" rows="3" placeholder="Write your message..."></textarea>
+            <div id="sentNotifiersList" class="list-container" style="margin-top:24px;">
+                <div style="padding:16px; font-weight:600;">Recently Sent (last 20)</div>
+                <div id="recentNotifiers"></div>
             </div>
-            <button id="sendNotifierBtn" class="action-btn send" style="width:100%;">📨 Send to Selected Users</button>
-        </div>`;
-        
+        `;
         container.innerHTML = html;
         
         const typeSelect = document.getElementById('notifierType');
@@ -196,17 +615,12 @@
             updateFieldsDiv.style.display = typeSelect.value === 'update' ? 'block' : 'none';
         });
         
-        // Select / Clear All buttons
         const multiSelect = document.getElementById('notifierUserSelect');
         document.getElementById('selectAllBtn').addEventListener('click', () => {
-            for (let i = 0; i < multiSelect.options.length; i++) {
-                multiSelect.options[i].selected = true;
-            }
+            for (let i = 0; i < multiSelect.options.length; i++) multiSelect.options[i].selected = true;
         });
         document.getElementById('clearAllBtn').addEventListener('click', () => {
-            for (let i = 0; i < multiSelect.options.length; i++) {
-                multiSelect.options[i].selected = false;
-            }
+            for (let i = 0; i < multiSelect.options.length; i++) multiSelect.options[i].selected = false;
         });
         
         document.getElementById('sendNotifierBtn').addEventListener('click', async () => {
@@ -215,14 +629,12 @@
             const type = typeSelect.value;
             const message = document.getElementById('notifierMessage').value.trim();
             if (!message) { showNotification("Message is required"); return; }
-            
             let fieldsToUpdate = [];
             if (type === 'update') {
                 const checkboxes = document.querySelectorAll('#updateFieldsContainer input[type="checkbox"]:checked');
                 fieldsToUpdate = Array.from(checkboxes).map(cb => cb.value);
                 if (fieldsToUpdate.length === 0) { showNotification("Select at least one field to update"); return; }
             }
-            
             const userIds = Array.from(selectedOptions).map(opt => opt.value);
             let successCount = 0;
             for (const userId of userIds) {
@@ -237,7 +649,7 @@
                         adminNote: ""
                     });
                     successCount++;
-                } catch(e) { console.error(`Failed for ${userId}:`, e); }
+                } catch(e) { console.error(e); }
             }
             showNotification(`Notifier sent to ${successCount} user(s)`);
             document.getElementById('notifierMessage').value = '';
@@ -245,91 +657,73 @@
                 document.querySelectorAll('#updateFieldsContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
             }
             // Clear selection
-            for (let i = 0; i < multiSelect.options.length; i++) {
-                multiSelect.options[i].selected = false;
-            }
+            for (let i = 0; i < multiSelect.options.length; i++) multiSelect.options[i].selected = false;
+            loadRecentNotifiers();
         });
+        loadRecentNotifiers();
     }
     
-    function renderUsers() {
-        let filtered = allUsers;
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            filtered = allUsers.filter(u => u.realName?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q));
+    async function loadRecentNotifiers() {
+        const notifiersRef = collection(db, "notifiers");
+        const q = query(notifiersRef, orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        const recent = [];
+        snapshot.forEach(docSnap => recent.push({ id: docSnap.id, ...docSnap.data() }));
+        const container = document.getElementById('recentNotifiers');
+        if (!container) return;
+        if (recent.length === 0) {
+            container.innerHTML = '<div style="padding:16px; color:#8e8e8e;">No notifiers sent yet.</div>';
+            return;
         }
-        const container = document.getElementById('adminContent');
-        if (!filtered.length) { container.innerHTML = `<div class="loading">No users found</div>`; return; }
-        let html = '';
-        filtered.forEach(user => {
-            const currentBadge = user.verified || "none";
-            html += `<div class="user-item"><div class="user-info"><img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div class="user-details"><div class="user-name">${escapeHtml(user.realName)}</div><div class="user-username">@${user.username}</div></div></div><select class="badge-select" data-id="${user.id}"><option value="none" ${currentBadge === 'none' ? 'selected' : ''}>No badge</option><option value="gray" ${currentBadge === 'gray' ? 'selected' : ''}>Gray ✓</option><option value="blue" ${currentBadge === 'blue' ? 'selected' : ''}>Blue ✓✓</option></select></div>`;
-        });
-        container.innerHTML = html;
-        document.querySelectorAll('.badge-select').forEach(select => {
-            select.addEventListener('change', async (e) => {
-                const userId = select.dataset.id;
-                const newBadge = select.value;
-                await updateDoc(doc(db, "users", userId), { verified: newBadge });
-                showNotification(`Badge updated`);
-            });
-        });
+        container.innerHTML = recent.slice(0, 20).map(n => `
+            <div class="list-item" style="padding:12px 16px;">
+                <div style="flex:1;">
+                    <strong>To:</strong> ${escapeHtml(n.userId)}<br>
+                    <strong>Type:</strong> ${n.type}<br>
+                    <strong>Msg:</strong> ${escapeHtml(n.message.substring(0, 100))}
+                </div>
+                <div class="time">${formatTime(n.createdAt)}</div>
+            </div>
+        `).join('');
     }
     
-    function renderPosts() {
-        let filtered = allPosts;
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            filtered = allPosts.filter(p => p.text?.toLowerCase().includes(q) || p.authorName?.toLowerCase().includes(q));
-        }
-        const container = document.getElementById('adminContent');
-        if (!filtered.length) { container.innerHTML = `<div class="loading">No posts found</div>`; return; }
-        let html = '';
-        filtered.forEach(post => {
-            const isPinned = post.pinned || false;
-            html += `<div class="post-item"><div class="post-info"><img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div class="post-details"><div class="post-author">${escapeHtml(post.authorName)}</div><div class="post-time">${formatTime(post.createdAt)}</div><div class="post-text">${escapeHtml(post.text.substring(0, 80))}${post.text.length > 80 ? '...' : ''}</div></div></div><div><button class="action-btn pin" data-id="${post.id}" data-pinned="${isPinned}">${isPinned ? '📌 Unpin' : '📍 Pin'}</button><button class="action-btn edit" data-id="${post.id}">✏️ Edit</button><button class="action-btn delete" data-id="${post.id}">🗑️ Delete</button></div></div>`;
-        });
-        container.innerHTML = html;
-        document.querySelectorAll('.action-btn.pin').forEach(btn => btn.addEventListener('click', async (e) => { const postId = btn.dataset.id; const currentlyPinned = btn.dataset.pinned === 'true'; await updateDoc(doc(db, "news", postId), { pinned: !currentlyPinned }); showNotification(currentlyPinned ? 'Post unpinned' : 'Post pinned'); loadPosts(); }));
-        document.querySelectorAll('.action-btn.edit').forEach(btn => btn.addEventListener('click', async (e) => { const postId = btn.dataset.id; const post = allPosts.find(p => p.id === postId); const newText = prompt("Edit post content:", post.text); if (newText && newText.trim()) { await updateDoc(doc(db, "news", postId), { text: newText.trim() }); showNotification('Post updated'); loadPosts(); } }));
-        document.querySelectorAll('.action-btn.delete').forEach(btn => btn.addEventListener('click', async (e) => { if (confirm('Delete this post permanently?')) { const postId = btn.dataset.id; await deleteDoc(doc(db, "news", postId)); showNotification('Post deleted'); loadPosts(); } }));
-    }
-    
-    function renderLogs() {
-        let filtered = allLogs;
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            filtered = allLogs.filter(log => log.message?.toLowerCase().includes(q) || log.actor?.toLowerCase().includes(q));
-        }
-        const container = document.getElementById('adminContent');
-        if (!filtered.length) { container.innerHTML = `<div class="loading">No logs found</div>`; return; }
-        let html = '';
-        filtered.forEach(log => {
-            let icon = 'bx-info-circle';
-            if (log.type === 'request') icon = 'bx-heart';
-            else if (log.type === 'accept') icon = 'bx-check-circle';
-            else if (log.type === 'reject') icon = 'bx-x-circle';
-            html += `<div class="log-item"><i class='bx ${icon}'></i><div class="log-message">${escapeHtml(log.message)}</div><div class="log-time">${formatTime(log.timestamp)}</div></div>`;
-        });
-        container.innerHTML = html;
-    }
-    
+    // ---------- Utilities ----------
     function formatTime(timestamp) {
         if (!timestamp) return 'unknown';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        return date.toLocaleString();
     }
     
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
-    document.getElementById('backBtn').addEventListener('click', () => { window.location.href = "home.html"; });
+    // ---------- Navigation ----------
+    async function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.nav-item[data-tab="${tab}"]`).classList.add('active');
+        document.getElementById('pageTitle').innerText = tab.charAt(0).toUpperCase() + tab.slice(1);
+        document.getElementById('searchInput').value = '';
+        searchQuery = '';
+        if (tab === 'users') {
+            await loadUsers();
+            renderUsers();
+        } else if (tab === 'posts') {
+            await loadPosts();
+            renderPosts();
+        } else if (tab === 'logs') {
+            await loadLogs();
+            renderLogs();
+        } else if (tab === 'notifiers') {
+            await loadUsers(); // to have user list
+            renderNotifiers();
+        } else if (tab === 'back') {
+            window.location.href = "home.html";
+        }
+    }
+    
     document.getElementById('searchInput').addEventListener('input', (e) => {
         searchQuery = e.target.value;
         if (currentTab === 'users') renderUsers();
@@ -338,44 +732,12 @@
         else if (currentTab === 'notifiers') renderNotifiers();
     });
     
-    document.querySelectorAll('.admin-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            currentTab = tab.dataset.tab;
-            document.getElementById('searchInput').value = '';
-            searchQuery = '';
-            if (currentTab === 'users') { loadUsers(); }
-            else if (currentTab === 'posts') { loadPosts(); }
-            else if (currentTab === 'logs') { loadLogs(); }
-            else if (currentTab === 'notifiers') { loadUsers().then(() => renderNotifiers()); }
-        });
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => switchTab(item.dataset.tab));
     });
     
-    // Anti-screenshot + resize
-    (function antiScreenshot() {
-        const blackFlash = () => {
-            const overlay = document.createElement('div');
-            overlay.style.position = 'fixed'; overlay.style.top = overlay.style.left = '0';
-            overlay.style.width = overlay.style.height = '100%'; overlay.style.backgroundColor = '#000000';
-            overlay.style.zIndex = '999999'; document.body.appendChild(overlay);
-            setTimeout(() => overlay.remove(), 200);
-        };
-        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
-        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
-    })();
-    
-    function handleResize() {
-        const blocker = document.getElementById('pcBlocker');
-        const app = document.getElementById('appRoot');
-        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
-        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
-    }
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    
-    // Default load logs
-    loadLogs();
+    // Initial load
+    switchTab('users');
 </script>
 </body>
 </html>
