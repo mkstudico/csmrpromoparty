@@ -10,6 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Galagram">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuN6yU4/4AAAANSURBVDhPYxgFowAKAAIAAcAQR4eJAAAAAElFTkSuQmCC"/>
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
@@ -86,7 +87,7 @@
         .perm-container i { font-size: 3rem; margin-bottom: 12px; }
         .perm-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
         .perm-message { font-size: 0.9rem; margin: 12px 0; color: #555; }
-        .perm-btn { background: #0095f6; color: white; border: none; padding: 10px 20px; border-radius: 30px; font-weight: 600; margin-top: 8px; width: 100%; cursor: pointer; }
+        .perm-btn { padding: 10px 16px; border-radius: 30px; font-weight: 600; border: none; cursor: pointer; }
         .survey-container { background: white; border-radius: 24px; width: 90%; max-width: 400px; max-height: 85vh; overflow-y: auto; padding: 20px; }
         .survey-title { font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 16px; background: linear-gradient(135deg, #f77737, #d62976); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .survey-question { margin-bottom: 20px; }
@@ -153,7 +154,7 @@
     const session = JSON.parse(sessionData); 
     const currentUsername = session.username;
     
-    // ---------- Notification permission modal ----------
+    // ---------- Notification Permission Modal (with OK button) ----------
     function showPermissionModal(message, isError = false, onRetry = null) {
         const overlay = document.createElement('div');
         overlay.className = 'perm-overlay';
@@ -163,39 +164,46 @@
                 <i class='bx ${icon}' style="color: ${isError ? '#ed4956' : '#22c55e'}; font-size: 3rem;"></i>
                 <div class="perm-title">${isError ? 'Notifications Blocked' : 'Notifications Enabled'}</div>
                 <div class="perm-message">${message}</div>
-                ${onRetry ? `<button class="perm-btn" id="permRetryBtn">Request Again</button>` : `<button class="perm-btn" id="permOkBtn">OK</button>`}
+                <div style="display: flex; gap: 10px; margin-top: 12px; justify-content: center;">
+                    <button class="perm-btn" id="permOkBtn" style="background:#8e8e8e; color:white;">OK</button>
+                    ${onRetry ? `<button class="perm-btn" id="permRetryBtn" style="background:#0095f6; color:white;">Request Again</button>` : ''}
+                </div>
             </div>
         `;
         document.body.appendChild(overlay);
+        
+        document.getElementById('permOkBtn').onclick = () => overlay.remove();
         if (onRetry) {
             document.getElementById('permRetryBtn').onclick = () => {
                 overlay.remove();
                 onRetry();
             };
-        } else {
-            document.getElementById('permOkBtn').onclick = () => overlay.remove();
         }
     }
     
-    // ---------- FCM: request permission, get token, store in Firestore ----------
+    // ---------- FCM: request permission, get token, store ----------
     async function initFCM() {
         try {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                const token = await getToken(messaging, { vapidKey: "BB1VSO5Rh0IlR3dZj26fgKo0sLj1IR0rJTgyxtSwzs5P9_0myLEekbmlNO3vjU_UMCiLQLvIXUlZMwAvxCzoKf4" });
-                if (token) {
-                    await updateDoc(doc(db, "users", currentUsername), { fcmToken: token });
-                    console.log("FCM token stored");
+                try {
+                    const token = await getToken(messaging, { vapidKey: "BB1VSO5Rh0IlR3dZj26fgKo0sLj1IR0rJTgyxtSwzs5P9_0myLEekbmlNO3vjU_UMCiLQLvIXUlZMwAvxCzoKf4" });
+                    if (token) {
+                        await updateDoc(doc(db, "users", currentUsername), { fcmToken: token });
+                        console.log("FCM token stored");
+                    }
+                    showPermissionModal("✅ You will now receive real‑time alerts for new posts, requests, admin messages, and chat.", false);
+                } catch (swError) {
+                    console.error("Service worker registration failed:", swError);
+                    showPermissionModal("⚠️ Could not register notification service. Please ensure the site is served over HTTPS or check browser settings.", true, () => initFCM());
                 }
-                showPermissionModal("✅ You will now receive real‑time alerts for new posts, requests, admin messages, and chat.", false);
             } else if (permission === 'denied') {
                 showPermissionModal(
                     "🔔 Notifications are blocked. Please enable notifications in your browser settings to receive important updates.",
                     true,
-                    () => initFCM()  // retry
+                    () => initFCM()
                 );
             } else {
-                // default state (should not happen because we called requestPermission)
                 console.log("Notification permission not determined");
             }
         } catch (err) {
@@ -228,7 +236,7 @@
         } 
     }
     
-    // ---------- Survey (unchanged) ----------
+    // ---------- Survey ----------
     function showSurvey() {
         if (currentUser.survey) return;
         const overlay = document.createElement('div');
@@ -278,7 +286,7 @@
         renderStep();
     }
     
-    // ---------- Compatibility & Suggestions (simplified) ----------
+    // ---------- Compatibility & Suggestions ----------
     let recentSuggestions = [];
     function computeCompatibilityScore(user) { 
         if (user.id === currentUsername || user.galaStatus !== "available" || currentUser.sentRequests?.includes(user.id) || currentUser.requests?.includes(user.id) || currentUser.gender === user.gender) return -Infinity; 
@@ -331,9 +339,21 @@
     function getVerifiedIcon(verified) { if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>'; if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>'; return ''; }
     function formatTime(timestamp) { if (!timestamp) return 'just now'; const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp); const diff = Math.floor((new Date() - date) / 1000); if (diff < 60) return `${diff}s ago`; if (diff < 3600) return `${Math.floor(diff / 60)}m ago`; if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`; return `${Math.floor(diff / 86400)}d ago`; }
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')); }
-    function updateRequestBadge() { const badge = document.getElementById('requestBadge'); const count = requestsList.length; if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('hidden'); } else badge.classList.add('hidden'); }
     
-    // ---------- Data listeners (for notifications & realtime updates) ----------
+    // ---------- FIXED: updateRequestBadge with null check ----------
+    function updateRequestBadge() {
+        const badge = document.getElementById('requestBadge');
+        if (!badge) return;
+        const count = requestsList.length;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+    
+    // ---------- Data listeners for notifications & realtime updates ----------
     let lastPostCount = 0, lastNotifierCount = 0, lastMessageCount = 0;
     function setupNotificationListeners() {
         // Listen for new posts
@@ -441,10 +461,38 @@
         });
     });
     
-    // ---------- Anti-screenshot & resize ----------
-    (function antiScreenshot() { const blackFlash = () => { const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); }; document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } }); document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); }); })();
-    function handleResize() { const blocker = document.getElementById('pcBlocker'); const app = document.getElementById('appRoot'); if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; } else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; } }
-    window.addEventListener('resize', handleResize); handleResize();
+    // ---------- FIXED: handleResize with null check ----------
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if (!blocker || !app) return;
+        if (window.innerWidth > 768) {
+            blocker.style.display = 'flex';
+            app.style.display = 'none';
+        } else {
+            blocker.style.display = 'none';
+            app.style.display = 'block';
+        }
+    }
+    
+    // Anti-screenshot
+    (function antiScreenshot() { 
+        const blackFlash = () => { 
+            const o=document.createElement('div'); 
+            o.style.position='fixed'; 
+            o.style.top=o.style.left='0'; 
+            o.style.width=o.style.height='100%'; 
+            o.style.backgroundColor='#000'; 
+            o.style.zIndex='999999'; 
+            document.body.appendChild(o); 
+            setTimeout(()=>o.remove(),200); 
+        }; 
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } }); 
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); }); 
+    })();
+    
+    window.addEventListener('resize', handleResize); 
+    handleResize();
     
     // ---------- Startup ----------
     (async () => {
