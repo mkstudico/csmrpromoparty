@@ -10,9 +10,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Galagram">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
         import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging.js";
+        
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
             authDomain: "akademia-c56ff.firebaseapp.com",
@@ -25,12 +28,10 @@
         };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const messaging = getMessaging(app);
         window.db = db;
         window.arrayUnion = arrayUnion;
         window.arrayRemove = arrayRemove;
-    </script>
-    <script type="module">
-        import 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.9.0/index.js';
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
@@ -38,7 +39,7 @@
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .pc-blocker i { font-size: 4rem; margin-bottom: 1.2rem; color: #d62976; }
-        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; position: relative; }
+        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; position: relative; padding-bottom: 70px; }
         .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
         .logo { font-weight: 620; font-size: 1.5rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .header-right { display: flex; align-items: center; gap: 16px; }
@@ -49,21 +50,17 @@
         .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; background: #fafafa; }
         .search-suggestions { position: absolute; top: 100%; left: 16px; right: 16px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 250px; overflow-y: auto; z-index: 20; display: none; }
         .search-suggestions.show { display: block; }
-        .search-suggestion-item { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 0.5px solid #efefef; transition: background 0.1s; }
-        .search-suggestion-item:active { background: #f0f0f0; }
+        .search-suggestion-item { padding: 10px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 0.5px solid #efefef; }
         .suggestion-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-        .tabs { display: flex; padding: 0 16px; background: #fff; border-bottom: 0.5px solid #efefef; gap: 16px; overflow-x: auto; scrollbar-width: thin; }
-        .tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
-        .tab.active { color: #0095f6; border-bottom-color: #0095f6; }
-        .content { padding: 16px; background: #fafafa; min-height: 70vh; padding-bottom: 80px; }
+        .content { padding: 16px; background: #fafafa; min-height: 70vh; }
         .user-card, .post-card { background: white; border-radius: 12px; margin-bottom: 12px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); cursor: pointer; transition: 0.15s; display: block; }
         .user-card:active, .post-card:active { transform: scale(0.98); }
         .post-header, .user-info-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .avatar-container { position: relative; }
         .user-avatar, .post-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #dbdbdb; }
         .status-stroke { position: absolute; bottom: 0; right: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; }
-        .status-stroke.available { background: #22c55e; box-shadow: 0 0 0 2px #22c55e; }
-        .status-stroke.taken { background: #ef4444; box-shadow: 0 0 0 2px #ef4444; }
+        .status-stroke.available { background: #22c55e; }
+        .status-stroke.taken { background: #ef4444; }
         .user-name-row, .post-author-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         .user-name, .post-author { font-weight: 600; font-size: 0.9rem; }
         .verified-badge { font-size: 0.9rem; }
@@ -74,37 +71,27 @@
         .post-image { width: 100%; border-radius: 12px; margin-top: 8px; max-height: 250px; object-fit: cover; }
         .post-stats { display: flex; gap: 16px; margin-top: 10px; color: #8e8e8e; font-size: 0.75rem; }
         .empty-state { text-align: center; padding: 40px 20px; color: #8e8e8e; }
-        .fab { position: fixed; bottom: 20px; right: 20px; background: #0095f6; color: white; width: 56px; height: 56px; border-radius: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; }
-        .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s ease; }
-        .chat-overlay.open { transform: translateY(0); }
-        .chat-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid #efefef; background: white; }
-        .chat-title { font-weight: 600; font-size: 1.1rem; }
-        .chat-cancel { font-size: 1.6rem; cursor: pointer; color: #262626; }
-        .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-        .message { display: flex; gap: 10px; max-width: 85%; }
-        .message.own { align-self: flex-end; flex-direction: row-reverse; }
-        .message-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-        .message-bubble { background: #efefef; padding: 10px 12px; border-radius: 18px; font-size: 0.85rem; word-wrap: break-word; }
-        .message.own .message-bubble { background: #0095f6; color: white; }
-        .message-name { font-size: 0.7rem; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-        .chat-input-area { padding: 12px 16px; border-top: 0.5px solid #efefef; display: flex; gap: 10px; align-items: center; background: white; }
-        .emoji-btn { font-size: 1.5rem; cursor: pointer; background: none; border: none; }
-        .chat-input { flex: 1; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 24px; font-size: 0.9rem; background: #fafafa; }
-        .send-btn { background: #0095f6; color: white; border: none; width: 36px; height: 36px; border-radius: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        emoji-picker { position: absolute; bottom: 70px; right: 16px; z-index: 1001; width: 280px; max-height: 350px; display: none; }
+        .fab { position: fixed; bottom: 80px; right: 20px; background: #0095f6; color: white; width: 56px; height: 56px; border-radius: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; background: white; display: flex; justify-content: space-around; padding: 8px 16px 12px; border-top: 0.5px solid #efefef; z-index: 200; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.7rem; color: #8e8e8e; cursor: pointer; transition: color 0.1s; }
+        .nav-item i { font-size: 1.5rem; }
+        .nav-item.active { color: #0095f6; }
         .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
         .bx-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .hidden { display: none; }
-        .survey-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .survey-overlay, .perm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .perm-container { background: white; border-radius: 24px; width: 85%; max-width: 320px; padding: 24px 20px; text-align: center; }
+        .perm-container i { font-size: 3rem; margin-bottom: 12px; }
+        .perm-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+        .perm-message { font-size: 0.9rem; margin: 12px 0; color: #555; }
+        .perm-btn { background: #0095f6; color: white; border: none; padding: 10px 20px; border-radius: 30px; font-weight: 600; margin-top: 8px; width: 100%; cursor: pointer; }
         .survey-container { background: white; border-radius: 24px; width: 90%; max-width: 400px; max-height: 85vh; overflow-y: auto; padding: 20px; }
         .survey-title { font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 16px; background: linear-gradient(135deg, #f77737, #d62976); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .survey-question { margin-bottom: 20px; }
         .survey-label { font-weight: 600; margin-bottom: 8px; display: block; }
         .survey-select, .survey-input { width: 100%; padding: 10px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; }
-        .survey-subquestion { margin-top: 10px; display: flex; gap: 10px; }
-        .survey-subquestion select { flex: 1; }
         .survey-progress { height: 4px; background: #efefef; border-radius: 2px; margin: 20px 0; overflow: hidden; }
         .survey-progress-bar { height: 100%; background: #0095f6; width: 0%; transition: width 0.3s; }
         .survey-buttons { display: flex; gap: 10px; margin-top: 20px; }
@@ -116,24 +103,132 @@
 <body>
 <div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
 <div id="appRoot" class="app-container">
-    <div class="header"><div class="logo">Galagram</div><div class="header-right"><div class="heart-icon" id="requestsHeart"><i class='bx bx-heart' style="font-size:1.6rem;"></i><span id="requestBadge" class="heart-badge hidden">0</span></div><img id="profileAvatar" class="profile-icon" src="" alt="profile"></div></div>
-    <div class="search-bar"><input type="text" id="searchInput" class="search-input" placeholder="Search by username..."><div id="searchSuggestions" class="search-suggestions"></div></div>
-    <div class="tabs"><div class="tab active" data-tab="posts">📝 POSTS</div><div class="tab" data-tab="all">ALL</div><div class="tab" data-tab="available">AVAILABLE</div><div class="tab" data-tab="taken">TAKEN</div><div class="tab" data-tab="chat">💬 CHAT</div></div>
+    <div class="header">
+        <div class="logo">Galagram</div>
+        <div class="header-right">
+            <div class="heart-icon" id="requestsHeart"><i class='bx bx-heart' style="font-size:1.6rem;"></i><span id="requestBadge" class="heart-badge hidden">0</span></div>
+            <img id="profileAvatar" class="profile-icon" src="" alt="profile">
+        </div>
+    </div>
+    <div class="search-bar">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by username...">
+        <div id="searchSuggestions" class="search-suggestions"></div>
+    </div>
     <div class="content" id="contentArea"><div class="loading-spinner"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div></div>
     <div id="fabBtn" class="fab hidden"><i class='bx bx-plus' style="font-size:1.8rem;"></i></div>
-    <div id="chatOverlay" class="chat-overlay"><div class="chat-header"><div class="chat-title">💬 Public Chat</div><i class='bx bx-x chat-cancel' id="closeChat"></i></div><div id="chatMessages" class="chat-messages"></div><div class="chat-input-area"><button id="emojiBtn" class="emoji-btn"><i class='bx bx-smile'></i></button><input type="text" id="chatInput" class="chat-input" placeholder="Type a message..."><button id="sendChatBtn" class="send-btn"><i class='bx bx-send'></i></button></div><emoji-picker id="emojiPicker"></emoji-picker></div>
+    
+    <!-- Bottom Navigation Bar -->
+    <div class="bottom-nav">
+        <div class="nav-item" data-nav="posts"><i class='bx bx-news'></i><span>Posts</span></div>
+        <div class="nav-item" data-nav="all"><i class='bx bx-group'></i><span>All</span></div>
+        <div class="nav-item" data-nav="available"><i class='bx bx-star'></i><span>Available</span></div>
+        <div class="nav-item" data-nav="movies"><i class='bx bx-movie'></i><span>Movies</span></div>
+        <div class="nav-item" data-nav="chat"><i class='bx bx-chat'></i><span>Chat</span></div>
+    </div>
 </div>
+
 <script type="module">
     import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging.js";
+    
     const db = window.db;
-    let currentUser = null, allUsers = [], postsItems = [], requestsList = [], currentTab = "posts", searchQuery = "", searchDebounceTimer = null, unsubscribeMessages = null, recentSuggestions = [];
+    const messaging = getMessaging();
+    let currentUser = null, allUsers = [], postsItems = [], requestsList = [], currentNav = "posts", searchQuery = "", searchDebounceTimer = null, unsubscribeUsers = null;
     
+    // ---------- Helper functions ----------
     async function addLog(type, actor, target, message) { try { await addDoc(collection(db,"logs"),{type,actor,target,message,timestamp:new Date()}); } catch(e){} }
-    function showNotification(message, type = "info") { const existing = document.querySelector('.galagram-toast'); if(existing) existing.remove(); const toast = document.createElement('div'); toast.className = `galagram-toast`; toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`; document.body.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => toast.remove(), 4000); }
-    const sessionData = localStorage.getItem('galagram_session'); if (!sessionData) { window.location.href = "index.html"; } const session = JSON.parse(sessionData); const currentUsername = session.username;
+    function showNotificationMessage(message, type = "info") { 
+        const existing = document.querySelector('.galagram-toast'); 
+        if(existing) existing.remove(); 
+        const toast = document.createElement('div'); 
+        toast.className = `galagram-toast`; 
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`; 
+        document.body.appendChild(toast); 
+        setTimeout(() => toast.classList.add('show'), 10); 
+        setTimeout(() => toast.remove(), 4000); 
+    }
     
-    async function loadCurrentUser() { const userDoc = await getDoc(doc(db, "users", currentUsername)); if (userDoc.exists()) { currentUser = { id: currentUsername, ...userDoc.data() }; if (!currentUser.galaStatus) await updateDoc(doc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] }); if (!currentUser.requests) await updateDoc(doc(db, "users", currentUsername), { requests: [] }); if (!currentUser.sentRequests) await updateDoc(doc(db, "users", currentUsername), { sentRequests: [] }); if (!currentUser.verified) await updateDoc(doc(db, "users", currentUsername), { verified: "none" }); requestsList = currentUser.requests || []; updateRequestBadge(); document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'; if (!currentUser.survey) showSurvey(); } }
+    const sessionData = localStorage.getItem('galagram_session'); 
+    if (!sessionData) { window.location.href = "index.html"; } 
+    const session = JSON.parse(sessionData); 
+    const currentUsername = session.username;
     
+    // ---------- Notification permission modal ----------
+    function showPermissionModal(message, isError = false, onRetry = null) {
+        const overlay = document.createElement('div');
+        overlay.className = 'perm-overlay';
+        const icon = isError ? 'bx-bell-off' : 'bx-bell';
+        overlay.innerHTML = `
+            <div class="perm-container">
+                <i class='bx ${icon}' style="color: ${isError ? '#ed4956' : '#22c55e'}; font-size: 3rem;"></i>
+                <div class="perm-title">${isError ? 'Notifications Blocked' : 'Notifications Enabled'}</div>
+                <div class="perm-message">${message}</div>
+                ${onRetry ? `<button class="perm-btn" id="permRetryBtn">Request Again</button>` : `<button class="perm-btn" id="permOkBtn">OK</button>`}
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        if (onRetry) {
+            document.getElementById('permRetryBtn').onclick = () => {
+                overlay.remove();
+                onRetry();
+            };
+        } else {
+            document.getElementById('permOkBtn').onclick = () => overlay.remove();
+        }
+    }
+    
+    // ---------- FCM: request permission, get token, store in Firestore ----------
+    async function initFCM() {
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                const token = await getToken(messaging, { vapidKey: "BB1VSO5Rh0IlR3dZj26fgKo0sLj1IR0rJTgyxtSwzs5P9_0myLEekbmlNO3vjU_UMCiLQLvIXUlZMwAvxCzoKf4" });
+                if (token) {
+                    await updateDoc(doc(db, "users", currentUsername), { fcmToken: token });
+                    console.log("FCM token stored");
+                }
+                showPermissionModal("✅ You will now receive real‑time alerts for new posts, requests, admin messages, and chat.", false);
+            } else if (permission === 'denied') {
+                showPermissionModal(
+                    "🔔 Notifications are blocked. Please enable notifications in your browser settings to receive important updates.",
+                    true,
+                    () => initFCM()  // retry
+                );
+            } else {
+                // default state (should not happen because we called requestPermission)
+                console.log("Notification permission not determined");
+            }
+        } catch (err) {
+            console.error("FCM init error", err);
+            showPermissionModal("Could not enable notifications. Please check your browser settings.", true, () => initFCM());
+        }
+    }
+    
+    // Listen for foreground messages
+    onMessage(messaging, (payload) => {
+        const { title, body } = payload.notification;
+        new Notification(title, { body, icon: "/icon-192.png" });
+    });
+    
+    // ---------- Load current user and setup ----------
+    async function loadCurrentUser() { 
+        const userDoc = await getDoc(doc(db, "users", currentUsername)); 
+        if (userDoc.exists()) { 
+            currentUser = { id: currentUsername, ...userDoc.data() }; 
+            if (!currentUser.galaStatus) await updateDoc(doc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] }); 
+            if (!currentUser.requests) await updateDoc(doc(db, "users", currentUsername), { requests: [] }); 
+            if (!currentUser.sentRequests) await updateDoc(doc(db, "users", currentUsername), { sentRequests: [] }); 
+            if (!currentUser.verified) await updateDoc(doc(db, "users", currentUsername), { verified: "none" }); 
+            requestsList = currentUser.requests || []; 
+            updateRequestBadge(); 
+            document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'; 
+            if (!currentUser.survey) showSurvey(); 
+            // Initialize FCM after user loaded
+            await initFCM();
+        } 
+    }
+    
+    // ---------- Survey (unchanged) ----------
     function showSurvey() {
         if (currentUser.survey) return;
         const overlay = document.createElement('div');
@@ -145,7 +240,7 @@
             { key: "ageRange", label: "Age range", type: "select", options: ["18-22", "23-27", "28-32", "33+"] },
             { key: "height", label: "Height", type: "select", options: ["Tall (180cm+)", "Medium (165-179cm)", "Short (<165cm)"] },
             { key: "hobby", label: "Favorite hobby", type: "select", options: ["Music", "Sports", "Art", "Travel", "Reading", "Gaming"] },
-            { key: "classCombo", label: "Class combo (optional)", type: "select", options: ["Science", "Arts", "Business", "Not specified"] },
+            { key: "classCombo", label: "Class combo", type: "select", options: ["Science", "Arts", "Business", "Not specified"] },
             { key: "everKissed", label: "Ever kissed?", type: "select", options: ["Yes", "No", "Prefer not to say"] }
         ];
         let step = 0;
@@ -168,196 +263,195 @@
         }
         document.getElementById('surveyNext').onclick = () => {
             const val = document.getElementById('surveyValue').value;
-            if (!val) { showNotification("Please select an option", "error"); return; }
+            if (!val) { showNotificationMessage("Please select an option", "error"); return; }
             answers[questions[step].key] = val;
             if (step + 1 < questions.length) { step++; renderStep(); }
             else {
-                // save survey
                 updateDoc(doc(db, "users", currentUsername), { survey: answers }).then(() => {
                     currentUser.survey = answers;
-                    showNotification("Survey completed! Better matches now.", "success");
+                    showNotificationMessage("Survey completed! Better matches now.", "success");
                     overlay.remove();
-                }).catch(() => showNotification("Error saving survey", "error"));
+                }).catch(() => showNotificationMessage("Error saving survey", "error"));
             }
         };
         document.getElementById('surveyPrev').onclick = () => { if (step > 0) { step--; renderStep(); } };
         renderStep();
     }
     
-    function computeCompatibilityScore(user) { if (user.id === currentUsername || user.galaStatus !== "available" || currentUser.sentRequests?.includes(user.id) || currentUser.requests?.includes(user.id) || currentUser.gender === user.gender) return -Infinity; let score = 50; if (currentUser.gender !== user.gender) score += 30; const mySurvey = currentUser.survey, theirSurvey = user.survey; if (mySurvey && theirSurvey) { if (mySurvey.district === theirSurvey.district) score += 25; if (mySurvey.ageRange === theirSurvey.ageRange) score += 15; if (mySurvey.height === theirSurvey.height) score += 10; if (mySurvey.hobby === theirSurvey.hobby) score += 30; if (mySurvey.classCombo === theirSurvey.classCombo) score += 35; if (mySurvey.everKissed === theirSurvey.everKissed) score += 10; } score += Math.min(user.rejectionCount || 0, 8) * 3; if (user.createdAt) { const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000*3600*24); if (daysSinceJoin < 3) score += 20; } score += Math.min(user.chatMessageCount || 0, 100) * 0.3; if (recentSuggestions.includes(user.id)) score -= 40; if (user.verified === "blue") score += 25; else if (user.verified === "gray") score += 15; return score; }
-    function getTopSuggestions(users, count = 5) { return users.filter(u => u.galaStatus === "available" && u.id !== currentUsername && currentUser.gender !== u.gender).map(u => ({ user: u, score: computeCompatibilityScore(u) })).sort((a,b) => b.score - a.score).slice(0, count).map(item => item.user); }
-    function addToRecentSuggestions(userId) { recentSuggestions.unshift(userId); if (recentSuggestions.length > 10) recentSuggestions.pop(); }
-    async function showSuggestionPopupIfNeeded() { if (!currentUser || currentUser.galaStatus !== "available") return; const today = new Date().toDateString(); if (localStorage.getItem('galagram_suggestion_date') === today) return; const suggestions = getTopSuggestions(allUsers, 3); if (suggestions.length === 0) return; const topMatch = suggestions[0]; addToRecentSuggestions(topMatch.id); const overlay = document.createElement('div'); overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);'; const popup = document.createElement('div'); popup.style.cssText = 'background:white;border-radius:24px;width:85%;max-width:320px;padding:24px 20px;text-align:center;'; const pronoun = topMatch.gender === 'BOY' ? 'him' : 'her'; popup.innerHTML = `<div style="font-size:1.3rem;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#f77737,#d62976);-webkit-background-clip:text;background-clip:text;color:transparent;">✨ Perfect Match ✨</div><div style="display:flex;align-items:center;gap:12px;background:#f8f8f8;padding:12px;border-radius:16px;margin:16px 0;"><img src="${topMatch.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;"><div><div style="font-weight:600;font-size:1rem;">${escapeHtml(topMatch.realName)}</div><div style="font-size:0.7rem;color:#8e8e8e;">@${topMatch.username}</div></div></div><p>Are you interested in ${escapeHtml(topMatch.realName)}? Request ${pronoun} to be your gala!</p><div style="display:flex;gap:12px;margin-top:16px;"><button id="suggAccept" style="flex:1;padding:10px;border-radius:30px;font-weight:600;background:#0095f6;color:white;border:none;">Request</button><button id="suggDecline" style="flex:1;padding:10px;border-radius:30px;font-weight:600;background:#efefef;color:#262626;border:none;">No, Thanks</button></div>`; overlay.appendChild(popup); document.body.appendChild(overlay); popup.querySelector('#suggAccept').addEventListener('click', async () => { try { await updateDoc(doc(db, "users", topMatch.id), { requests: arrayUnion(currentUsername) }); await updateDoc(doc(db, "users", currentUsername), { sentRequests: arrayUnion(topMatch.id) }); showNotification(`Request sent to ${topMatch.realName}!`, 'success'); await addLog('request', currentUsername, topMatch.id, `${currentUsername} requested ${topMatch.realName} (via suggestion popup)`); } catch(e) { showNotification("Error sending request", "error"); } overlay.remove(); localStorage.setItem('galagram_suggestion_date', today); }); popup.querySelector('#suggDecline').addEventListener('click', () => { overlay.remove(); localStorage.setItem('galagram_suggestion_date', today); }); }
+    // ---------- Compatibility & Suggestions (simplified) ----------
+    let recentSuggestions = [];
+    function computeCompatibilityScore(user) { 
+        if (user.id === currentUsername || user.galaStatus !== "available" || currentUser.sentRequests?.includes(user.id) || currentUser.requests?.includes(user.id) || currentUser.gender === user.gender) return -Infinity; 
+        let score = 50; 
+        if (currentUser.gender !== user.gender) score += 30; 
+        const mySurvey = currentUser.survey, theirSurvey = user.survey; 
+        if (mySurvey && theirSurvey) { 
+            if (mySurvey.district === theirSurvey.district) score += 25; 
+            if (mySurvey.ageRange === theirSurvey.ageRange) score += 15; 
+            if (mySurvey.height === theirSurvey.height) score += 10; 
+            if (mySurvey.hobby === theirSurvey.hobby) score += 30; 
+            if (mySurvey.classCombo === theirSurvey.classCombo) score += 35; 
+            if (mySurvey.everKissed === theirSurvey.everKissed) score += 10; 
+        } 
+        if (user.verified === "blue") score += 25; 
+        else if (user.verified === "gray") score += 15; 
+        return score; 
+    }
+    function getTopSuggestions(users, count = 5) { 
+        return users.filter(u => u.galaStatus === "available" && u.id !== currentUsername && currentUser.gender !== u.gender).map(u => ({ user: u, score: computeCompatibilityScore(u) })).sort((a,b) => b.score - a.score).slice(0, count).map(item => item.user); 
+    }
     
-    function calculatePostScore(post) { const likes = post.likes?.length || 0, comments = post.comments?.length || 0; const engagementScore = likes * 1.5 + comments * 1.0; const createdAt = post.createdAt?.toDate ? post.createdAt.toDate() : new Date(post.createdAt); const hoursSince = (new Date() - createdAt) / (1000 * 60 * 60); let decayFactor = hoursSince > 48 ? Math.max(0.3, 1.0 - (hoursSince - 48) / 168) : 1.0 - (hoursSince / 96); return (engagementScore * decayFactor) + (post.pinned ? 1000 : 0); }
-    function loadPosts() { const q = query(collection(db, "news")); onSnapshot(q, (snapshot) => { postsItems = []; snapshot.forEach(docSnap => postsItems.push({ id: docSnap.id, ...docSnap.data() })); postsItems.sort((a,b) => calculatePostScore(b) - calculatePostScore(a)); if (currentTab === "posts") renderPosts(); }); }
-    let unsubscribeUsers = null; function loadUsers() { if (unsubscribeUsers) unsubscribeUsers(); unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => { allUsers = []; snapshot.forEach(docSnap => { if (docSnap.id !== currentUsername) allUsers.push({ id: docSnap.id, ...docSnap.data(), galaStatus: docSnap.data().galaStatus || "available", verified: docSnap.data().verified || "none" }); }); if (currentTab !== "posts" && currentTab !== "chat") renderUsers(); }); }
+    // ---------- Render functions ----------
+    function renderPosts() { 
+        const container = document.getElementById('contentArea'); 
+        if (!postsItems.length) { container.innerHTML = `<div class="empty-state"><i class='bx bx-news' style="font-size: 3rem;"></i><p>No posts yet. Tap + to create one!</p></div>`; return; } 
+        container.innerHTML = postsItems.map(post => `<div class="post-card" data-postid="${post.id}"><div class="post-header"><img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div><div class="post-author-row"><span class="post-author">${escapeHtml(post.authorName)}</span>${getVerifiedIcon(post.authorVerified)}</div><div class="post-time">${formatTime(post.createdAt)}</div></div></div><div class="post-text">${escapeHtml(post.text)}</div>${post.imageUrl ? `<img class="post-image" src="${post.imageUrl}" alt="post image">` : ''}<div class="post-stats"><span><i class='bx bx-heart'></i> ${post.likes?.length || 0}</span><span><i class='bx bx-comment'></i> ${post.comments?.length || 0}</span></div></div>`).join(''); 
+        document.querySelectorAll('.post-card').forEach(card => card.addEventListener('click', () => window.location.href = `news.html?id=${card.dataset.postid}`)); 
+    }
+    
+    function renderUsers() { 
+        let filtered = [...allUsers]; 
+        if (searchQuery) { const q = searchQuery.toLowerCase(); filtered = filtered.filter(u => u.username?.toLowerCase().includes(q) || u.realName?.toLowerCase().includes(q)); } 
+        if (currentNav === "available") { 
+            filtered = filtered.filter(u => u.galaStatus === "available" && u.gender !== currentUser.gender); 
+            filtered = getTopSuggestions(filtered, filtered.length); 
+        } else if (currentNav === "all") { 
+            const opposite = filtered.filter(u => u.galaStatus === "available" && u.gender !== currentUser.gender); 
+            const same = filtered.filter(u => u.galaStatus === "available" && u.gender === currentUser.gender); 
+            const taken = filtered.filter(u => u.galaStatus === "taken"); 
+            const sortedOpposite = getTopSuggestions(opposite, opposite.length); 
+            filtered = [...sortedOpposite, ...same, ...taken]; 
+        } 
+        const container = document.getElementById('contentArea'); 
+        if (!filtered.length) { container.innerHTML = `<div class="empty-state"><i class='bx bx-user-x' style="font-size: 3rem;"></i><p>No users found</p></div>`; return; } 
+        container.innerHTML = filtered.map(user => `<div class="user-card" data-userid="${user.id}"><div class="post-header"><div class="avatar-container"><img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div class="status-stroke ${user.galaStatus === 'available' ? 'available' : 'taken'}"></div></div><div><div class="user-name-row"><span class="user-name">@${escapeHtml(user.username)}</span>${getVerifiedIcon(user.verified)}</div><div class="user-username">${escapeHtml(user.realName)}</div></div></div></div>`).join(''); 
+        document.querySelectorAll('.user-card').forEach(card => card.addEventListener('click', () => window.location.href = `user.html?uid=${encodeURIComponent(card.dataset.userid)}`)); 
+    }
+    
     function getVerifiedIcon(verified) { if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>'; if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>'; return ''; }
-    function renderPosts() { const container = document.getElementById('contentArea'); if (!postsItems.length) { container.innerHTML = `<div class="empty-state"><i class='bx bx-news' style="font-size: 3rem;"></i><p>No posts yet. Tap + to create one!</p></div>`; return; } container.innerHTML = postsItems.map(post => `<div class="post-card" data-postid="${post.id}"><div class="post-header"><img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div><div class="post-author-row"><span class="post-author">${escapeHtml(post.authorName)}</span>${getVerifiedIcon(post.authorVerified)}</div><div class="post-time">${formatTime(post.createdAt)}</div></div></div><div class="post-text">${escapeHtml(post.text)}</div>${post.imageUrl ? `<img class="post-image" src="${post.imageUrl}" alt="post image">` : ''}<div class="post-stats"><span><i class='bx bx-heart'></i> ${post.likes?.length || 0}</span><span><i class='bx bx-comment'></i> ${post.comments?.length || 0}</span></div></div>`).join(''); document.querySelectorAll('.post-card').forEach(card => card.addEventListener('click', () => window.location.href = `news.html?id=${card.dataset.postid}`)); }
-    function renderUsers() { let filtered = [...allUsers]; if (searchQuery) { const q = searchQuery.toLowerCase(); filtered = filtered.filter(u => u.username?.toLowerCase().includes(q) || u.realName?.toLowerCase().includes(q)); } if (currentTab === "available") { filtered = filtered.filter(u => u.galaStatus === "available" && u.gender !== currentUser.gender); filtered = getTopSuggestions(filtered, filtered.length); } else if (currentTab === "taken") { filtered = filtered.filter(u => u.galaStatus === "taken"); } else if (currentTab === "all") { const opposite = filtered.filter(u => u.galaStatus === "available" && u.gender !== currentUser.gender); const same = filtered.filter(u => u.galaStatus === "available" && u.gender === currentUser.gender); const taken = filtered.filter(u => u.galaStatus === "taken"); const sortedOpposite = getTopSuggestions(opposite, opposite.length); filtered = [...sortedOpposite, ...same, ...taken]; } const container = document.getElementById('contentArea'); if (!filtered.length) { container.innerHTML = `<div class="empty-state"><i class='bx bx-user-x' style="font-size: 3rem;"></i><p>No users found</p></div>`; return; } container.innerHTML = filtered.map(user => `<div class="user-card" data-userid="${user.id}"><div class="post-header"><div class="avatar-container"><img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div class="status-stroke ${user.galaStatus === 'available' ? 'available' : 'taken'}"></div></div><div><div class="user-name-row"><span class="user-name">@${escapeHtml(user.username)}</span>${getVerifiedIcon(user.verified)}</div><div class="user-username">${escapeHtml(user.realName)}</div></div></div></div>`).join(''); document.querySelectorAll('.user-card').forEach(card => card.addEventListener('click', () => window.location.href = `user.html?uid=${encodeURIComponent(card.dataset.userid)}`)); }
-    const searchInput = document.getElementById('searchInput'), suggestionsDiv = document.getElementById('searchSuggestions'); function performSearch() { searchQuery = searchInput.value.trim(); if (currentTab !== "posts" && currentTab !== "chat") renderUsers(); suggestionsDiv.classList.remove('show'); } function updateSearchSuggestions() { const queryText = searchInput.value.trim().toLowerCase(); if (!queryText) { suggestionsDiv.classList.remove('show'); return; } let matches = allUsers.filter(u => (u.username?.toLowerCase().includes(queryText) || u.realName?.toLowerCase().includes(queryText)) && u.gender !== currentUser.gender && u.galaStatus === "available" && !currentUser.sentRequests?.includes(u.id) && !currentUser.requests?.includes(u.id)).slice(0,5); if (!matches.length) { suggestionsDiv.classList.remove('show'); return; } suggestionsDiv.innerHTML = matches.map(user => `<div class="search-suggestion-item" data-username="${user.username}" data-userid="${user.id}"><img class="suggestion-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" alt=""><div><div style="font-weight:500;">${escapeHtml(user.realName)}</div><div style="font-size:0.7rem; color:#8e8e8e;">@${user.username}</div></div></div>`).join(''); suggestionsDiv.classList.add('show'); document.querySelectorAll('.search-suggestion-item').forEach(item => { item.addEventListener('click', () => { const userId = item.dataset.userid; window.location.href = `user.html?uid=${userId}`; }); }); }
-    searchInput.addEventListener('input', () => { if (searchDebounceTimer) clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(() => { performSearch(); updateSearchSuggestions(); }, 300); }); document.addEventListener('click', (e) => { if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) suggestionsDiv.classList.remove('show'); });
-    function updateRequestBadge() { const badge = document.getElementById('requestBadge'); const count = requestsList.length; if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('hidden'); } else badge.classList.add('hidden'); }
     function formatTime(timestamp) { if (!timestamp) return 'just now'; const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp); const diff = Math.floor((new Date() - date) / 1000); if (diff < 60) return `${diff}s ago`; if (diff < 3600) return `${Math.floor(diff / 60)}m ago`; if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`; return `${Math.floor(diff / 86400)}d ago`; }
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')); }
-    function listenToCurrentUser() { onSnapshot(doc(db, "users", currentUsername), (docSnap) => { if (docSnap.exists()) { currentUser = { id: currentUsername, ...docSnap.data() }; requestsList = currentUser.requests || []; updateRequestBadge(); if (currentTab !== "posts" && currentTab !== "chat") renderUsers(); } }); }
-    let chatOpen = false; const chatOverlay = document.getElementById('chatOverlay'), chatMessagesDiv = document.getElementById('chatMessages'), chatInput = document.getElementById('chatInput'), sendBtn = document.getElementById('sendChatBtn'), closeChat = document.getElementById('closeChat'), emojiBtn = document.getElementById('emojiBtn'), emojiPicker = document.getElementById('emojiPicker');
-    function loadChatMessages() { if (unsubscribeMessages) unsubscribeMessages(); const q = query(collection(db, "chatMessages"), orderBy("timestamp", "asc"), limit(100)); unsubscribeMessages = onSnapshot(q, (snapshot) => { chatMessagesDiv.innerHTML = ''; snapshot.forEach(docSnap => { const msg = docSnap.data(); const isOwn = msg.username === currentUsername; const verifiedIcon = msg.userVerified === 'blue' ? '<i class="bx bx-check-circle" style="color:#0095f6; font-size:0.7rem;"></i>' : (msg.userVerified === 'gray' ? '<i class="bx bxs-check-circle" style="color:#8e8e8e; font-size:0.7rem;"></i>' : ''); chatMessagesDiv.innerHTML += `<div class="message ${isOwn ? 'own' : ''}"><img class="message-avatar" src="${msg.userAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" alt=""><div class="message-bubble"><div class="message-name">@${escapeHtml(msg.username)} ${verifiedIcon}</div><div>${escapeHtml(msg.text)}</div></div></div>`; }); chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight; }); }
-    async function sendChatMessage() { const text = chatInput.value.trim(); if (!text) return; try { await addDoc(collection(db, "chatMessages"), { username: currentUsername, text: text, userAvatar: currentUser.profileImage, userVerified: currentUser.verified || "none", timestamp: serverTimestamp() }); const newCount = (currentUser.chatMessageCount || 0) + 1; await updateDoc(doc(db, "users", currentUsername), { chatMessageCount: newCount }); currentUser.chatMessageCount = newCount; chatInput.value = ''; } catch(e) { showNotification("Failed to send", "error"); } }
-    function openChat() { chatOverlay.classList.add('open'); chatOpen = true; loadChatMessages(); }
-    closeChat.addEventListener('click', () => { chatOverlay.classList.remove('open'); if (unsubscribeMessages) unsubscribeMessages(); currentTab = "posts"; document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelector('.tab[data-tab="posts"]').classList.add('active'); renderPosts(); document.getElementById('fabBtn').classList.remove('hidden'); });
-    sendBtn.addEventListener('click', sendChatMessage); chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); }); emojiBtn.addEventListener('click', () => { emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none'; }); emojiPicker.addEventListener('emoji-click', (event) => { chatInput.value += event.detail.unicode; emojiPicker.style.display = 'none'; }); document.addEventListener('click', (e) => { if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) emojiPicker.style.display = 'none'; });
-    document.querySelectorAll('.tab').forEach(tab => { tab.addEventListener('click', () => { const tabName = tab.dataset.tab; if (tabName === 'chat') { openChat(); return; } document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); currentTab = tabName; const fab = document.getElementById('fabBtn'); if (currentTab === 'posts') fab.classList.remove('hidden'); else fab.classList.add('hidden'); if (currentTab === "posts") renderPosts(); else renderUsers(); }); });
+    function updateRequestBadge() { const badge = document.getElementById('requestBadge'); const count = requestsList.length; if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('hidden'); } else badge.classList.add('hidden'); }
+    
+    // ---------- Data listeners (for notifications & realtime updates) ----------
+    let lastPostCount = 0, lastNotifierCount = 0, lastMessageCount = 0;
+    function setupNotificationListeners() {
+        // Listen for new posts
+        onSnapshot(collection(db, "news"), (snapshot) => {
+            const newCount = snapshot.size;
+            if (lastPostCount !== 0 && newCount > lastPostCount && currentNav !== "posts") {
+                new Notification("New Post!", { body: "A new post has been added.", icon: "/icon-192.png" });
+            }
+            lastPostCount = newCount;
+            postsItems = [];
+            snapshot.forEach(docSnap => postsItems.push({ id: docSnap.id, ...docSnap.data() }));
+            postsItems.sort((a,b) => (b.pinned ? 1000 : 0) - (a.pinned ? 1000 : 0));
+            if (currentNav === "posts") renderPosts();
+        });
+        
+        // Listen for new notifiers for this user
+        const notifiersQuery = query(collection(db, "notifiers"), where("userId", "==", currentUsername), where("completed", "==", false));
+        onSnapshot(notifiersQuery, (snapshot) => {
+            const newCount = snapshot.size;
+            if (lastNotifierCount !== 0 && newCount > lastNotifierCount) {
+                new Notification("Admin Message", { body: "You have a new notification from admin.", icon: "/icon-192.png" });
+            }
+            lastNotifierCount = newCount;
+        });
+        
+        // Listen for new chat messages (global)
+        onSnapshot(collection(db, "chatMessages"), (snapshot) => {
+            const newCount = snapshot.size;
+            if (lastMessageCount !== 0 && newCount > lastMessageCount) {
+                new Notification("New Chat Message", { body: "Someone sent a message in public chat.", icon: "/icon-192.png" });
+            }
+            lastMessageCount = newCount;
+        });
+        
+        // Listen for changes in user's requests
+        onSnapshot(doc(db, "users", currentUsername), (docSnap) => {
+            if (docSnap.exists()) {
+                const newRequests = docSnap.data().requests || [];
+                if (newRequests.length > requestsList.length) {
+                    new Notification("New Request!", { body: "Someone sent you a gala request.", icon: "/icon-192.png" });
+                }
+                requestsList = newRequests;
+                updateRequestBadge();
+                if (currentNav !== "posts") renderUsers();
+            }
+        });
+    }
+    
+    // ---------- Load users & posts ----------
+    function loadUsersRealtime() { 
+        if (unsubscribeUsers) unsubscribeUsers(); 
+        unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => { 
+            allUsers = []; 
+            snapshot.forEach(docSnap => { if (docSnap.id !== currentUsername) allUsers.push({ id: docSnap.id, ...docSnap.data(), galaStatus: docSnap.data().galaStatus || "available", verified: docSnap.data().verified || "none" }); }); 
+            if (currentNav !== "posts") renderUsers(); 
+        }); 
+    }
+    
+    // ---------- Navigation (bottom bar) ----------
+    function setActiveNav(nav) {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.nav-item[data-nav="${nav}"]`).classList.add('active');
+        currentNav = nav;
+        const fab = document.getElementById('fabBtn');
+        if (nav === "posts") {
+            fab.classList.remove('hidden');
+            renderPosts();
+        } else if (nav === "movies") {
+            window.location.href = "movie.html";
+        } else if (nav === "chat") {
+            window.location.href = "chat.html";
+        } else {
+            fab.classList.add('hidden');
+            renderUsers();
+        }
+    }
+    
+    // ---------- Search functionality ----------
+    const searchInput = document.getElementById('searchInput'), suggestionsDiv = document.getElementById('searchSuggestions');
+    function performSearch() { searchQuery = searchInput.value.trim(); if (currentNav !== "posts") renderUsers(); suggestionsDiv.classList.remove('show'); }
+    function updateSearchSuggestions() {
+        const queryText = searchInput.value.trim().toLowerCase();
+        if (!queryText || currentNav === "posts") { suggestionsDiv.classList.remove('show'); return; }
+        let matches = allUsers.filter(u => (u.username?.toLowerCase().includes(queryText) || u.realName?.toLowerCase().includes(queryText)) && u.gender !== currentUser.gender && u.galaStatus === "available" && !currentUser.sentRequests?.includes(u.id) && !currentUser.requests?.includes(u.id)).slice(0,5);
+        if (!matches.length) { suggestionsDiv.classList.remove('show'); return; }
+        suggestionsDiv.innerHTML = matches.map(user => `<div class="search-suggestion-item" data-userid="${user.id}"><img class="suggestion-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" alt=""><div><div style="font-weight:500;">${escapeHtml(user.realName)}</div><div style="font-size:0.7rem;">@${user.username}</div></div></div>`).join('');
+        suggestionsDiv.classList.add('show');
+        document.querySelectorAll('.search-suggestion-item').forEach(item => {
+            item.addEventListener('click', () => { window.location.href = `user.html?uid=${item.dataset.userid}`; });
+        });
+    }
+    searchInput.addEventListener('input', () => { if (searchDebounceTimer) clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(() => { performSearch(); updateSearchSuggestions(); }, 300); });
+    document.addEventListener('click', (e) => { if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) suggestionsDiv.classList.remove('show'); });
+    
+    // ---------- Event listeners for heart & profile ----------
     document.getElementById('requestsHeart').addEventListener('click', () => window.location.href = `requests.html`);
     document.getElementById('profileAvatar').addEventListener('click', () => window.location.href = `profile.html`);
     document.getElementById('fabBtn').addEventListener('click', () => window.location.href = `add-news.html`);
     
-    // ================== NEW FEATURE 1: PENDING NOTIFIERS ==================
-    async function checkPendingNotifiers() {
-        if (!currentUser) return;
-        const notifiersRef = collection(db, "notifiers");
-        const q = query(notifiersRef, where("userId", "==", currentUsername), where("completed", "==", false));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) return;
-        for (const docSnap of snapshot.docs) {
-            const notifier = { id: docSnap.id, ...docSnap.data() };
-            await showNotifierModal(notifier);
-            break; // show one at a time
-        }
-    }
-    
-    async function showNotifierModal(notifier) {
-        return new Promise((resolve) => {
-            const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:10001; display:flex; align-items:center; justify-content:center;';
-            const modal = document.createElement('div');
-            modal.style.cssText = 'background:white; border-radius:24px; width:85%; max-width:320px; padding:24px 20px; text-align:center;';
-            
-            let innerHtml = `<div style="font-size:1.3rem; font-weight:700; margin-bottom:12px;">📢 ${notifier.type === 'warning' ? 'Warning' : (notifier.type === 'inquiry' ? 'Inquiry' : 'Update Required')}</div>
-                             <p style="margin:12px 0; font-size:0.9rem;">${escapeHtml(notifier.message)}</p>`;
-            
-            if (notifier.type === 'update') {
-                innerHtml += `<div style="margin:12px 0;"><input type="text" id="updateValueInput" placeholder="Enter new value" style="width:100%; padding:10px; border-radius:30px; border:1px solid #dbdbdb;"></div>
-                              <button id="submitUpdateBtn" style="background:#0095f6; color:white; border:none; padding:10px 20px; border-radius:30px; font-weight:600; width:100%;">UPDATE</button>`;
-            } else {
-                innerHtml += `<button id="doneBtn" style="background:#0095f6; color:white; border:none; padding:10px 20px; border-radius:30px; font-weight:600; width:100%;">DONE</button>`;
-            }
-            innerHtml += `<button id="closeModalBtn" style="margin-top:10px; background:transparent; border:none; color:#8e8e8e; font-size:0.8rem;">Close</button>`;
-            modal.innerHTML = innerHtml;
-            overlay.appendChild(modal);
-            document.body.appendChild(overlay);
-            
-            const closeModal = () => { overlay.remove(); resolve(); };
-            
-            if (notifier.type === 'update') {
-                const submitBtn = modal.querySelector('#submitUpdateBtn');
-                const inputField = modal.querySelector('#updateValueInput');
-                submitBtn.addEventListener('click', async () => {
-                    const newValue = inputField.value.trim();
-                    if (!newValue) { showNotification("Please enter a value", "error"); return; }
-                    const fieldToUpdate = notifier.fields[0];
-                    if (fieldToUpdate) {
-                        await updateDoc(doc(db, "users", currentUsername), { [fieldToUpdate]: newValue });
-                        showNotification(`${fieldToUpdate} updated to ${newValue}`, "success");
-                    }
-                    await updateDoc(doc(db, "notifiers", notifier.id), { completed: true });
-                    closeModal();
-                    await loadCurrentUser();
-                    checkPendingNotifiers();
-                });
-            } else {
-                const doneBtn = modal.querySelector('#doneBtn');
-                doneBtn.addEventListener('click', async () => {
-                    await updateDoc(doc(db, "notifiers", notifier.id), { completed: true });
-                    closeModal();
-                    checkPendingNotifiers();
-                });
-            }
-            modal.querySelector('#closeModalBtn').addEventListener('click', closeModal);
+    // ---------- Bottom nav click handlers ----------
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const nav = item.dataset.nav;
+            setActiveNav(nav);
         });
-    }
+    });
     
-    // ================== NEW FEATURE 2: VERIFICATION BADGE PROMPT ==================
-    async function checkVerificationPrompt() {
-        if (!currentUser) return;
-        if (currentUser.verified !== "none") return;
-        
-        const laterUntil = localStorage.getItem('galagram_verify_later_until');
-        if (laterUntil && Date.now() < parseInt(laterUntil)) return;
-        
-        let laterCount = parseInt(localStorage.getItem('galagram_verify_later_count') || '0');
-        
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:10002; display:flex; align-items:center; justify-content:center;';
-        const modal = document.createElement('div');
-        modal.style.cssText = 'background:white; border-radius:24px; width:85%; max-width:320px; padding:24px 20px; text-align:center;';
-        
-        let message = `Hey ${escapeHtml(currentUser.realName || currentUser.username)}! PAY FOR A VERIFICATION BADGE TO HAVE A MORE LEGITIMATE ACCOUNT AND A GOOD POSITION IN THE PROMO PARTY.`;
-        let buttonsHtml = `<div style="display:flex; gap:12px; margin-top:16px;">
-            <button id="laterBtn" style="flex:1; padding:10px; border-radius:30px; background:#efefef; border:none; font-weight:600;">LATER</button>
-            <button id="payBtn" style="flex:1; padding:10px; border-radius:30px; background:#0095f6; color:white; border:none; font-weight:600;">AM ON IT</button>
-        </div>`;
-        
-        const hasClickedPayBefore = localStorage.getItem('galagram_verify_paid_clicked') === 'true';
-        if (hasClickedPayBefore && currentUser.verified === "none") {
-            buttonsHtml = `<div style="margin-top:16px;"><button id="paidBtn" style="width:100%; padding:10px; border-radius:30px; background:#22c55e; color:white; border:none; font-weight:600;">I Have paid.</button></div>`;
-        }
-        
-        modal.innerHTML = `<div style="font-size:1.3rem; font-weight:700; margin-bottom:12px;">🔔 Verification Required</div>
-                           <p style="margin:12px 0;">${message}</p>
-                           ${buttonsHtml}`;
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-        
-        const laterBtn = modal.querySelector('#laterBtn');
-        const payBtn = modal.querySelector('#payBtn');
-        const paidBtn = modal.querySelector('#paidBtn');
-        
-        if (laterBtn) {
-            laterBtn.addEventListener('click', () => {
-                const newCount = laterCount + 1;
-                localStorage.setItem('galagram_verify_later_count', newCount);
-                const until = Date.now() + (12 * 60 * 60 * 1000);
-                localStorage.setItem('galagram_verify_later_until', until);
-                overlay.remove();
-            });
-        }
-        
-        if (payBtn) {
-            payBtn.addEventListener('click', () => {
-                localStorage.setItem('galagram_verify_paid_clicked', 'true');
-                window.location.href = "tel:*182*1*1*0795513139*8000%23";
-                overlay.remove();
-                setTimeout(() => {
-                    if (currentUser.verified === "none") {
-                        checkVerificationPrompt();
-                    }
-                }, 1000);
-            });
-        }
-        
-        if (paidBtn) {
-            paidBtn.addEventListener('click', () => {
-                alert("Please contact 0795065789 for verification confirmation.");
-                overlay.remove();
-            });
-        }
-    }
-    
-    // Anti-screenshot, resize, and startup
+    // ---------- Anti-screenshot & resize ----------
     (function antiScreenshot() { const blackFlash = () => { const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); }; document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } }); document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); }); })();
     function handleResize() { const blocker = document.getElementById('pcBlocker'); const app = document.getElementById('appRoot'); if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; } else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; } }
     window.addEventListener('resize', handleResize); handleResize();
     
+    // ---------- Startup ----------
     (async () => {
         await loadCurrentUser();
-        loadPosts();
-        loadUsers();
-        listenToCurrentUser();
-        if (currentTab === 'posts') document.getElementById('fabBtn').classList.remove('hidden');
-        await checkPendingNotifiers();     // Show admin notifiers first
-        await checkVerificationPrompt();   // Then show verification prompt if needed
-        showSuggestionPopupIfNeeded();
+        loadUsersRealtime();
+        setupNotificationListeners();
+        setActiveNav("posts");
     })();
 </script>
 </body>
