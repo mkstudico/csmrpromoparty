@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Galagram • Post</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#ffffff">
@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, updateDoc, arrayUnion, addDoc, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, addDoc, collection, query, where, getDocs, limit, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
             authDomain: "akademia-c56ff.firebaseapp.com",
@@ -28,57 +28,437 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; }
+        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; position: relative; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
         .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
         .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .content { padding: 16px; background: #fafafa; min-height: 85vh; }
-        .post-card { background: white; border-radius: 16px; overflow: hidden; margin-bottom: 20px; }
-        .post-header { padding: 12px; display: flex; align-items: center; gap: 10px; border-bottom: 0.5px solid #efefef; }
-        .post-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .post-author { font-weight: 600; font-size: 0.9rem; }
-        .post-time { font-size: 0.65rem; color: #8e8e8e; }
-        .post-text { padding: 12px; font-size: 0.95rem; }
-        .post-image { width: 100%; max-height: 300px; object-fit: cover; }
-        .comments-section { background: white; border-radius: 16px; padding: 16px; }
-        .comment-input-area { display: flex; gap: 10px; margin-bottom: 20px; }
-        .comment-input { flex: 1; padding: 10px; border: 1px solid #dbdbdb; border-radius: 24px; font-size: 0.85rem; }
-        .comment-btn { background: #0095f6; color: white; border: none; padding: 8px 20px; border-radius: 24px; font-weight: 600; cursor: pointer; }
-        .comment-item { display: flex; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 0.5px solid #efefef; }
-        .comment-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-        .comment-user { font-weight: 600; font-size: 0.8rem; }
-        .comment-text { font-size: 0.85rem; margin-top: 4px; }
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
+        /* Main post card */
+        .post-card { background: white; border-radius: 20px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .post-header { padding: 14px; display: flex; align-items: center; gap: 12px; border-bottom: 0.5px solid #efefef; }
+        .post-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .post-author-info { flex: 1; }
+        .post-author { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        .post-time { font-size: 0.65rem; color: #8e8e8e; margin-top: 2px; }
+        .post-question { background: #f0f2f5; margin: 12px; padding: 10px 14px; border-radius: 16px; font-size: 0.85rem; color: #262626; border-left: 3px solid #0095f6; }
+        .post-question i { color: #0095f6; margin-right: 6px; }
+        .post-text { padding: 0 14px 12px 14px; font-size: 1rem; line-height: 1.4; }
+        .post-image-container { position: relative; cursor: pointer; }
+        .post-image { width: 100%; max-height: 400px; object-fit: cover; display: block; transition: transform 0.2s; }
+        .post-image:active { transform: scale(0.98); }
+        .post-stats { display: flex; align-items: center; gap: 24px; padding: 12px 14px; border-top: 0.5px solid #efefef; border-bottom: 0.5px solid #efefef; }
+        .like-btn { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; transition: 0.1s; }
+        .like-btn i { font-size: 1.4rem; transition: transform 0.1s; }
+        .like-btn:active i { transform: scale(1.1); }
+        .liked { color: #ed4956; }
+        .comment-stats { display: flex; align-items: center; gap: 6px; color: #8e8e8e; }
+        /* Comments section */
+        .comments-section { background: white; border-radius: 20px; padding: 16px; margin-top: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .comment-input-area { display: flex; gap: 12px; margin-bottom: 20px; }
+        .comment-input { flex: 1; padding: 12px 16px; border: 1px solid #dbdbdb; border-radius: 30px; font-size: 0.85rem; background: #fafafa; transition: 0.1s; }
+        .comment-input:focus { outline: none; border-color: #0095f6; background: white; }
+        .comment-btn { background: #0095f6; color: white; border: none; padding: 8px 24px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: 0.1s; }
+        .comment-btn:active { transform: scale(0.96); }
+        .comments-list { max-height: 400px; overflow-y: auto; }
+        .comment-item { display: flex; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 0.5px solid #efefef; }
+        .comment-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+        .comment-content { flex: 1; }
+        .comment-user { font-weight: 600; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .comment-text { font-size: 0.85rem; margin-top: 4px; line-height: 1.3; }
+        .comment-time { font-size: 0.65rem; color: #8e8e8e; margin-top: 4px; }
+        /* Related posts section */
+        .related-section { margin-top: 24px; }
+        .section-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .related-scroll { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 8px; scrollbar-width: thin; }
+        .related-scroll::-webkit-scrollbar { height: 4px; }
+        .related-card { flex: 0 0 140px; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer; transition: 0.1s; }
+        .related-card:active { transform: scale(0.96); }
+        .related-card img { width: 100%; height: 140px; object-fit: cover; }
+        .related-card .related-text { padding: 8px; font-size: 0.75rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .load-more-btn { background: #efefef; border: none; padding: 10px; border-radius: 30px; width: 100%; font-weight: 600; margin-top: 12px; cursor: pointer; }
+        /* Image zoom modal */
+        .zoom-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(4px); }
+        .zoom-modal img { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 12px; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10001; transition: transform 0.25s; pointer-events: none; }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
+        .loading-spinner { text-align: center; padding: 20px; color: #8e8e8e; }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 480px) {
+            .related-card { flex-basis: 120px; }
+            .related-card img { height: 120px; }
+        }
     </style>
 </head>
 <body>
 <div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
 <div id="appRoot" class="app-container">
-    <div class="header"><i class='bx bx-arrow-back back-btn' id="backBtn"></i><div class="logo">Post</div></div>
-    <div class="content" id="contentArea">Loading...</div>
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">Galagram</div>
+    </div>
+    <div class="content" id="contentArea">
+        <div class="loading-spinner"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div>
+    </div>
 </div>
+
 <script type="module">
-    import { getFirestore, doc, getDoc, updateDoc, arrayUnion, addDoc, collection } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove, addDoc, collection, query, where, getDocs, limit, startAfter, orderBy } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
-    async function addLog(type, actor, target, message) { try { await addDoc(collection(db, "logs"), { type, actor, target, message, timestamp: new Date() }); } catch(e) {} }
-    function showNotification(msg) { const toast=document.createElement('div'); toast.className='galagram-toast'; toast.innerHTML=`<i class='bx bx-check-circle'></i><span>${msg}</span>`; document.body.appendChild(toast); setTimeout(()=>toast.classList.add('show'),10); setTimeout(()=>toast.remove(),3000); }
-    const sessionData=localStorage.getItem('galagram_session'); if(!sessionData) window.location.href="index.html"; const session=JSON.parse(sessionData); const currentUsername=session.username;
-    const urlParams=new URLSearchParams(window.location.search); const postId=urlParams.get('id'); if(!postId) window.location.href="home.html";
-    let postData=null, currentUser=null;
-    async function loadData(){ const postDoc=await getDoc(doc(db,"news",postId)); const userDoc=await getDoc(doc(db,"users",currentUsername)); if(!postDoc.exists()){ showNotification("Post not found"); setTimeout(()=>window.location.href="home.html",1500); return; } postData={id:postDoc.id,...postDoc.data()}; currentUser=userDoc.data(); render(); }
-    function getVerifiedIcon(verified){ if(verified==="blue") return '<i class="bx bx-check-circle" style="color:#0095f6;"></i>'; if(verified==="gray") return '<i class="bx bxs-check-circle" style="color:#8e8e8e;"></i>'; return ''; }
-    function render(){ const container=document.getElementById('contentArea'); const verifiedIcon=getVerifiedIcon(postData.authorVerified); container.innerHTML=`<div class="post-card"><div class="post-header"><img class="post-avatar" src="${postData.authorAvatar||'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div><div class="post-author">${escapeHtml(postData.authorName)} ${verifiedIcon}</div><div class="post-time">${new Date(postData.createdAt?.toDate?.()||postData.createdAt).toLocaleString()}</div></div></div><div class="post-text">${escapeHtml(postData.text)}</div>${postData.imageUrl?`<img class="post-image" src="${postData.imageUrl}" alt="">`:''}</div><div class="comments-section"><div class="comment-input-area"><input type="text" id="commentInput" class="comment-input" placeholder="Write a comment..."><button id="postCommentBtn" class="comment-btn">Post</button></div><div id="commentsList"></div></div>`; renderComments(); document.getElementById('postCommentBtn').addEventListener('click',postComment); document.getElementById('commentInput').addEventListener('keypress',(e)=>{ if(e.key==='Enter') postComment(); }); }
-    function renderComments(){ const comments=postData.comments||[]; const container=document.getElementById('commentsList'); if(!comments.length){ container.innerHTML='<div style="text-align:center; color:#8e8e8e; padding:20px;">No comments yet. Be the first!</div>'; return; } container.innerHTML=comments.map(c=>`<div class="comment-item"><img class="comment-avatar" src="${c.avatar||'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'}" alt=""><div style="flex:1"><div class="comment-user">@${escapeHtml(c.username)}</div><div class="comment-text">${escapeHtml(c.text)}</div><div style="font-size:0.65rem; color:#8e8e8e;">${new Date(c.timestamp?.toDate?.()||c.timestamp).toLocaleString()}</div></div></div>`).join(''); }
-    async function postComment(){ const input=document.getElementById('commentInput'); const text=input.value.trim(); if(!text) return; const comment={ username:currentUsername, text:text, avatar:currentUser.profileImage, timestamp:new Date() }; await updateDoc(doc(db,"news",postId),{ comments:arrayUnion(comment) }); await addLog('comment',currentUsername,postData.authorUsername,`${currentUsername} commented on ${postData.authorUsername}'s post`); input.value=''; const refreshed=await getDoc(doc(db,"news",postId)); postData={id:refreshed.id,...refreshed.data()}; renderComments(); showNotification("Comment posted!"); }
-    function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g,m=>m==='&'?'&amp;':(m==='<'?'&lt;':'&gt;')); }
-    document.getElementById('backBtn').addEventListener('click',()=>window.location.href="home.html");
-    (function antiScreenshot(){ const blackFlash=()=>{ const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); }; document.addEventListener('keyup',e=>{ if(e.key==='PrintScreen'){ blackFlash(); e.preventDefault(); } }); document.addEventListener('contextmenu',e=>{ e.preventDefault(); blackFlash(); }); })();
-    function handleResize(){ const blocker=document.getElementById('pcBlocker'); const app=document.getElementById('appRoot'); if(window.innerWidth>768){ blocker.style.display='flex'; if(app) app.style.display='none'; }else{ blocker.style.display='none'; if(app) app.style.display='block'; } }
-    window.addEventListener('resize',handleResize); handleResize();
+    
+    // Helper functions
+    async function addLog(type, actor, target, message) { 
+        try { await addDoc(collection(db, "logs"), { type, actor, target, message, timestamp: new Date() }); } catch(e) {} 
+    }
+    function showNotification(msg) { 
+        const toast = document.createElement('div'); 
+        toast.className = 'galagram-toast'; 
+        toast.innerHTML = `<i class='bx bx-check-circle'></i><span>${msg}</span>`; 
+        document.body.appendChild(toast); 
+        setTimeout(() => toast.classList.add('show'), 10); 
+        setTimeout(() => toast.remove(), 3000); 
+    }
+    function escapeHtml(str) { 
+        if (!str) return ''; 
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')); 
+    }
+    function formatTime(timestamp) {
+        if (!timestamp) return 'just now';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleString();
+    }
+    function getVerifiedIcon(verified) {
+        if (verified === "blue") return '<i class="bx bx-check-circle" style="color:#0095f6;"></i>';
+        if (verified === "gray") return '<i class="bx bxs-check-circle" style="color:#8e8e8e;"></i>';
+        return '';
+    }
+    
+    // Session
+    const sessionData = localStorage.getItem('galagram_session');
+    if (!sessionData) window.location.href = "index.html";
+    const session = JSON.parse(sessionData);
+    const currentUsername = session.username;
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('id');
+    if (!postId) window.location.href = "home.html";
+    
+    let postData = null;
+    let currentUser = null;
+    let relatedPosts = [];
+    let relatedLastDoc = null;
+    let relatedLoading = false;
+    let hasMoreRelated = true;
+    let currentPostType = null; // 'image' or 'text'
+    
+    // Load main post and user data
+    async function loadData() {
+        const postDoc = await getDoc(doc(db, "news", postId));
+        const userDoc = await getDoc(doc(db, "users", currentUsername));
+        if (!postDoc.exists()) {
+            showNotification("Post not found");
+            setTimeout(() => window.location.href = "home.html", 1500);
+            return;
+        }
+        postData = { id: postDoc.id, ...postDoc.data() };
+        currentUser = userDoc.data();
+        // Determine post type
+        if (postData.imageUrls && postData.imageUrls.length > 0) currentPostType = 'image';
+        else if (postData.type === 'image') currentPostType = 'image';
+        else currentPostType = 'text';
+        renderMainPost();
+        await loadRelatedPosts(true); // load initial related
+    }
+    
+    function renderMainPost() {
+        const container = document.getElementById('contentArea');
+        const isLiked = postData.likes?.includes(currentUsername) || false;
+        const verifiedIcon = getVerifiedIcon(postData.authorVerified);
+        const questionHtml = postData.question ? 
+            `<div class="post-question"><i class='bx bx-question-mark'></i> ${escapeHtml(postData.question)}</div>` : '';
+        
+        let imageHtml = '';
+        if (currentPostType === 'image') {
+            const imageUrl = postData.imageUrls?.[0] || postData.imageUrl;
+            if (imageUrl) {
+                imageHtml = `<div class="post-image-container"><img class="post-image" src="${imageUrl}" alt="post" id="mainImage"></div>`;
+            }
+        }
+        
+        container.innerHTML = `
+            <div class="post-card">
+                <div class="post-header">
+                    <img class="post-avatar" src="${postData.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                    <div class="post-author-info">
+                        <div class="post-author">${escapeHtml(postData.authorName)} ${verifiedIcon}</div>
+                        <div class="post-time">${formatTime(postData.createdAt)}</div>
+                    </div>
+                </div>
+                ${questionHtml}
+                ${currentPostType === 'text' ? `<div class="post-text">${escapeHtml(postData.text)}</div>` : imageHtml}
+                <div class="post-stats">
+                    <div class="like-btn" id="likeBtn">
+                        <i class='bx ${isLiked ? 'bxs-heart liked' : 'bx-heart'}'></i>
+                        <span id="likeCount">${postData.likes?.length || 0}</span>
+                    </div>
+                    <div class="comment-stats">
+                        <i class='bx bx-comment'></i>
+                        <span id="commentCount">${postData.comments?.length || 0}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="comments-section">
+                <div class="comment-input-area">
+                    <input type="text" id="commentInput" class="comment-input" placeholder="Write a comment...">
+                    <button id="postCommentBtn" class="comment-btn">Post</button>
+                </div>
+                <div class="comments-list" id="commentsList"></div>
+            </div>
+            <div class="related-section" id="relatedSection">
+                <div class="section-title">
+                    <i class='bx ${currentPostType === 'image' ? 'bx-image' : 'bx-news'}'></i>
+                    More ${currentPostType === 'image' ? 'Images' : 'Text Posts'}
+                </div>
+                <div id="relatedContainer" class="related-scroll"></div>
+                <button id="loadMoreRelated" class="load-more-btn" style="display: none;">Load more</button>
+            </div>
+        `;
+        
+        // Attach like button event
+        document.getElementById('likeBtn').addEventListener('click', () => toggleLike());
+        // Attach comment button
+        document.getElementById('postCommentBtn').addEventListener('click', () => postComment());
+        document.getElementById('commentInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') postComment(); });
+        // Image zoom
+        const mainImage = document.getElementById('mainImage');
+        if (mainImage) {
+            mainImage.addEventListener('click', () => {
+                const modal = document.createElement('div');
+                modal.className = 'zoom-modal';
+                modal.innerHTML = `<img src="${mainImage.src}" alt="Zoom">`;
+                modal.addEventListener('click', () => modal.remove());
+                document.body.appendChild(modal);
+            });
+        }
+        renderComments();
+    }
+    
+    function renderComments() {
+        const comments = postData.comments || [];
+        const container = document.getElementById('commentsList');
+        if (!comments.length) {
+            container.innerHTML = '<div style="text-align:center; color:#8e8e8e; padding:20px;">No comments yet. Be the first!</div>';
+            return;
+        }
+        container.innerHTML = comments.map(c => `
+            <div class="comment-item">
+                <img class="comment-avatar" src="${c.avatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" alt="">
+                <div class="comment-content">
+                    <div class="comment-user">@${escapeHtml(c.username)} ${getVerifiedIcon(c.userVerified)}</div>
+                    <div class="comment-text">${escapeHtml(c.text)}</div>
+                    <div class="comment-time">${formatTime(c.timestamp)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    async function toggleLike() {
+        const isLiked = postData.likes?.includes(currentUsername);
+        const likeBtn = document.getElementById('likeBtn');
+        const likeCountSpan = document.getElementById('likeCount');
+        if (!likeBtn) return;
+        
+        // Optimistic update
+        if (isLiked) {
+            likeBtn.querySelector('i').className = 'bx bx-heart';
+            likeCountSpan.innerText = parseInt(likeCountSpan.innerText) - 1;
+            postData.likes = postData.likes.filter(u => u !== currentUsername);
+        } else {
+            likeBtn.querySelector('i').className = 'bx bxs-heart liked';
+            likeCountSpan.innerText = parseInt(likeCountSpan.innerText) + 1;
+            postData.likes = [...(postData.likes || []), currentUsername];
+        }
+        
+        try {
+            await updateDoc(doc(db, "news", postId), {
+                likes: isLiked ? arrayRemove(currentUsername) : arrayUnion(currentUsername)
+            });
+            await addLog('like', currentUsername, postData.authorUsername, `${currentUsername} ${isLiked ? 'unliked' : 'liked'} ${postData.authorUsername}'s post`);
+        } catch (err) {
+            // revert on error
+            showNotification("Error updating like");
+            if (isLiked) {
+                likeBtn.querySelector('i').className = 'bx bxs-heart liked';
+                likeCountSpan.innerText = parseInt(likeCountSpan.innerText) + 1;
+            } else {
+                likeBtn.querySelector('i').className = 'bx bx-heart';
+                likeCountSpan.innerText = parseInt(likeCountSpan.innerText) - 1;
+            }
+        }
+    }
+    
+    async function postComment() {
+        const input = document.getElementById('commentInput');
+        const text = input.value.trim();
+        if (!text) return;
+        const comment = {
+            username: currentUsername,
+            text: text,
+            avatar: currentUser?.profileImage,
+            userVerified: currentUser?.verified || "none",
+            timestamp: new Date()
+        };
+        input.value = '';
+        // Optimistic update
+        const newComments = [...(postData.comments || []), comment];
+        postData.comments = newComments;
+        document.getElementById('commentCount').innerText = newComments.length;
+        renderComments();
+        try {
+            await updateDoc(doc(db, "news", postId), { comments: arrayUnion(comment) });
+            await addLog('comment', currentUsername, postData.authorUsername, `${currentUsername} commented on ${postData.authorUsername}'s post`);
+            showNotification("Comment posted!");
+        } catch (err) {
+            showNotification("Error posting comment");
+            // revert
+            postData.comments = postData.comments.filter(c => c !== comment);
+            renderComments();
+            document.getElementById('commentCount').innerText = postData.comments.length;
+        }
+    }
+    
+    // Load related posts (same type: image or text)
+    async function loadRelatedPosts(reset = true) {
+        if (relatedLoading) return;
+        relatedLoading = true;
+        if (reset) {
+            relatedPosts = [];
+            relatedLastDoc = null;
+            hasMoreRelated = true;
+            document.getElementById('loadMoreRelated').style.display = 'none';
+        }
+        
+        let q;
+        if (currentPostType === 'image') {
+            // Image posts: those with imageUrls or type 'image'
+            q = query(
+                collection(db, "news"),
+                where("type", "in", ["image", undefined]), // Firestore doesn't support 'in' with undefined well; use filter after? Better: query for all and filter client-side? But we need pagination. Alternative: store type field always. For now, we query all and filter client-side with limit.
+                // Simpler: get all news and filter by type, but that's inefficient. We'll query all and limit + startAfter.
+                // To avoid complexity, we'll use a composite index? Not required for demo.
+                // Actually we'll do a simple query without where, then filter on client. For pagination we'll use cursor on document id? Let's do: get all news where id not equal to current, order by createdAt, limit 10.
+                // But requirement: only show same type. We'll filter after.
+            );
+        } else {
+            q = query(
+                collection(db, "news"),
+                where("type", "==", "text")
+            );
+        }
+        // More robust: get all posts excluding current, order by createdAt desc, limit 10, then filter by type client-side.
+        // For simplicity and to ensure we get enough same type, we'll fetch more and filter.
+        let baseQuery = query(collection(db, "news"), orderBy("createdAt", "desc"), limit(15));
+        if (!reset && relatedLastDoc) {
+            baseQuery = query(collection(db, "news"), orderBy("createdAt", "desc"), startAfter(relatedLastDoc), limit(15));
+        }
+        const snapshot = await getDocs(baseQuery);
+        if (snapshot.empty) {
+            hasMoreRelated = false;
+            relatedLoading = false;
+            document.getElementById('loadMoreRelated').style.display = 'none';
+            return;
+        }
+        relatedLastDoc = snapshot.docs[snapshot.docs.length - 1];
+        const newPosts = [];
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (docSnap.id === postId) return;
+            const postType = data.imageUrls || data.type === 'image' ? 'image' : 'text';
+            if (postType === currentPostType) {
+                newPosts.push({ id: docSnap.id, ...data });
+            }
+        });
+        if (reset) relatedPosts = newPosts;
+        else relatedPosts = [...relatedPosts, ...newPosts];
+        
+        if (newPosts.length < 10) hasMoreRelated = false;
+        renderRelatedPosts();
+        relatedLoading = false;
+    }
+    
+    function renderRelatedPosts() {
+        const container = document.getElementById('relatedContainer');
+        if (!container) return;
+        if (relatedPosts.length === 0) {
+            container.innerHTML = '<div class="empty-state" style="padding:20px; text-align:center; color:#8e8e8e;">No more posts</div>';
+            document.getElementById('loadMoreRelated').style.display = 'none';
+            return;
+        }
+        container.innerHTML = relatedPosts.map(post => {
+            const isImage = post.imageUrls || post.type === 'image';
+            const previewImg = isImage ? (post.imageUrls?.[0] || post.imageUrl || 'https://via.placeholder.com/140') : null;
+            const previewText = !isImage ? (post.text?.substring(0, 60) || 'Post') : '';
+            return `
+                <div class="related-card" data-id="${post.id}">
+                    ${isImage ? `<img src="${previewImg}" alt="post">` : `<div class="related-text">${escapeHtml(previewText)}</div>`}
+                </div>
+            `;
+        }).join('');
+        document.querySelectorAll('.related-card').forEach(card => {
+            card.addEventListener('click', () => {
+                window.location.href = `news.html?id=${card.dataset.id}`;
+            });
+        });
+        if (hasMoreRelated) {
+            document.getElementById('loadMoreRelated').style.display = 'block';
+        } else {
+            document.getElementById('loadMoreRelated').style.display = 'none';
+        }
+    }
+    
+    // Back button
+    document.getElementById('backBtn').addEventListener('click', () => window.location.href = "home.html");
+    
+    // Load more button
+    document.addEventListener('click', (e) => {
+        if (e.target.id === 'loadMoreRelated') {
+            loadRelatedPosts(false);
+        }
+    });
+    
+    // Anti-screenshot and resize
+    (function antiScreenshot() {
+        const blackFlash = () => {
+            const o = document.createElement('div');
+            o.style.position = 'fixed';
+            o.style.top = o.style.left = '0';
+            o.style.width = o.style.height = '100%';
+            o.style.backgroundColor = '#000';
+            o.style.zIndex = '999999';
+            document.body.appendChild(o);
+            setTimeout(() => o.remove(), 200);
+        };
+        document.addEventListener('keyup', e => { if (e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('contextmenu', e => { e.preventDefault(); blackFlash(); });
+    })();
+    
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if (window.innerWidth > 768) {
+            blocker.style.display = 'flex';
+            if (app) app.style.display = 'none';
+        } else {
+            blocker.style.display = 'none';
+            if (app) app.style.display = 'block';
+        }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
+    // Start
     loadData();
 </script>
 </body>
