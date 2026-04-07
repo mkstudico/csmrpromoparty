@@ -367,8 +367,11 @@
     </div>
 </div>
 
-<script type="module">
-    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+    
+    
+  <script type="module">
+    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
     let currentTab = "users";
@@ -388,7 +391,6 @@
         setTimeout(() => toast.remove(), 3000);
     }
     
-    // Session check (optional)
     const sessionData = localStorage.getItem('galagram_session');
     if (!sessionData) {
         console.warn("No session found, but admin can still work.");
@@ -581,7 +583,6 @@
     
     // ---------- Notifiers (multi-user) ----------
     async function loadNotifiers() {
-        // Just load users list for the form
         await loadUsers();
         renderNotifiers();
     }
@@ -721,7 +722,7 @@
     // ---------- Party Schedule (drag & drop) ----------
     async function loadSchedule() {
         const docRef = doc(db, "party", "schedule");
-        const docSnap = await getDoc(docRef);
+        const docSnap = await getDoc(docRef);  // getDoc is now imported
         if (docSnap.exists()) {
             scheduleItems = docSnap.data().items || [];
         } else {
@@ -764,7 +765,6 @@
         `;
         container.innerHTML = html;
         
-        // Attach drag & drop handlers
         const items = document.querySelectorAll('.schedule-editor-item');
         items.forEach(item => {
             item.addEventListener('dragstart', handleDragStart);
@@ -782,7 +782,6 @@
                 renderScheduleEditor();
             });
         });
-        // Update scheduleItems array when inputs change
         document.querySelectorAll('.schedule-time, .schedule-activity').forEach((input, i) => {
             input.addEventListener('change', (e) => {
                 const parent = input.closest('.schedule-editor-item');
@@ -830,7 +829,6 @@
     }
     
     async function saveSchedule() {
-        // Capture latest values from inputs
         const items = document.querySelectorAll('.schedule-editor-item');
         const newItems = [];
         items.forEach(item => {
@@ -907,14 +905,12 @@
         else if (currentTab === 'posts') renderPosts();
         else if (currentTab === 'logs') renderLogs();
         else if (currentTab === 'notifiers') renderNotifiers();
-        // Schedule tab doesn't need search
     });
     
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', () => switchTab(item.dataset.tab));
     });
     
-    // Initial load
     switchTab('users');
 </script>
 </body>
