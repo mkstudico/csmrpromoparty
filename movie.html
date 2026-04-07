@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Galagram • Party Hub</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #fafafa;
+        }
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+        .header {
+            background: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 0.5px solid #efefef;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .back-btn {
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #262626;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, #f77737, #d62976, #962fbf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .section-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin: 20px 16px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .schedule-container {
+            background: #f8f8f8;
+            border-radius: 16px;
+            margin: 0 16px 20px;
+            padding: 16px;
+        }
+        .schedule-item {
+            background: white;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            border: 1px solid #efefef;
+        }
+        .schedule-item .drag-icon {
+            color: #8e8e8e;
+            cursor: grab;
+        }
+        .schedule-item .time {
+            font-weight: 600;
+            min-width: 60px;
+            color: #0095f6;
+        }
+        .schedule-item .activity {
+            flex: 1;
+        }
+        .empty-schedule {
+            text-align: center;
+            padding: 20px;
+            color: #8e8e8e;
+        }
+        /* Suggestions wall */
+        .suggestions-list {
+            margin: 0 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .suggestion-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            overflow: hidden;
+            border: 1px solid #efefef;
+        }
+        .suggestion-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #fafafa;
+            border-bottom: 1px solid #efefef;
+        }
+        .suggestion-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .suggestion-user {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .verified-badge {
+            font-size: 0.9rem;
+        }
+        .verified-badge.blue {
+            color: #0095f6;
+        }
+        .verified-badge.gray {
+            color: #8e8e8e;
+        }
+        .suggestion-text {
+            padding: 16px;
+            font-size: 1rem;
+            line-height: 1.4;
+            background: white;
+        }
+        .suggestion-actions {
+            display: flex;
+            gap: 20px;
+            padding: 8px 16px 12px;
+            border-top: 1px solid #efefef;
+            color: #8e8e8e;
+        }
+        .suggestion-actions span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .suggestion-actions i {
+            font-size: 1.2rem;
+        }
+        .liked {
+            color: #ed4956;
+        }
+        .reply-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .reply-popup {
+            background: white;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .reply-popup-header {
+            padding: 16px;
+            border-bottom: 1px solid #efefef;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+        }
+        .reply-popup-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .reply-item {
+            background: #f0f0f0;
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+        .reply-user {
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+        .reply-text {
+            font-size: 0.9rem;
+        }
+        .reply-time {
+            font-size: 0.7rem;
+            color: #8e8e8e;
+            margin-top: 4px;
+        }
+        .reply-input-area {
+            padding: 12px;
+            border-top: 1px solid #efefef;
+            display: flex;
+            gap: 8px;
+        }
+        .reply-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #dbdbdb;
+            border-radius: 24px;
+            font-size: 0.85rem;
+        }
+        .reply-send {
+            background: #0095f6;
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .close-popup {
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+        .fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #0095f6;
+            color: white;
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100;
+        }
+        .galagram-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            z-index: 10000;
+            transition: transform 0.25s;
+            pointer-events: none;
+        }
+        .galagram-toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">Party Hub</div>
+    </div>
+
+    <!-- Editable schedule (drag & drop reorderable) -->
+    <div class="section-title"><i class='bx bx-calendar-event'></i> Party Schedule</div>
+    <div id="scheduleContainer" class="schedule-container">
+        <div class="empty-schedule">Loading schedule...</div>
+    </div>
+
+    <!-- Suggestions wall -->
+    <div class="section-title"><i class='bx bx-bulb'></i> Suggestions from the crowd</div>
+    <div id="suggestionsList" class="suggestions-list"></div>
+
+    <!-- FAB to add new suggestion -->
+    <div id="fabBtn" class="fab"><i class='bx bx-plus'></i></div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, orderBy, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, increment } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    
+    const firebaseConfig = {
+        apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+        authDomain: "akademia-c56ff.firebaseapp.com",
+        databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+        projectId: "akademia-c56ff",
+        storageBucket: "akademia-c56ff.firebasestorage.app",
+        messagingSenderId: "678278775270",
+        appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+        measurementId: "G-X3CHCJE5LK"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // Session
+    const sessionData = localStorage.getItem('galagram_session');
+    if (!sessionData) window.location.href = "index.html";
+    const session = JSON.parse(sessionData);
+    const currentUser = session.username;
+    let currentUserDoc = null;
+    
+    // Helper functions
+    function showToast(msg) {
+        const toast = document.createElement('div');
+        toast.className = 'galagram-toast';
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+    
+    function formatTime(timestamp) {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleString();
+    }
+    
+    function getVerifiedIcon(verified) {
+        if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>';
+        if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>';
+        return '';
+    }
+    
+    // Load current user
+    async function loadCurrentUser() {
+        const userDoc = await getDoc(doc(db, "users", currentUser));
+        if (userDoc.exists()) currentUserDoc = userDoc.data();
+    }
+    
+    // ---------- PARTY SCHEDULE (drag & drop) ----------
+    let scheduleItems = [];
+    let scheduleUnsubscribe = null;
+    
+    function loadSchedule() {
+        scheduleUnsubscribe = onSnapshot(doc(db, "party", "schedule"), (docSnap) => {
+            if (docSnap.exists()) {
+                scheduleItems = docSnap.data().items || [];
+            } else {
+                scheduleItems = [];
+            }
+            renderSchedule();
+        });
+    }
+    
+    function renderSchedule() {
+        const container = document.getElementById('scheduleContainer');
+        if (!scheduleItems.length) {
+            container.innerHTML = '<div class="empty-schedule">No schedule items yet. Admin will add soon!</div>';
+            return;
+        }
+        container.innerHTML = `
+            <div id="scheduleList">
+                ${scheduleItems.map((item, idx) => `
+                    <div class="schedule-item" data-index="${idx}">
+                        <i class='bx bx-menu drag-icon'></i>
+                        <div class="time">${escapeHtml(item.time || 'TBD')}</div>
+                        <div class="activity">${escapeHtml(item.activity)}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        // Drag & drop is handled via admin; for normal users it's read-only.
+        // But we keep the drag icons for visual consistency only.
+    }
+    
+    // ---------- SUGGESTIONS WALL ----------
+    let suggestionsUnsubscribe = null;
+    let currentSuggestionReplies = null;
+    
+    function loadSuggestions() {
+        const q = query(collection(db, "partySuggestions"), orderBy("createdAt", "desc"));
+        suggestionsUnsubscribe = onSnapshot(q, (snapshot) => {
+            const suggestions = [];
+            snapshot.forEach(docSnap => suggestions.push({ id: docSnap.id, ...docSnap.data() }));
+            renderSuggestions(suggestions);
+        });
+    }
+    
+    async function renderSuggestions(suggestions) {
+        const container = document.getElementById('suggestionsList');
+        if (suggestions.length === 0) {
+            container.innerHTML = '<div class="empty-schedule" style="margin:0;">Be the first to suggest something! ✨</div>';
+            return;
+        }
+        // For each suggestion, get user profile to show avatar/badge
+        let html = '';
+        for (const sug of suggestions) {
+            const userProfile = await getUserProfile(sug.userId);
+            const avatar = userProfile?.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80';
+            const verified = userProfile?.verified || "none";
+            const isLiked = sug.likes?.includes(currentUser) || false;
+            html += `
+                <div class="suggestion-card" data-id="${sug.id}">
+                    <div class="suggestion-header">
+                        <img class="suggestion-avatar" src="${avatar}" alt="">
+                        <div>
+                            <div class="suggestion-user">${escapeHtml(sug.userId)} ${getVerifiedIcon(verified)}</div>
+                            <div style="font-size:0.7rem; color:#8e8e8e;">${formatTime(sug.createdAt)}</div>
+                        </div>
+                    </div>
+                    <div class="suggestion-text">${escapeHtml(sug.text)}</div>
+                    <div class="suggestion-actions">
+                        <span class="like-action" data-id="${sug.id}">
+                            <i class='bx ${isLiked ? 'bxs-heart liked' : 'bx-heart'}'></i> ${sug.likes?.length || 0}
+                        </span>
+                        <span class="reply-action" data-id="${sug.id}">
+                            <i class='bx bx-comment'></i> ${sug.replyCount || 0}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+        
+        // Attach like event
+        document.querySelectorAll('.like-action').forEach(el => {
+            el.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const sugId = el.dataset.id;
+                const isLikedNow = el.querySelector('i').classList.contains('bxs-heart');
+                const sugRef = doc(db, "partySuggestions", sugId);
+                if (isLikedNow) {
+                    await updateDoc(sugRef, { likes: arrayRemove(currentUser) });
+                } else {
+                    await updateDoc(sugRef, { likes: arrayUnion(currentUser) });
+                }
+            });
+        });
+        
+        // Attach reply event
+        document.querySelectorAll('.reply-action').forEach(el => {
+            el.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const sugId = el.dataset.id;
+                await openReplyPopup(sugId);
+            });
+        });
+    }
+    
+    async function getUserProfile(username) {
+        const docSnap = await getDoc(doc(db, "users", username));
+        if (docSnap.exists()) return docSnap.data();
+        return null;
+    }
+    
+    async function openReplyPopup(suggestionId) {
+        // Fetch suggestion and its replies
+        const sugDoc = await getDoc(doc(db, "partySuggestions", suggestionId));
+        if (!sugDoc.exists()) return;
+        const suggestion = sugDoc.data();
+        const repliesQuery = query(collection(db, "partySuggestions", suggestionId, "replies"), orderBy("createdAt", "asc"));
+        const repliesSnapshot = await getDocs(repliesQuery);
+        const replies = [];
+        repliesSnapshot.forEach(d => replies.push({ id: d.id, ...d.data() }));
+        
+        // Create popup
+        const overlay = document.createElement('div');
+        overlay.className = 'reply-popup-overlay';
+        overlay.innerHTML = `
+            <div class="reply-popup">
+                <div class="reply-popup-header">
+                    <span>💬 Replies to suggestion</span>
+                    <span class="close-popup"><i class='bx bx-x'></i></span>
+                </div>
+                <div class="reply-popup-messages" id="replyMessagesList">
+                    ${replies.map(r => `
+                        <div class="reply-item">
+                            <div class="reply-user">${escapeHtml(r.userId)} ${getVerifiedIcon(r.userVerified)}</div>
+                            <div class="reply-text">${escapeHtml(r.text)}</div>
+                            <div class="reply-time">${formatTime(r.createdAt)}</div>
+                        </div>
+                    `).join('')}
+                    ${replies.length === 0 ? '<div style="text-align:center;padding:20px;color:#8e8e8e;">No replies yet. Be the first!</div>' : ''}
+                </div>
+                <div class="reply-input-area">
+                    <input type="text" id="replyInput" class="reply-input" placeholder="Write a reply...">
+                    <button id="sendReplyBtn" class="reply-send"><i class='bx bx-send'></i></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        
+        const closeBtn = overlay.querySelector('.close-popup');
+        closeBtn.onclick = () => overlay.remove();
+        
+        const sendBtn = overlay.querySelector('#sendReplyBtn');
+        const replyInput = overlay.querySelector('#replyInput');
+        const messagesContainer = overlay.querySelector('#replyMessagesList');
+        
+        // Real-time listener for replies
+        const repliesRef = collection(db, "partySuggestions", suggestionId, "replies");
+        const q = query(repliesRef, orderBy("createdAt", "asc"));
+        const unsubscribeReplies = onSnapshot(q, (snapshot) => {
+            const newReplies = [];
+            snapshot.forEach(d => newReplies.push({ id: d.id, ...d.data() }));
+            messagesContainer.innerHTML = newReplies.map(r => `
+                <div class="reply-item">
+                    <div class="reply-user">${escapeHtml(r.userId)} ${getVerifiedIcon(r.userVerified)}</div>
+                    <div class="reply-text">${escapeHtml(r.text)}</div>
+                    <div class="reply-time">${formatTime(r.createdAt)}</div>
+                </div>
+            `).join('');
+            if (newReplies.length === 0) messagesContainer.innerHTML = '<div style="text-align:center;padding:20px;color:#8e8e8e;">No replies yet. Be the first!</div>';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+        
+        sendBtn.onclick = async () => {
+            const text = replyInput.value.trim();
+            if (!text) return;
+            await addDoc(repliesRef, {
+                userId: currentUser,
+                userVerified: currentUserDoc?.verified || "none",
+                text: text,
+                createdAt: serverTimestamp()
+            });
+            // Increment reply count on suggestion
+            await updateDoc(doc(db, "partySuggestions", suggestionId), {
+                replyCount: increment(1)
+            });
+            replyInput.value = '';
+        };
+        
+        // Cleanup on close
+        const originalClose = closeBtn.onclick;
+        closeBtn.onclick = () => {
+            unsubscribeReplies();
+            overlay.remove();
+        };
+    }
+    
+    // ---------- Add new suggestion ----------
+    function showAddSuggestionModal() {
+        const overlay = document.createElement('div');
+        overlay.className = 'reply-popup-overlay';
+        overlay.innerHTML = `
+            <div class="reply-popup">
+                <div class="reply-popup-header">
+                    <span>📝 Add your suggestion</span>
+                    <span class="close-popup"><i class='bx bx-x'></i></span>
+                </div>
+                <div style="padding:16px;">
+                    <textarea id="suggestionText" rows="4" style="width:100%; padding:12px; border:1px solid #dbdbdb; border-radius:12px; font-size:0.9rem;" placeholder="What do you suggest for the party?"></textarea>
+                    <button id="submitSuggestionBtn" style="margin-top:16px; width:100%; background:#0095f6; color:white; border:none; padding:12px; border-radius:30px; font-weight:600;">Post Suggestion</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.close-popup').onclick = () => overlay.remove();
+        overlay.querySelector('#submitSuggestionBtn').onclick = async () => {
+            const text = overlay.querySelector('#suggestionText').value.trim();
+            if (!text) {
+                showToast("Please enter a suggestion");
+                return;
+            }
+            await addDoc(collection(db, "partySuggestions"), {
+                userId: currentUser,
+                text: text,
+                createdAt: serverTimestamp(),
+                likes: [],
+                replyCount: 0
+            });
+            showToast("Suggestion added!");
+            overlay.remove();
+        };
+    }
+    
+    // ---------- Back button ----------
+    document.getElementById('backBtn').addEventListener('click', () => {
+        window.location.href = "home.html";
+    });
+    document.getElementById('fabBtn').addEventListener('click', showAddSuggestionModal);
+    
+    // Initialize
+    await loadCurrentUser();
+    loadSchedule();
+    loadSuggestions();
+</script>
+</body>
+</html>
