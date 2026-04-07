@@ -1,7 +1,5 @@
-const CACHE_NAME = 'galagram-v2';
-
-// Core files to cache
-const urlsToCache = [
+const CACHE_NAME = 'galagram-v3';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/home.html',
@@ -13,71 +11,75 @@ const urlsToCache = [
   '/user.html',
   '/admin.html',
   '/manifest.json',
-
-  // External resources
-  'https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css',
-  'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.9.0/index.js',
-  'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js',
-  'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js'
+  '/offline.html',          // optional – create a simple offline page
+  'https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'
 ];
 
-
-// 🔹 INSTALL – cache core assets
+// 🔹 INSTALL – cache static assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+      .then(cache => {
+        // Cache each asset individually to avoid one failing the whole batch
+        return Promise.allSettled(
+          STATIC_ASSETS.map(url => 
+            cache.add(url).catch(err => console.warn(`Failed to cache ${url}:`, err))
+          )
+        );
+      })
   );
-  self.skipWaiting(); // activate immediately
+  self.skipWaiting();
 });
-
 
 // 🔹 FETCH – smart strategy
 self.addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
 
-  // 🟢 For pages → NETWORK FIRST (always fresh)
-  if (event.request.mode === 'navigate') {
+  // Skip cross-origin requests that don't support CORS (like Firebase CDN)
+  if (url.origin !== location.origin && !url.href.includes('unpkg.com')) {
+    // For external resources, try network but don't cache aggressively
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
+
+  // For navigation (HTML pages) → NETWORK FIRST
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
         .then(response => {
-          return caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, response.clone());
-            return response;
-          });
+          const cloned = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, cloned));
+          return response;
         })
-        .catch(() => caches.match(event.request)) // offline fallback
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || caches.match('/offline.html');
+        })
     );
     return;
   }
 
-  // 🔵 For other assets → CACHE FIRST
+  // For static assets (images, CSS, JS) → CACHE FIRST, then network
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        return response || fetch(event.request)
-          .then(networkResponse => {
-            return caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, networkResponse.clone());
-              return networkResponse;
-            });
-          });
-      })
+    caches.match(request)
+      .then(cached => cached || fetch(request).then(networkResponse => {
+        // Cache only successful responses
+        if (networkResponse.ok) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+        }
+        return networkResponse;
+      }))
   );
 });
-
 
 // 🔹 ACTIVATE – clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+    ))
   );
-  self.clients.claim(); // take control immediately
+  self.clients.claim();
 });
