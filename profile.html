@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc, addDoc, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
             authDomain: "akademia-c56ff.firebaseapp.com",
@@ -28,14 +28,15 @@
     </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; }
         .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
         .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .content { padding: 20px; background: #fafafa; min-height: 85vh; }
+        /* Profile header */
         .profile-header { text-align: center; margin-bottom: 24px; }
         .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #d62976; margin-bottom: 12px; }
         .profile-name { font-size: 1.4rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px; }
@@ -46,7 +47,8 @@
         .status-indicator { display: inline-block; padding: 6px 14px; border-radius: 30px; font-size: 0.75rem; font-weight: 600; margin: 12px 0; }
         .status-available { background: #e3f7e8; color: #1e7b3e; }
         .status-taken { background: #ffe6e6; color: #c0392b; }
-        .info-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+        /* Info card */
+        .info-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px solid #efefef; }
         .info-row:last-child { border-bottom: none; }
         .info-label { font-weight: 600; color: #8e8e8e; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
@@ -55,20 +57,40 @@
         .btn-primary { background: #0095f6; color: white; }
         .btn-danger { background: #efefef; color: #ed4956; border: 1px solid #ed4956; }
         .section-title { font-size: 1rem; font-weight: 600; margin: 16px 0 12px 0; display: flex; align-items: center; gap: 8px; }
-        .post-card { background: white; border-radius: 12px; margin-bottom: 12px; padding: 12px; }
-        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        /* Post card */
+        .post-card { background: white; border-radius: 16px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .post-header { padding: 12px; display: flex; align-items: center; gap: 10px; border-bottom: 0.5px solid #efefef; }
         .post-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
         .post-author { font-weight: 600; font-size: 0.85rem; }
         .post-time { font-size: 0.65rem; color: #8e8e8e; }
-        .post-text { font-size: 0.85rem; margin: 8px 0; }
-        .post-image { width: 100%; border-radius: 12px; margin-top: 8px; max-height: 200px; object-fit: cover; }
-        .post-stats { display: flex; gap: 16px; margin-top: 10px; color: #8e8e8e; font-size: 0.7rem; }
-        .post-actions { display: flex; gap: 12px; margin-top: 10px; padding-top: 8px; border-top: 0.5px solid #efefef; }
+        .post-question { background: #f0f2f5; margin: 12px; padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; color: #262626; border-left: 3px solid #0095f6; }
+        .post-text { padding: 0 12px 12px 12px; font-size: 0.9rem; line-height: 1.4; }
+        /* Image carousel */
+        .carousel-container { position: relative; background: #000; }
+        .carousel-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .carousel-track::-webkit-scrollbar { display: none; }
+        .carousel-slide { flex: 0 0 100%; scroll-snap-align: start; }
+        .carousel-slide img { width: 100%; max-height: 300px; object-fit: contain; background: #0a0a0a; display: block; }
+        .carousel-dots { display: flex; justify-content: center; gap: 8px; padding: 10px; background: white; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: #dbdbdb; }
+        .dot.active { background: #0095f6; width: 20px; border-radius: 4px; }
+        .post-description { padding: 8px 12px 12px 12px; font-size: 0.85rem; color: #262626; background: white; border-top: 0.5px solid #efefef; }
+        .post-stats { display: flex; gap: 16px; padding: 10px 12px; color: #8e8e8e; font-size: 0.7rem; border-top: 0.5px solid #efefef; }
+        .post-actions { display: flex; gap: 12px; padding: 8px 12px 12px; background: white; }
         .post-action-btn { background: none; border: none; font-size: 0.75rem; font-weight: 600; padding: 6px 12px; border-radius: 20px; cursor: pointer; }
         .post-action-btn.edit { color: #0095f6; }
         .post-action-btn.delete { color: #ed4956; }
         .empty-posts { text-align: center; padding: 30px; color: #8e8e8e; background: white; border-radius: 16px; }
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
+        /* Edit modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .edit-modal { background: white; border-radius: 24px; width: 90%; max-width: 400px; padding: 20px; }
+        .edit-modal h3 { margin-bottom: 12px; }
+        .edit-modal textarea { width: 100%; padding: 12px; border: 1px solid #dbdbdb; border-radius: 12px; font-size: 0.9rem; margin: 12px 0; resize: vertical; }
+        .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; }
+        .modal-buttons button { padding: 8px 16px; border-radius: 30px; border: none; font-weight: 600; cursor: pointer; }
+        .save-btn { background: #0095f6; color: white; }
+        .cancel-btn { background: #efefef; color: #262626; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10001; transition: transform 0.25s; pointer-events: none; }
         .galagram-toast.show { transform: translateX(-50%) translateY(0); }
         .loading { text-align: center; padding: 40px; color: #8e8e8e; }
         .bx-spin { animation: spin 1s linear infinite; }
@@ -78,30 +100,333 @@
 <body>
 <div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
 <div id="appRoot" class="app-container">
-    <div class="header"><i class='bx bx-arrow-back back-btn' id="backBtn"></i><div class="logo">My Profile</div></div>
-    <div class="content" id="contentArea"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div></div>
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">My Profile</div>
+    </div>
+    <div class="content" id="contentArea">
+        <div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div>
+    </div>
 </div>
+
 <script type="module">
-    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, deleteDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, deleteDoc, addDoc, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
-    async function addLog(type, actor, target, message) { try { await addDoc(collection(db, "logs"), { type, actor, target, message, timestamp: new Date() }); } catch(e) {} }
-    function showNotification(msg, type='success') { const existing=document.querySelector('.galagram-toast'); if(existing) existing.remove(); const toast=document.createElement('div'); toast.className='galagram-toast'; toast.innerHTML=`<i class='bx ${type==='error'?'bx-error-circle':'bx-check-circle'}'></i><span>${msg}</span>`; document.body.appendChild(toast); setTimeout(()=>toast.classList.add('show'),10); setTimeout(()=>toast.remove(),3000); }
-    const sessionData=localStorage.getItem('galagram_session'); if(!sessionData){ window.location.href="index.html"; } const session=JSON.parse(sessionData); const currentUsername=session.username;
-    let currentUser=null, userPosts=[], unsubscribePosts=null;
-    async function loadCurrentUser(){ const userDoc=await getDoc(doc(db,"users",currentUsername)); if(!userDoc.exists()){ window.location.href="index.html"; return; } currentUser={id:userDoc.id,...userDoc.data()}; if(!currentUser.galaStatus) currentUser.galaStatus="available"; renderProfile(); loadUserPosts(); }
-    function getVerifiedIcon(verified){ if(verified==="blue") return '<i class="bx bx-check-circle verified-badge blue"></i>'; if(verified==="gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>'; return ''; }
-    function renderProfile(){ const container=document.getElementById('contentArea'); const verifiedIcon=getVerifiedIcon(currentUser.verified); const statusClass=currentUser.galaStatus==='available'?'status-available':'status-taken'; const statusText=currentUser.galaStatus==='available'?'✨ Available for Gala':'💔 Already Taken'; container.innerHTML=`<div class="profile-header"><img class="profile-avatar" src="${currentUser.profileImage||'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100'}" alt=""><div class="profile-name">${escapeHtml(currentUser.realName)} ${verifiedIcon}</div><div class="profile-username">@${currentUser.username}</div><div class="status-indicator ${statusClass}">${statusText}</div></div><div class="info-card"><div class="info-row"><span class="info-label"><i class='bx bx-male-female'></i> Gender</span><span class="info-value">${currentUser.gender==='BOY'?'👦 Boy':'👧 Girl'}</span></div><div class="info-row"><span class="info-label"><i class='bx bx-phone'></i> Phone</span><span class="info-value">${escapeHtml(currentUser.phoneNumber||'Not set')}</span></div><div class="info-row"><span class="info-label"><i class='bx bx-instagram'></i> Instagram</span><span class="info-value">${escapeHtml(currentUser.instagramName||'Not connected')}</span></div><div class="info-row"><span class="info-label"><i class='bx bx-key'></i> 6-digit Code</span><span class="info-value">${currentUser.sixDigitCode}</span></div><div class="info-row"><span class="info-label"><i class='bx bx-calendar'></i> Joined</span><span class="info-value">${new Date(currentUser.createdAt).toLocaleDateString()}</span></div></div><button class="btn btn-primary" id="editProfileBtn"><i class='bx bx-edit-alt'></i> Edit Profile</button><button class="btn btn-danger" id="logoutBtn"><i class='bx bx-log-out'></i> Log Out</button><div class="section-title"><i class='bx bx-news'></i> My Posts</div><div id="myPostsContainer"></div>`; document.getElementById('editProfileBtn').addEventListener('click',()=>{ window.location.href="profile-edit.html"; }); document.getElementById('logoutBtn').addEventListener('click',()=>{ localStorage.removeItem('galagram_session'); showNotification("Logged out"); setTimeout(()=>{ window.location.href="index.html"; },1000); }); renderUserPosts(); }
-    function loadUserPosts(){ if(unsubscribePosts) unsubscribePosts(); const q=query(collection(db,"news"),where("authorUsername","==",currentUsername),orderBy("createdAt","desc")); unsubscribePosts=onSnapshot(q,(snapshot)=>{ userPosts=[]; snapshot.forEach(docSnap=>{ userPosts.push({id:docSnap.id,...docSnap.data()}); }); renderUserPosts(); }); }
-    function renderUserPosts(){ const container=document.getElementById('myPostsContainer'); if(!container) return; if(!userPosts.length){ container.innerHTML=`<div class="empty-posts"><i class='bx bx-empty' style="font-size:2rem;"></i><p>You haven't posted anything yet.</p><p style="font-size:0.7rem;">Tap + on the home screen to create your first post!</p></div>`; return; } container.innerHTML=userPosts.map(post=>`<div class="post-card" data-postid="${post.id}"><div class="post-header"><img class="post-avatar" src="${post.authorAvatar||'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div><div class="post-author">${escapeHtml(post.authorName)}</div><div class="post-time">${formatTime(post.createdAt)}</div></div></div><div class="post-text">${escapeHtml(post.text)}</div>${post.imageUrl?`<img class="post-image" src="${post.imageUrl}" alt="post image">`:''}<div class="post-stats"><span><i class='bx bx-heart'></i> ${post.likes?.length||0}</span><span><i class='bx bx-comment'></i> ${post.comments?.length||0}</span></div><div class="post-actions"><button class="post-action-btn edit" data-id="${post.id}"><i class='bx bx-edit-alt'></i> Edit</button><button class="post-action-btn delete" data-id="${post.id}"><i class='bx bx-trash'></i> Delete</button></div></div>`).join('');
-        document.querySelectorAll('.post-action-btn.edit').forEach(btn=>{ btn.addEventListener('click',async(e)=>{ e.stopPropagation(); const postId=btn.dataset.id; const post=userPosts.find(p=>p.id===postId); const newText=prompt("Edit your post:",post.text); if(newText && newText.trim() && newText.trim()!==post.text){ await updateDoc(doc(db,"news",postId),{text:newText.trim()}); await addLog('edit_post',currentUsername,null,`${currentUsername} edited a post`); showNotification("Post updated!"); } }); });
-        document.querySelectorAll('.post-action-btn.delete').forEach(btn=>{ btn.addEventListener('click',async(e)=>{ e.stopPropagation(); const postId=btn.dataset.id; const post=userPosts.find(p=>p.id===postId); if(confirm("Delete this post permanently?")){ await deleteDoc(doc(db,"news",postId)); await addLog('delete_post',currentUsername,null,`${currentUsername} deleted a post`); showNotification("Post deleted"); } }); });
+    
+    async function addLog(type, actor, target, message) { 
+        try { await addDoc(collection(db, "logs"), { type, actor, target, message, timestamp: new Date() }); } catch(e) {} 
     }
-    function formatTime(timestamp){ if(!timestamp) return 'just now'; const date=timestamp.toDate?timestamp.toDate():new Date(timestamp); const diff=Math.floor((new Date()-date)/1000); if(diff<60) return `${diff}s ago`; if(diff<3600) return `${Math.floor(diff/60)}m ago`; if(diff<86400) return `${Math.floor(diff/3600)}h ago`; return `${Math.floor(diff/86400)}d ago`; }
-    function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g,m=>m==='&'?'&amp;':(m==='<'?'&lt;':'&gt;')); }
-    document.getElementById('backBtn').addEventListener('click',()=>{ if(unsubscribePosts) unsubscribePosts(); window.location.href="home.html"; });
-    (function antiScreenshot(){ const blackFlash=()=>{ const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); }; document.addEventListener('keyup',e=>{ if(e.key==='PrintScreen'){ blackFlash(); e.preventDefault(); } }); document.addEventListener('contextmenu',e=>{ e.preventDefault(); blackFlash(); }); })();
-    function handleResize(){ const blocker=document.getElementById('pcBlocker'); const app=document.getElementById('appRoot'); if(window.innerWidth>768){ blocker.style.display='flex'; if(app) app.style.display='none'; }else{ blocker.style.display='none'; if(app) app.style.display='block'; } }
-    window.addEventListener('resize',handleResize); handleResize();
+    function showNotification(msg, type = 'success') { 
+        const existing = document.querySelector('.galagram-toast'); 
+        if (existing) existing.remove(); 
+        const toast = document.createElement('div'); 
+        toast.className = 'galagram-toast'; 
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${msg}</span>`; 
+        document.body.appendChild(toast); 
+        setTimeout(() => toast.classList.add('show'), 10); 
+        setTimeout(() => toast.remove(), 3000); 
+    }
+    
+    const sessionData = localStorage.getItem('galagram_session'); 
+    if (!sessionData) { window.location.href = "index.html"; } 
+    const session = JSON.parse(sessionData); 
+    const currentUsername = session.username;
+    
+    let currentUser = null;
+    let userPosts = [];
+    let unsubscribePosts = null;
+    
+    async function loadCurrentUser() { 
+        const userDoc = await getDoc(doc(db, "users", currentUsername)); 
+        if (!userDoc.exists()) { window.location.href = "index.html"; return; } 
+        currentUser = { id: userDoc.id, ...userDoc.data() }; 
+        if (!currentUser.galaStatus) currentUser.galaStatus = "available"; 
+        renderProfile(); 
+        loadUserPosts(); 
+    }
+    
+    function getVerifiedIcon(verified) { 
+        if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>'; 
+        if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>'; 
+        return ''; 
+    }
+    
+    function renderProfile() { 
+        const container = document.getElementById('contentArea'); 
+        const verifiedIcon = getVerifiedIcon(currentUser.verified); 
+        const statusClass = currentUser.galaStatus === 'available' ? 'status-available' : 'status-taken'; 
+        const statusText = currentUser.galaStatus === 'available' ? '✨ Available for Gala' : '💔 Already Taken'; 
+        container.innerHTML = `
+            <div class="profile-header">
+                <img class="profile-avatar" src="${currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=100'}" alt="">
+                <div class="profile-name">${escapeHtml(currentUser.realName)} ${verifiedIcon}</div>
+                <div class="profile-username">@${currentUser.username}</div>
+                <div class="status-indicator ${statusClass}">${statusText}</div>
+            </div>
+            <div class="info-card">
+                <div class="info-row"><span class="info-label"><i class='bx bx-male-female'></i> Gender</span><span class="info-value">${currentUser.gender === 'BOY' ? '👦 Boy' : '👧 Girl'}</span></div>
+                <div class="info-row"><span class="info-label"><i class='bx bx-phone'></i> Phone</span><span class="info-value">${escapeHtml(currentUser.phoneNumber || 'Not set')}</span></div>
+                <div class="info-row"><span class="info-label"><i class='bx bx-instagram'></i> Instagram</span><span class="info-value">${escapeHtml(currentUser.instagramName || 'Not connected')}</span></div>
+                <div class="info-row"><span class="info-label"><i class='bx bx-key'></i> 6-digit Code</span><span class="info-value">${currentUser.sixDigitCode}</span></div>
+                <div class="info-row"><span class="info-label"><i class='bx bx-calendar'></i> Joined</span><span class="info-value">${new Date(currentUser.createdAt).toLocaleDateString()}</span></div>
+            </div>
+            <button class="btn btn-primary" id="editProfileBtn"><i class='bx bx-edit-alt'></i> Edit Profile</button>
+            <button class="btn btn-danger" id="logoutBtn"><i class='bx bx-log-out'></i> Log Out</button>
+            <div class="section-title"><i class='bx bx-news'></i> My Posts</div>
+            <div id="myPostsContainer"></div>
+        `;
+        document.getElementById('editProfileBtn').addEventListener('click', () => { window.location.href = "profile-edit.html"; });
+        document.getElementById('logoutBtn').addEventListener('click', () => { 
+            localStorage.removeItem('galagram_session'); 
+            showNotification("Logged out"); 
+            setTimeout(() => { window.location.href = "index.html"; }, 1000); 
+        });
+        renderUserPosts(); 
+    }
+    
+    function loadUserPosts() { 
+        if (unsubscribePosts) unsubscribePosts(); 
+        const q = query(collection(db, "news"), where("authorUsername", "==", currentUsername), orderBy("createdAt", "desc")); 
+        unsubscribePosts = onSnapshot(q, (snapshot) => { 
+            userPosts = []; 
+            snapshot.forEach(docSnap => { userPosts.push({ id: docSnap.id, ...docSnap.data() }); }); 
+            renderUserPosts(); 
+        }); 
+    }
+    
+    function renderUserPosts() { 
+        const container = document.getElementById('myPostsContainer'); 
+        if (!container) return; 
+        if (!userPosts.length) { 
+            container.innerHTML = `<div class="empty-posts"><i class='bx bx-empty' style="font-size:2rem;"></i><p>You haven't posted anything yet.</p><p style="font-size:0.7rem;">Tap + on the home screen to create your first post!</p></div>`; 
+            return; 
+        }
+        container.innerHTML = userPosts.map(post => renderPostCard(post)).join('');
+        
+        // Attach edit & delete events
+        document.querySelectorAll('.edit-post-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const postId = btn.dataset.id;
+                const post = userPosts.find(p => p.id === postId);
+                openEditModal(post);
+            });
+        });
+        document.querySelectorAll('.delete-post-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const postId = btn.dataset.id;
+                if (confirm("Delete this post permanently?")) {
+                    await deleteDoc(doc(db, "news", postId));
+                    await addLog('delete_post', currentUsername, null, `${currentUsername} deleted a post`);
+                    showNotification("Post deleted");
+                }
+            });
+        });
+        // Initialize carousels for image posts with multiple images
+        userPosts.forEach(post => {
+            if (isImagePost(post) && getImageUrls(post).length > 1) {
+                initCarousel(post.id);
+            }
+        });
+    }
+    
+    function isImagePost(post) {
+        return (post.imageUrls && post.imageUrls.length > 0) || post.imageUrl;
+    }
+    
+    function getImageUrls(post) {
+        if (post.imageUrls && post.imageUrls.length) return post.imageUrls;
+        if (post.imageUrl) return [post.imageUrl];
+        return [];
+    }
+    
+    function renderPostCard(post) {
+        const isImage = isImagePost(post);
+        const imageUrls = getImageUrls(post);
+        const hasMultipleImages = imageUrls.length > 1;
+        const verifiedIcon = getVerifiedIcon(post.authorVerified);
+        const questionHtml = post.question ? `<div class="post-question"><i class='bx bx-question-mark'></i> ${escapeHtml(post.question)}</div>` : '';
+        const textHtml = !isImage && post.text ? `<div class="post-text">${escapeHtml(post.text)}</div>` : '';
+        
+        let carouselHtml = '';
+        if (isImage) {
+            if (hasMultipleImages) {
+                carouselHtml = `
+                    <div class="carousel-container" data-postid="${post.id}">
+                        <div class="carousel-track" id="track-${post.id}">
+                            ${imageUrls.map(url => `<div class="carousel-slide"><img src="${url}" alt="post image"></div>`).join('')}
+                        </div>
+                        <div class="carousel-dots" id="dots-${post.id}">
+                            ${imageUrls.map((_, idx) => `<span class="dot ${idx === 0 ? 'active' : ''}" data-index="${idx}"></span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                carouselHtml = `<div class="carousel-container"><img src="${imageUrls[0]}" style="width:100%; max-height:300px; object-fit:contain;"></div>`;
+            }
+        }
+        
+        const descriptionHtml = (isImage && post.description) ? `<div class="post-description">${escapeHtml(post.description)}</div>` : '';
+        
+        return `
+            <div class="post-card" data-postid="${post.id}">
+                <div class="post-header">
+                    <img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                    <div>
+                        <div class="post-author">${escapeHtml(post.authorName)} ${verifiedIcon}</div>
+                        <div class="post-time">${formatTime(post.createdAt)}</div>
+                    </div>
+                </div>
+                ${questionHtml}
+                ${carouselHtml}
+                ${descriptionHtml}
+                ${textHtml}
+                <div class="post-stats">
+                    <span><i class='bx bx-heart'></i> ${post.likes?.length || 0}</span>
+                    <span><i class='bx bx-comment'></i> ${post.comments?.length || 0}</span>
+                </div>
+                <div class="post-actions">
+                    <button class="post-action-btn edit edit-post-btn" data-id="${post.id}"><i class='bx bx-edit-alt'></i> Edit</button>
+                    <button class="post-action-btn delete delete-post-btn" data-id="${post.id}"><i class='bx bx-trash'></i> Delete</button>
+                </div>
+            </div>
+        `;
+    }
+    
+    function initCarousel(postId) {
+        const track = document.getElementById(`track-${postId}`);
+        const dotsContainer = document.getElementById(`dots-${postId}`);
+        if (!track || !dotsContainer) return;
+        const dots = dotsContainer.querySelectorAll('.dot');
+        
+        function updateActiveDot() {
+            const scrollLeft = track.scrollLeft;
+            const slideWidth = track.clientWidth;
+            const activeIndex = Math.round(scrollLeft / slideWidth);
+            dots.forEach((dot, i) => {
+                if (i === activeIndex) dot.classList.add('active');
+                else dot.classList.remove('active');
+            });
+        }
+        track.addEventListener('scroll', updateActiveDot);
+        track.addEventListener('scrollend', updateActiveDot);
+        dots.forEach(dot => {
+            dot.addEventListener('click', () => {
+                const index = parseInt(dot.dataset.index);
+                track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' });
+            });
+        });
+    }
+    
+    function openEditModal(post) {
+        const isImage = isImagePost(post);
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        let content = '';
+        if (isImage) {
+            content = `
+                <div class="edit-modal">
+                    <h3>Edit Description</h3>
+                    <textarea id="editDescription" rows="3" placeholder="Add a description...">${escapeHtml(post.description || '')}</textarea>
+                    <div class="modal-buttons">
+                        <button class="cancel-btn">Cancel</button>
+                        <button class="save-btn">Save</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            content = `
+                <div class="edit-modal">
+                    <h3>Edit Text Post</h3>
+                    <textarea id="editText" rows="4">${escapeHtml(post.text || '')}</textarea>
+                    <div class="modal-buttons">
+                        <button class="cancel-btn">Cancel</button>
+                        <button class="save-btn">Save</button>
+                    </div>
+                </div>
+            `;
+        }
+        overlay.innerHTML = content;
+        document.body.appendChild(overlay);
+        
+        const saveBtn = overlay.querySelector('.save-btn');
+        const cancelBtn = overlay.querySelector('.cancel-btn');
+        
+        saveBtn.addEventListener('click', async () => {
+            if (isImage) {
+                const newDescription = overlay.querySelector('#editDescription').value.trim();
+                if (newDescription !== (post.description || '')) {
+                    await updateDoc(doc(db, "news", post.id), { description: newDescription });
+                    await addLog('edit_post', currentUsername, null, `${currentUsername} edited a post description`);
+                    showNotification("Description updated!");
+                }
+            } else {
+                const newText = overlay.querySelector('#editText').value.trim();
+                if (newText && newText !== post.text) {
+                    await updateDoc(doc(db, "news", post.id), { text: newText });
+                    await addLog('edit_post', currentUsername, null, `${currentUsername} edited a text post`);
+                    showNotification("Post updated!");
+                } else if (!newText) {
+                    showNotification("Post cannot be empty", "error");
+                    overlay.remove();
+                    return;
+                }
+            }
+            overlay.remove();
+        });
+        cancelBtn.addEventListener('click', () => overlay.remove());
+    }
+    
+    function formatTime(timestamp) { 
+        if (!timestamp) return 'just now'; 
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp); 
+        const diff = Math.floor((new Date() - date) / 1000); 
+        if (diff < 60) return `${diff}s ago`; 
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`; 
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`; 
+        return `${Math.floor(diff / 86400)}d ago`; 
+    }
+    
+    function escapeHtml(str) { 
+        if (!str) return ''; 
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')); 
+    }
+    
+    document.getElementById('backBtn').addEventListener('click', () => { 
+        if (unsubscribePosts) unsubscribePosts(); 
+        window.location.href = "home.html"; 
+    });
+    
+    (function antiScreenshot() { 
+        const blackFlash = () => { 
+            const o = document.createElement('div'); 
+            o.style.position = 'fixed'; 
+            o.style.top = o.style.left = '0'; 
+            o.style.width = o.style.height = '100%'; 
+            o.style.backgroundColor = '#000'; 
+            o.style.zIndex = '999999'; 
+            document.body.appendChild(o); 
+            setTimeout(() => o.remove(), 200); 
+        }; 
+        document.addEventListener('keyup', e => { if (e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } }); 
+        document.addEventListener('contextmenu', e => { e.preventDefault(); blackFlash(); }); 
+    })();
+    
+    function handleResize() { 
+        const blocker = document.getElementById('pcBlocker'); 
+        const app = document.getElementById('appRoot'); 
+        if (window.innerWidth > 768) { 
+            blocker.style.display = 'flex'; 
+            if (app) app.style.display = 'none'; 
+        } else { 
+            blocker.style.display = 'none'; 
+            if (app) app.style.display = 'block'; 
+        } 
+    }
+    window.addEventListener('resize', handleResize); 
+    handleResize();
+    
     loadCurrentUser();
 </script>
 </body>
