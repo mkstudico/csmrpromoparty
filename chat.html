@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Galagram • Direct</title>
+    <title>Galagram • Chat</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.9.0/index.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: #fafafa;
@@ -27,8 +23,10 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 20px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
         }
+        
         /* Header */
         .header {
             background: white;
@@ -63,21 +61,27 @@
             cursor: pointer;
             color: #262626;
         }
-        /* Main chat layout */
-        .chat-layout {
+        
+        /* Main layout with sliding panels */
+        .chat-wrapper {
             display: flex;
             flex: 1;
             overflow: hidden;
+            position: relative;
         }
-        /* Conversations sidebar (Unified Inbox) */
-        .conversations-panel {
-            width: 360px;
+        
+        /* Inbox Panel (always visible) */
+        .inbox-panel {
+            width: 100%;
+            max-width: 380px;
             border-right: 1px solid #dbdbdb;
             background: white;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            flex-shrink: 0;
         }
+        
         .inbox-header {
             padding: 16px 16px 8px;
             display: flex;
@@ -88,13 +92,16 @@
             font-size: 1.2rem;
             font-weight: 700;
         }
-        .new-msg-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
+        .header-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .header-buttons i {
+            font-size: 1.3rem;
             cursor: pointer;
             color: #0095f6;
         }
+        
         .search-box {
             padding: 8px 16px 16px;
         }
@@ -144,10 +151,18 @@
             object-fit: cover;
             border: 1px solid #efefef;
         }
-        .conv-details {
-            flex: 1;
-            min-width: 0;
+        .group-avatar {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2px;
+            padding: 4px;
         }
+        .group-avatar img {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+        }
+        .conv-details { flex: 1; min-width: 0; }
         .conv-name-row {
             display: flex;
             align-items: center;
@@ -175,9 +190,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
         .conv-meta {
             display: flex;
@@ -189,29 +201,25 @@
             font-size: 0.7rem;
             color: #8e8e8e;
         }
-        .unread-badge {
-            background: #0095f6;
-            color: white;
-            border-radius: 12px;
-            padding: 2px 6px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-        .verified-badge {
-            font-size: 1rem;
-        }
-        .verified-badge.blue { color: #0095f6; }
-        .verified-badge.gray { color: #8e8e8e; }
         
-        /* Messages panel */
-        .messages-panel {
-            flex: 1;
+        /* Chat Panel (slides in) */
+        .chat-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
             display: flex;
             flex-direction: column;
-            background: #ffffff;
-            overflow: hidden;
-            position: relative;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
         }
+        .chat-panel.active {
+            transform: translateX(0);
+        }
+        
         .chat-header {
             padding: 14px 20px;
             border-bottom: 1px solid #dbdbdb;
@@ -219,6 +227,21 @@
             justify-content: space-between;
             align-items: center;
             background: white;
+        }
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .close-chat-btn {
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #262626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
         }
         .chat-info {
             display: flex;
@@ -239,10 +262,6 @@
             font-size: 0.75rem;
             color: #8e8e8e;
         }
-        .typing-indicator {
-            color: #0095f6;
-            font-size: 0.75rem;
-        }
         .chat-actions {
             display: flex;
             gap: 16px;
@@ -252,6 +271,7 @@
             cursor: pointer;
             color: #262626;
         }
+        
         .messages-container {
             flex: 1;
             overflow-y: auto;
@@ -261,12 +281,7 @@
             gap: 16px;
             background: #fafafa;
         }
-        .message-date-divider {
-            text-align: center;
-            font-size: 0.75rem;
-            color: #8e8e8e;
-            margin: 8px 0;
-        }
+        
         .message {
             display: flex;
             flex-direction: column;
@@ -281,12 +296,6 @@
             gap: 8px;
             margin-bottom: 4px;
             padding-left: 4px;
-        }
-        .message-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            object-fit: cover;
         }
         .message-sender {
             font-weight: 600;
@@ -314,10 +323,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-        .message-status {
-            display: flex;
-            align-items: center;
         }
         .message.own .message-info { justify-content: flex-end; margin-right: 12px; }
         .message-actions-btn {
@@ -380,13 +385,6 @@
             align-items: flex-end;
             background: white;
         }
-        .attach-btn {
-            font-size: 1.8rem;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #262626;
-        }
         .message-input-wrapper {
             flex: 1;
             background: #f0f0f0;
@@ -406,7 +404,7 @@
             max-height: 100px;
         }
         .message-input:focus { outline: none; }
-        .emoji-btn, .send-btn {
+        .emoji-btn {
             background: none;
             border: none;
             font-size: 1.5rem;
@@ -417,15 +415,18 @@
         .send-btn {
             background: #0095f6;
             color: white;
+            border: none;
             width: 40px;
             height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
             font-size: 1.2rem;
         }
         .send-btn i { font-size: 1.4rem; }
+        
         emoji-picker {
             position: absolute;
             bottom: 90px;
@@ -437,6 +438,7 @@
             box-shadow: 0 8px 30px rgba(0,0,0,0.15);
             border-radius: 20px;
         }
+        
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -450,8 +452,9 @@
             font-size: 4rem;
             color: #dbdbdb;
         }
-        /* Edit modal */
-        .edit-modal-overlay {
+        
+        /* Group creation modal */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -464,43 +467,62 @@
             align-items: center;
             justify-content: center;
         }
-        .edit-modal {
+        .modal {
             background: white;
             border-radius: 20px;
             width: 90%;
-            max-width: 420px;
+            max-width: 450px;
             padding: 24px;
         }
-        .edit-modal textarea {
-            width: 100%;
-            padding: 16px;
-            border: 1px solid #dbdbdb;
-            border-radius: 16px;
-            font-size: 1rem;
-            margin: 16px 0;
-            resize: none;
+        .modal h3 {
+            margin-bottom: 16px;
+            font-size: 1.2rem;
         }
-        .edit-modal .modal-buttons {
+        .modal input, .modal textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dbdbdb;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+        .member-selection {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .member-item:hover { background: #f0f0f0; }
+        .member-item.selected { background: #eef7ff; }
+        .modal-buttons {
             display: flex;
             gap: 12px;
             justify-content: flex-end;
         }
-        .edit-modal button {
-            padding: 12px 24px;
+        .modal-buttons button {
+            padding: 10px 20px;
             border-radius: 30px;
             border: none;
             cursor: pointer;
             font-weight: 600;
         }
-        .edit-modal .save-btn {
+        .modal-buttons .create-btn {
             background: #0095f6;
             color: white;
         }
         
+        .verified-badge.blue { color: #0095f6; }
+        .verified-badge.gray { color: #8e8e8e; }
+        
         @media (max-width: 768px) {
-            .chat-layout { flex-direction: column; }
-            .conversations-panel { width: 100%; max-height: 100%; border-right: none; }
-            .messages-panel { height: 100%; }
+            .inbox-panel { max-width: 100%; }
             .message { max-width: 85%; }
         }
     </style>
@@ -509,52 +531,51 @@
 <div class="app-container">
     <div class="header">
         <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
-        <div class="logo">Galagram Direct</div>
-        <div class="header-actions">
-            <i class='bx bx-video'></i>
-            <i class='bx bx-dots-vertical-rounded'></i>
-        </div>
+        <div class="logo">Galagram Chat</div>
+        <div class="header-actions"></div>
     </div>
     
-    <div class="chat-layout" id="chatLayout">
-        <!-- Unified Inbox Sidebar -->
-        <div id="conversationsPanel" class="conversations-panel">
+    <div class="chat-wrapper">
+        <!-- Inbox Panel -->
+        <div class="inbox-panel">
             <div class="inbox-header">
                 <h2>Messages</h2>
-                <button class="new-msg-btn" id="newMsgBtn"><i class='bx bx-edit-alt'></i></button>
+                <div class="header-buttons">
+                    <i class='bx bx-group' id="createGroupBtn" title="Create Group"></i>
+                </div>
             </div>
             <div class="search-box">
-                <input type="text" id="newConvSearch" placeholder="🔍 Search">
+                <input type="text" id="searchInput" placeholder="🔍 Search">
                 <div id="searchResults" class="search-results" style="display: none;"></div>
             </div>
             <div id="conversationsList"></div>
         </div>
         
-        <!-- Messages Panel -->
-        <div id="messagesPanel" class="messages-panel">
+        <!-- Chat Panel (slides in) -->
+        <div class="chat-panel" id="chatPanel">
             <div class="chat-header">
-                <div class="chat-info">
-                    <i class='bx bx-x back-to-list' id="mobileBackBtn" style="display:none; font-size:1.8rem; cursor:pointer; margin-right:8px;"></i>
-                    <img class="chat-avatar" id="chatAvatar" src="https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40" alt="">
-                    <div class="chat-title-section">
-                        <h3 id="chatTitle">Public Chat</h3>
-                        <div id="chatSubtitle" class="chat-subtitle">🌍 Everyone</div>
+                <div class="chat-header-left">
+                    <i class='bx bx-arrow-back close-chat-btn' id="closeChatBtn"></i>
+                    <div class="chat-info">
+                        <img class="chat-avatar" id="chatAvatar" src="https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40" alt="">
+                        <div class="chat-title-section">
+                            <h3 id="chatTitle">Public Chat</h3>
+                            <div id="chatSubtitle" class="chat-subtitle">🌍 Everyone</div>
+                        </div>
                     </div>
                 </div>
                 <div class="chat-actions">
-                    <i class='bx bx-phone' id="callBtn" style="display:none;"></i>
-                    <i class='bx bx-info-circle' id="infoBtn"></i>
+                    <i class='bx bx-dots-vertical-rounded' id="chatMenuBtn"></i>
                 </div>
             </div>
             <div id="messagesContainer" class="messages-container">
                 <div class="empty-state">
                     <i class='bx bx-message-detail'></i>
                     <h3>Your messages</h3>
-                    <p>Send private messages or join the public chat</p>
+                    <p>Select a chat to start messaging</p>
                 </div>
             </div>
             <div class="input-area" id="inputArea" style="display: none;">
-                <button class="attach-btn"><i class='bx bx-image'></i></button>
                 <div class="message-input-wrapper">
                     <textarea id="messageInput" class="message-input" rows="1" placeholder="Message..."></textarea>
                     <button id="emojiBtn" class="emoji-btn"><i class='bx bx-smile'></i></button>
@@ -588,27 +609,26 @@
     const currentUser = session.username;
     let currentUserDoc = null;
     
-    let activeChat = { type: 'public', id: 'public' };
+    let activeChat = null;
     let publicUnsubscribe = null;
     let privateUnsubscribe = null;
     let replyToMessage = null;
     let activeDropdown = null;
     
-    const backBtn = document.getElementById('backBtn');
-    const mobileBackBtn = document.getElementById('mobileBackBtn');
-    const conversationsPanel = document.getElementById('conversationsPanel');
+    const chatPanel = document.getElementById('chatPanel');
+    const closeChatBtn = document.getElementById('closeChatBtn');
     const messagesContainer = document.getElementById('messagesContainer');
     const inputArea = document.getElementById('inputArea');
     const chatTitle = document.getElementById('chatTitle');
     const chatSubtitle = document.getElementById('chatSubtitle');
     const chatAvatar = document.getElementById('chatAvatar');
-    const callBtn = document.getElementById('callBtn');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const emojiBtn = document.getElementById('emojiBtn');
     const emojiPicker = document.getElementById('emojiPicker');
-    const newConvSearch = document.getElementById('newConvSearch');
+    const searchInput = document.getElementById('searchInput');
     const searchResults = document.getElementById('searchResults');
+    const chatMenuBtn = document.getElementById('chatMenuBtn');
     
     async function getUserProfile(username) {
         const snap = await getDoc(doc(db, "users", username));
@@ -644,19 +664,28 @@
     
     function closeDropdown() { if(activeDropdown) { activeDropdown.remove(); activeDropdown=null; } }
     
-    // ---------- RENDER INBOX (Unified) ----------
+    function openChatPanel() { chatPanel.classList.add('active'); }
+    function closeChatPanel() { 
+        chatPanel.classList.remove('active'); 
+        activeChat = null;
+        if (privateUnsubscribe) privateUnsubscribe();
+        if (publicUnsubscribe) publicUnsubscribe();
+        messagesContainer.innerHTML = '<div class="empty-state"><i class="bx bx-message-detail"></i><h3>Your messages</h3><p>Select a chat to start messaging</p></div>';
+        inputArea.style.display = 'none';
+    }
+    
+    // ---------- RENDER INBOX ----------
     async function loadInbox() {
         const container = document.getElementById('conversationsList');
-        // Pinned Public Chat
         const publicChatHtml = `
-            <div class="conversation-item ${activeChat.type === 'public' ? 'active' : ''}" data-chat-type="public" data-chat-id="public">
+            <div class="conversation-item" data-chat-type="public">
                 <img class="conv-avatar" src="https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80&name=Public" alt="">
                 <div class="conv-details">
                     <div class="conv-name-row">
                         <span class="conv-name">🌍 Public Chat</span>
                         <span class="pinned-badge"><i class='bx bx-pin'></i> Pinned</span>
                     </div>
-                    <div class="conv-last-msg"><i class='bx bx-group'></i> <span id="publicLastMsg">Everyone can chat</span></div>
+                    <div class="conv-last-msg" id="publicLastMsg">Everyone can chat</div>
                 </div>
                 <div class="conv-meta">
                     <span class="conv-time" id="publicTime"></span>
@@ -664,11 +693,13 @@
             </div>
         `;
         
-        // Private convos
         const q = query(collection(db, "privateChats"), where("participants", "array-contains", currentUser));
-        const snap = await getDocs(q);
+        const groupQ = query(collection(db, "groups"), where("members", "array-contains", currentUser));
+        
+        const [privateSnap, groupSnap] = await Promise.all([getDocs(q), getDocs(groupQ)]);
+        
         let privateHtml = '';
-        for (const docSnap of snap.docs) {
+        for (const docSnap of privateSnap.docs) {
             const data = docSnap.data();
             const otherId = data.participants.find(p => p !== currentUser);
             const profile = await getUserProfile(otherId);
@@ -677,7 +708,7 @@
             const lastMsg = data.lastMessage || 'No messages';
             const time = data.lastUpdated ? formatTime(data.lastUpdated) : '';
             privateHtml += `
-                <div class="conversation-item ${activeChat.type === 'private' && activeChat.id === otherId ? 'active' : ''}" data-chat-type="private" data-chat-id="${otherId}">
+                <div class="conversation-item" data-chat-type="private" data-chat-id="${otherId}">
                     <img class="conv-avatar" src="${profile.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}">
                     <div class="conv-details">
                         <div class="conv-name-row">
@@ -686,21 +717,40 @@
                         </div>
                         <div class="conv-last-msg">${blocked ? '🔒 ' : ''}${escapeHtml(lastMsg.substring(0,30))}</div>
                     </div>
-                    <div class="conv-meta">
-                        <span class="conv-time">${time}</span>
-                    </div>
+                    <div class="conv-meta"><span class="conv-time">${time}</span></div>
                 </div>
             `;
         }
+        
+        for (const docSnap of groupSnap.docs) {
+            const data = docSnap.data();
+            const lastMsg = data.lastMessage || 'Group created';
+            const time = data.lastUpdated ? formatTime(data.lastUpdated) : '';
+            privateHtml += `
+                <div class="conversation-item" data-chat-type="group" data-chat-id="${docSnap.id}">
+                    <div class="conv-avatar group-avatar">
+                        ${data.members.slice(0,4).map(m => `<img src="https://ui-avatars.com/api/?name=${m}&background=962fbf&color=fff&size=40">`).join('')}
+                    </div>
+                    <div class="conv-details">
+                        <div class="conv-name-row">
+                            <span class="conv-name">👥 ${escapeHtml(data.name)}</span>
+                        </div>
+                        <div class="conv-last-msg">${escapeHtml(lastMsg.substring(0,30))}</div>
+                    </div>
+                    <div class="conv-meta"><span class="conv-time">${time}</span></div>
+                </div>
+            `;
+        }
+        
         container.innerHTML = publicChatHtml + privateHtml;
         
-        // Attach listeners
         container.querySelectorAll('.conversation-item').forEach(el => {
             el.addEventListener('click', () => {
                 const type = el.dataset.chatType;
                 const id = el.dataset.chatId;
                 if (type === 'public') openPublicChat();
-                else openPrivateChat(id);
+                else if (type === 'private') openPrivateChat(id);
+                else if (type === 'group') openGroupChat(id);
             });
         });
         
@@ -717,47 +767,64 @@
         });
     }
     
-    // ---------- OPEN CHATS ----------
     function openPublicChat() {
-        activeChat = { type: 'public', id: 'public' };
-        if (privateUnsubscribe) privateUnsubscribe();
+        activeChat = { type: 'public' };
         chatTitle.innerText = 'Public Chat';
         chatSubtitle.innerText = '🌍 Everyone • Active now';
         chatAvatar.src = 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40&name=Public';
-        callBtn.style.display = 'none';
         inputArea.style.display = 'flex';
         
+        if (privateUnsubscribe) privateUnsubscribe();
         const q = query(collection(db, "chatMessages"), orderBy("timestamp", "asc"));
         publicUnsubscribe = onSnapshot(q, (snap) => {
-            if (activeChat.type !== 'public') return;
             messagesContainer.innerHTML = '';
             snap.forEach(doc => renderPublicMessage(doc.data(), doc.id));
             scrollToBottom();
         });
-        loadInbox();
+        openChatPanel();
     }
     
     async function openPrivateChat(otherId) {
         const profile = await getUserProfile(otherId);
         if (profile?.blockedUsers?.includes(currentUser)) { showToast("You cannot message this user"); return; }
         activeChat = { type: 'private', id: otherId };
-        if (publicUnsubscribe) publicUnsubscribe();
         chatTitle.innerText = profile?.realName || otherId;
         chatSubtitle.innerText = `@${otherId}`;
         chatAvatar.src = profile?.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40';
-        callBtn.style.display = 'block';
         inputArea.style.display = 'flex';
         
+        if (publicUnsubscribe) publicUnsubscribe();
         const chatId = [currentUser, otherId].sort().join('_');
         const ref = collection(db, "privateChats", chatId, "messages");
         const q = query(ref, orderBy("timestamp", "asc"));
         privateUnsubscribe = onSnapshot(q, (snap) => {
-            if (activeChat.type !== 'private' || activeChat.id !== otherId) return;
             messagesContainer.innerHTML = '';
             snap.forEach(doc => renderPrivateMessage(doc.data(), doc.id, chatId));
             scrollToBottom();
         });
-        loadInbox();
+        openChatPanel();
+    }
+    
+    async function openGroupChat(groupId) {
+        const groupSnap = await getDoc(doc(db, "groups", groupId));
+        if (!groupSnap.exists()) return;
+        const groupData = groupSnap.data();
+        activeChat = { type: 'group', id: groupId };
+        chatTitle.innerText = groupData.name;
+        chatSubtitle.innerText = `${groupData.members.length} members`;
+        chatAvatar.src = `https://ui-avatars.com/api/?name=${groupData.name}&background=962fbf&color=fff&size=40`;
+        inputArea.style.display = 'flex';
+        
+        if (publicUnsubscribe) publicUnsubscribe();
+        if (privateUnsubscribe) privateUnsubscribe();
+        const ref = collection(db, "groups", groupId, "messages");
+        const q = query(ref, orderBy("timestamp", "asc"));
+        privateUnsubscribe = onSnapshot(q, (snap) => {
+            messagesContainer.innerHTML = '';
+            snap.forEach(doc => renderGroupMessage(doc.data(), doc.id, groupId));
+            scrollToBottom();
+        });
+        openChatPanel();
     }
     
     function renderPublicMessage(msg, id) {
@@ -768,7 +835,7 @@
             ${!isOwn ? `<div class="message-header"><span class="message-sender">${escapeHtml(msg.username)}</span> ${getVerifiedIcon(msg.userVerified)}</div>` : ''}
             ${msg.replyTo ? `<div class="reply-preview"><i class='bx bx-reply'></i> ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0,40))}</div>` : ''}
             <div class="message-bubble">${escapeHtml(msg.text)} ${msg.edited?'<span style="opacity:0.7;">(edited)</span>':''}</div>
-            <div class="message-info"><span>${formatTime(msg.timestamp)}</span> ${isOwn?'<span class="message-status"><i class="bx bx-check-double"></i></span>':''}</div>
+            <div class="message-info"><span>${formatTime(msg.timestamp)}</span></div>
             <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
         `;
         messagesContainer.appendChild(div);
@@ -782,11 +849,26 @@
         div.innerHTML = `
             ${msg.replyTo ? `<div class="reply-preview"><i class='bx bx-reply'></i> ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0,40))}</div>` : ''}
             <div class="message-bubble">${escapeHtml(msg.text)} ${msg.edited?'<span style="opacity:0.7;">(edited)</span>':''}</div>
-            <div class="message-info"><span>${formatTime(msg.timestamp)}</span> ${isOwn?'<span class="message-status"><i class="bx bx-check-double"></i></span>':''}</div>
+            <div class="message-info"><span>${formatTime(msg.timestamp)}</span></div>
             <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
         `;
         messagesContainer.appendChild(div);
         setupMessageActions(div, msg, id, 'private', chatId);
+    }
+    
+    function renderGroupMessage(msg, id, groupId) {
+        const isOwn = msg.senderId === currentUser;
+        const div = document.createElement('div');
+        div.className = `message ${isOwn ? 'own' : ''}`;
+        div.innerHTML = `
+            ${!isOwn ? `<div class="message-header"><span class="message-sender">${escapeHtml(msg.senderName)}</span></div>` : ''}
+            ${msg.replyTo ? `<div class="reply-preview"><i class='bx bx-reply'></i> ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0,40))}</div>` : ''}
+            <div class="message-bubble">${escapeHtml(msg.text)} ${msg.edited?'<span style="opacity:0.7;">(edited)</span>':''}</div>
+            <div class="message-info"><span>${formatTime(msg.timestamp)}</span></div>
+            <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
+        `;
+        messagesContainer.appendChild(div);
+        setupMessageActions(div, msg, id, 'group', groupId);
     }
     
     function setupMessageActions(el, msg, msgId, type, chatIdParam) {
@@ -810,13 +892,19 @@
             });
             dropdown.querySelector('.edit-action')?.addEventListener('click', () => {
                 showEditModal(msg.text, async (newText) => {
-                    const ref = type==='public' ? doc(db,"chatMessages",msgId) : doc(db,"privateChats",chatIdParam,"messages",msgId);
+                    let ref;
+                    if (type==='public') ref = doc(db,"chatMessages",msgId);
+                    else if (type==='private') ref = doc(db,"privateChats",chatIdParam,"messages",msgId);
+                    else ref = doc(db,"groups",chatIdParam,"messages",msgId);
                     await updateDoc(ref, {text:newText, edited:true});
                 }); closeDropdown();
             });
             dropdown.querySelector('.delete-action')?.addEventListener('click', async () => {
                 if(confirm('Delete message?')) {
-                    const ref = type==='public' ? doc(db,"chatMessages",msgId) : doc(db,"privateChats",chatIdParam,"messages",msgId);
+                    let ref;
+                    if (type==='public') ref = doc(db,"chatMessages",msgId);
+                    else if (type==='private') ref = doc(db,"privateChats",chatIdParam,"messages",msgId);
+                    else ref = doc(db,"groups",chatIdParam,"messages",msgId);
                     await deleteDoc(ref);
                 } closeDropdown();
             });
@@ -824,35 +912,142 @@
     }
     
     function showEditModal(text, cb) {
-        const ov = document.createElement('div'); ov.className='edit-modal-overlay';
-        ov.innerHTML = `<div class="edit-modal"><h4>Edit message</h4><textarea id="editTxt">${escapeHtml(text)}</textarea><div class="modal-buttons"><button class="cancel-edit">Cancel</button><button class="save-btn">Save</button></div></div>`;
+        const ov = document.createElement('div'); ov.className='modal-overlay';
+        ov.innerHTML = `<div class="modal"><h4>Edit message</h4><textarea id="editTxt">${escapeHtml(text)}</textarea><div class="modal-buttons"><button class="cancel-btn">Cancel</button><button class="create-btn">Save</button></div></div>`;
         document.body.appendChild(ov);
         const ta = ov.querySelector('#editTxt');
-        ov.querySelector('.save-btn').onclick = () => { const v = ta.value.trim(); if(v) cb(v); ov.remove(); };
-        ov.querySelector('.cancel-edit').onclick = () => ov.remove();
+        ov.querySelector('.create-btn').onclick = () => { const v = ta.value.trim(); if(v) cb(v); ov.remove(); };
+        ov.querySelector('.cancel-btn').onclick = () => ov.remove();
     }
     
     async function sendMessage() {
         const text = messageInput.value.trim(); if(!text) return;
-        if(activeChat.type === 'public') {
+        if (activeChat.type === 'public') {
             const data = { username: currentUser, text, timestamp: serverTimestamp(), userVerified: currentUserDoc?.verified };
             if(replyToMessage) { data.replyTo = replyToMessage; replyToMessage=null; messageInput.placeholder='Message...'; }
             await addDoc(collection(db,"chatMessages"), data);
-        } else {
+        } else if (activeChat.type === 'private') {
             const chatId = [currentUser, activeChat.id].sort().join('_');
             const data = { senderId: currentUser, senderName: currentUserDoc?.realName||currentUser, text, timestamp: serverTimestamp() };
             if(replyToMessage) { data.replyTo = replyToMessage; replyToMessage=null; messageInput.placeholder='Message...'; }
             await addDoc(collection(db,`privateChats/${chatId}/messages`), data);
             await updateDoc(doc(db,"privateChats",chatId), { lastMessage: text, lastUpdated: new Date() });
+        } else if (activeChat.type === 'group') {
+            const data = { senderId: currentUser, senderName: currentUserDoc?.realName||currentUser, text, timestamp: serverTimestamp() };
+            if(replyToMessage) { data.replyTo = replyToMessage; replyToMessage=null; messageInput.placeholder='Message...'; }
+            await addDoc(collection(db,`groups/${activeChat.id}/messages`), data);
+            await updateDoc(doc(db,"groups",activeChat.id), { lastMessage: text, lastUpdated: new Date() });
         }
         messageInput.value = '';
     }
     
     function scrollToBottom() { setTimeout(() => messagesContainer.scrollTop = messagesContainer.scrollHeight, 50); }
     
-    // Search & new conversation
-    newConvSearch.addEventListener('input', () => {
-        const q = newConvSearch.value.trim().toLowerCase();
+    // Chat menu (Delete/Block/Exit)
+    chatMenuBtn.addEventListener('click', async (e) => {
+        e.stopPropagation(); closeDropdown();
+        if (!activeChat) return;
+        const dropdown = document.createElement('div'); dropdown.className = 'dropdown-menu';
+        let options = '';
+        if (activeChat.type === 'private') {
+            const isBlocked = currentUserDoc?.blockedUsers?.includes(activeChat.id);
+            options = `
+                <div class="delete-chat danger"><i class='bx bx-trash'></i> Delete Chat</div>
+                <div class="block-user danger"><i class='bx bx-block'></i> ${isBlocked ? 'Unblock' : 'Block'} User</div>
+            `;
+        } else if (activeChat.type === 'group') {
+            options = `
+                <div class="delete-chat danger"><i class='bx bx-trash'></i> Delete Chat</div>
+                <div class="exit-group danger"><i class='bx bx-exit'></i> Exit Group</div>
+            `;
+        }
+        dropdown.innerHTML = options;
+        const rect = chatMenuBtn.getBoundingClientRect();
+        dropdown.style.position = 'fixed'; dropdown.style.top = rect.bottom+4+'px'; dropdown.style.right = (window.innerWidth - rect.right)+'px';
+        document.body.appendChild(dropdown); activeDropdown = dropdown;
+        
+        dropdown.querySelector('.delete-chat')?.addEventListener('click', async () => {
+            if (confirm('Delete this conversation?')) {
+                if (activeChat.type === 'private') {
+                    const chatId = [currentUser, activeChat.id].sort().join('_');
+                    await deleteDoc(doc(db, "privateChats", chatId));
+                } else if (activeChat.type === 'group') {
+                    await deleteDoc(doc(db, "groups", activeChat.id));
+                }
+                closeChatPanel(); loadInbox(); showToast('Chat deleted');
+            }
+            closeDropdown();
+        });
+        
+        dropdown.querySelector('.block-user')?.addEventListener('click', async () => {
+            const isBlocked = currentUserDoc?.blockedUsers?.includes(activeChat.id);
+            if (isBlocked) {
+                await updateDoc(doc(db, "users", currentUser), { blockedUsers: arrayRemove(activeChat.id) });
+                currentUserDoc.blockedUsers = currentUserDoc.blockedUsers.filter(id => id !== activeChat.id);
+                showToast(`Unblocked user`);
+            } else {
+                await updateDoc(doc(db, "users", currentUser), { blockedUsers: arrayUnion(activeChat.id) });
+                currentUserDoc.blockedUsers = [...(currentUserDoc.blockedUsers||[]), activeChat.id];
+                showToast(`Blocked user`);
+            }
+            closeDropdown(); closeChatPanel(); loadInbox();
+        });
+        
+        dropdown.querySelector('.exit-group')?.addEventListener('click', async () => {
+            if (confirm('Exit this group?')) {
+                await updateDoc(doc(db, "groups", activeChat.id), { members: arrayRemove(currentUser) });
+                closeChatPanel(); loadInbox(); showToast('Exited group');
+            }
+            closeDropdown();
+        });
+    });
+    
+    // Create Group
+    document.getElementById('createGroupBtn').addEventListener('click', async () => {
+        const usersSnap = await getDocs(collection(db, "users"));
+        const users = [];
+        usersSnap.forEach(d => { if (d.id !== currentUser) users.push({...d.data(), username: d.id}); });
+        
+        const ov = document.createElement('div'); ov.className = 'modal-overlay';
+        ov.innerHTML = `
+            <div class="modal">
+                <h3>Create Group</h3>
+                <input type="text" id="groupName" placeholder="Group name">
+                <div class="member-selection" id="memberSelection">
+                    ${users.map(u => `<div class="member-item" data-username="${u.username}"><input type="checkbox"> <span>${escapeHtml(u.realName||u.username)} (@${u.username})</span></div>`).join('')}
+                </div>
+                <div class="modal-buttons">
+                    <button class="cancel-btn">Cancel</button>
+                    <button class="create-btn">Create</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(ov);
+        
+        ov.querySelector('.cancel-btn').onclick = () => ov.remove();
+        ov.querySelector('.create-btn').onclick = async () => {
+            const name = ov.querySelector('#groupName').value.trim();
+            if (!name) { showToast('Enter group name'); return; }
+            const selected = [];
+            ov.querySelectorAll('.member-item input:checked').forEach(cb => {
+                selected.push(cb.closest('.member-item').dataset.username);
+            });
+            if (selected.length === 0) { showToast('Select at least one member'); return; }
+            selected.push(currentUser);
+            
+            const groupRef = doc(collection(db, "groups"));
+            await setDoc(groupRef, {
+                name, members: selected, createdBy: currentUser, createdAt: new Date(), lastUpdated: new Date()
+            });
+            ov.remove();
+            loadInbox();
+            showToast('Group created!');
+        };
+    });
+    
+    // Search
+    searchInput.addEventListener('input', () => {
+        const q = searchInput.value.trim().toLowerCase();
         if(q.length<2) { searchResults.style.display='none'; return; }
         setTimeout(async () => {
             const snap = await getDocs(collection(db,"users"));
@@ -861,7 +1056,7 @@
             searchResults.style.display = matches.length ? 'block' : 'none';
             searchResults.innerHTML = matches.map(u => `<div class="search-result-item" data-username="${u.username}"><img src="${u.profileImage||'https://ui-avatars.com/api/?size=40'}" style="width:40px;height:40px;border-radius:50%;"><div><strong>${escapeHtml(u.realName||u.username)}</strong><div style="font-size:0.75rem;">@${u.username}</div></div></div>`).join('');
             document.querySelectorAll('.search-result-item').forEach(el => el.addEventListener('click', async () => {
-                const un = el.dataset.username; newConvSearch.value=''; searchResults.style.display='none';
+                const un = el.dataset.username; searchInput.value=''; searchResults.style.display='none';
                 const chatId = [currentUser, un].sort().join('_');
                 await setDoc(doc(db,"privateChats",chatId), { participants: [currentUser, un], createdAt: new Date(), lastUpdated: new Date() }, {merge:true});
                 openPrivateChat(un); loadInbox();
@@ -870,23 +1065,19 @@
     });
     
     // Event listeners
-    backBtn.onclick = () => window.location.href = "home.html";
-    mobileBackBtn.onclick = () => { /* mobile nav handled by CSS */ };
+    document.getElementById('backBtn').onclick = () => window.location.href = "home.html";
+    closeChatBtn.onclick = closeChatPanel;
     sendBtn.onclick = sendMessage;
     messageInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMessage(); } });
     emojiBtn.onclick = () => emojiPicker.style.display = emojiPicker.style.display==='none'?'block':'none';
     emojiPicker.addEventListener('emoji-click', e => { messageInput.value += e.detail.unicode; emojiPicker.style.display='none'; messageInput.focus(); });
     document.addEventListener('click', (e) => { if(!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) emojiPicker.style.display='none'; closeDropdown(); });
-    document.getElementById('newMsgBtn').onclick = () => newConvSearch.focus();
-    document.getElementById('infoBtn').onclick = () => showToast(activeChat.type==='public'?'Public chat for everyone':'Private conversation');
-    callBtn.onclick = () => showToast('Voice call feature coming soon');
     
     // Init
     (async () => {
         const snap = await getDoc(doc(db,"users",currentUser));
         if(snap.exists()) currentUserDoc = snap.data();
         await loadInbox();
-        openPublicChat(); // Default to public chat pinned
     })();
 </script>
 </body>
