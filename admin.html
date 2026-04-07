@@ -6,7 +6,7 @@
     <title>Galagram • Admin Panel (PC)</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -131,7 +131,6 @@
             font-size: 2rem;
             font-weight: 700;
         }
-        /* Cards for users, posts, logs */
         .list-container {
             background: white;
             border-radius: 16px;
@@ -286,6 +285,40 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        /* Schedule editor styles */
+        .schedule-editor-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8f8f8;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            cursor: grab;
+        }
+        .schedule-editor-item:active {
+            cursor: grabbing;
+        }
+        .schedule-time {
+            width: 100px;
+            padding: 6px;
+            border: 1px solid #dbdbdb;
+            border-radius: 8px;
+        }
+        .schedule-activity {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #dbdbdb;
+            border-radius: 8px;
+        }
+        .delete-schedule-item {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
         @media (max-width: 768px) {
             .admin-layout {
                 flex-direction: column;
@@ -320,6 +353,7 @@
             <div class="nav-item" data-tab="posts"><i class='bx bx-news'></i> Posts</div>
             <div class="nav-item" data-tab="logs"><i class='bx bx-history'></i> Logs</div>
             <div class="nav-item" data-tab="notifiers"><i class='bx bx-bell'></i> Notifiers</div>
+            <div class="nav-item" data-tab="schedule"><i class='bx bx-calendar'></i> Party Schedule</div>
             <div class="nav-item" data-tab="back"><i class='bx bx-arrow-back'></i> Back to Home</div>
         </div>
     </div>
@@ -334,7 +368,7 @@
 </div>
 
 <script type="module">
-    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
     let currentTab = "users";
@@ -342,6 +376,9 @@
     let allPosts = [];
     let allLogs = [];
     let searchQuery = "";
+    let scheduleItems = [];
+    let dragSrcIndex = null;
+    let dragOverIndex = null;
     
     function showNotification(message) {
         const toast = document.createElement('div');
@@ -351,14 +388,13 @@
         setTimeout(() => toast.remove(), 3000);
     }
     
-    // Check if logged in (optional: you can keep session check)
+    // Session check (optional)
     const sessionData = localStorage.getItem('galagram_session');
     if (!sessionData) {
-        // Not logged in? redirect? But admin might be accessed directly.
-        // For safety, you can redirect to index.html, but we'll just allow for now.
-        console.warn("No session found");
+        console.warn("No session found, but admin can still work.");
     }
     
+    // ---------- Users ----------
     async function loadUsers() {
         const usersRef = collection(db, "users");
         const snapshot = await getDocs(usersRef);
@@ -370,40 +406,6 @@
         if (currentTab === "users") renderUsers();
     }
     
-    async function loadPosts() {
-        const postsRef = collection(db, "news");
-        const q = query(postsRef, orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(q);
-        allPosts = [];
-        snapshot.forEach(docSnap => {
-            allPosts.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        renderStats();
-        if (currentTab === "posts") renderPosts();
-    }
-    
-    async function loadLogs() {
-        const logsRef = collection(db, "logs");
-        const q = query(logsRef, orderBy("timestamp", "desc"));
-        const snapshot = await getDocs(q);
-        allLogs = [];
-        snapshot.forEach(docSnap => {
-            allLogs.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        renderStats();
-        if (currentTab === "logs") renderLogs();
-    }
-    
-    function renderStats() {
-        const container = document.getElementById('statsContainer');
-        container.innerHTML = `
-            <div class="stat-card"><div class="stat-number">${allUsers.length}</div><div>Total Users</div></div>
-            <div class="stat-card"><div class="stat-number">${allPosts.length}</div><div>Total Posts</div></div>
-            <div class="stat-card"><div class="stat-number">${allLogs.length}</div><div>Total Logs</div></div>
-        `;
-    }
-    
-    // ---------- USERS ----------
     function renderUsers() {
         let filtered = allUsers;
         if (searchQuery) {
@@ -449,12 +451,24 @@
         });
     }
     
-    // ---------- POSTS ----------
+    // ---------- Posts ----------
+    async function loadPosts() {
+        const postsRef = collection(db, "news");
+        const q = query(postsRef, orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        allPosts = [];
+        snapshot.forEach(docSnap => {
+            allPosts.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderStats();
+        if (currentTab === "posts") renderPosts();
+    }
+    
     function renderPosts() {
         let filtered = allPosts;
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            filtered = allPosts.filter(p => p.text?.toLowerCase().includes(q) || p.authorName?.toLowerCase().includes(q));
+            filtered = allPosts.filter(p => p.text?.toLowerCase().includes(q) || p.authorName?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q));
         }
         const container = document.getElementById('adminContent');
         if (!filtered.length) {
@@ -464,6 +478,7 @@
         let html = `<div class="list-container">`;
         filtered.forEach(post => {
             const isPinned = post.pinned || false;
+            const preview = post.text || post.description || (post.imageUrls ? 'Image post' : 'Post');
             html += `
                 <div class="list-item">
                     <div class="post-info">
@@ -471,7 +486,7 @@
                         <div class="details">
                             <div class="name">${escapeHtml(post.authorName)}</div>
                             <div class="time">${formatTime(post.createdAt)}</div>
-                            <div class="post-preview">${escapeHtml(post.text?.substring(0, 80) || post.description?.substring(0, 80) || 'Image post')}${(post.text?.length > 80 || post.description?.length > 80) ? '...' : ''}</div>
+                            <div class="post-preview">${escapeHtml(preview.substring(0, 80))}${preview.length > 80 ? '...' : ''}</div>
                         </div>
                     </div>
                     <div>
@@ -518,7 +533,19 @@
         });
     }
     
-    // ---------- LOGS ----------
+    // ---------- Logs ----------
+    async function loadLogs() {
+        const logsRef = collection(db, "logs");
+        const q = query(logsRef, orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+        allLogs = [];
+        snapshot.forEach(docSnap => {
+            allLogs.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        renderStats();
+        if (currentTab === "logs") renderLogs();
+    }
+    
     function renderLogs() {
         let filtered = allLogs;
         if (searchQuery) {
@@ -552,7 +579,13 @@
         container.innerHTML = html;
     }
     
-    // ---------- NOTIFIERS (multi-user) ----------
+    // ---------- Notifiers (multi-user) ----------
+    async function loadNotifiers() {
+        // Just load users list for the form
+        await loadUsers();
+        renderNotifiers();
+    }
+    
     function renderNotifiers() {
         const container = document.getElementById('adminContent');
         let filtered = allUsers;
@@ -564,7 +597,6 @@
             container.innerHTML = `<div class="loading">No users found</div>`;
             return;
         }
-        
         let html = `
             <div class="notifier-form">
                 <h3>✉️ Send Notifier to Selected Users</h3>
@@ -656,7 +688,6 @@
             if (typeSelect.value === 'update') {
                 document.querySelectorAll('#updateFieldsContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
             }
-            // Clear selection
             for (let i = 0; i < multiSelect.options.length; i++) multiSelect.options[i].selected = false;
             loadRecentNotifiers();
         });
@@ -687,6 +718,142 @@
         `).join('');
     }
     
+    // ---------- Party Schedule (drag & drop) ----------
+    async function loadSchedule() {
+        const docRef = doc(db, "party", "schedule");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            scheduleItems = docSnap.data().items || [];
+        } else {
+            scheduleItems = [];
+        }
+        renderScheduleEditor();
+        renderStats();
+    }
+    
+    function renderScheduleEditor() {
+        const container = document.getElementById('adminContent');
+        if (!scheduleItems.length) {
+            container.innerHTML = `
+                <div style="background:white; border-radius:16px; padding:24px;">
+                    <div class="empty-state" style="text-align:center; color:#8e8e8e;">No schedule items. Add some!</div>
+                    <button id="addScheduleItemBtn" class="btn-primary" style="margin-top:16px;">+ Add Item</button>
+                </div>
+            `;
+            document.getElementById('addScheduleItemBtn')?.addEventListener('click', () => addScheduleItem());
+            return;
+        }
+        let html = `
+            <div style="background:white; border-radius:16px; padding:16px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                    <h3>Drag to reorder schedule</h3>
+                    <button id="addScheduleItemBtn" class="btn-primary">+ Add Item</button>
+                </div>
+                <div id="scheduleSortableList">
+                    ${scheduleItems.map((item, idx) => `
+                        <div class="schedule-editor-item" data-index="${idx}" draggable="true">
+                            <i class='bx bx-menu' style="font-size:1.2rem; color:#8e8e8e;"></i>
+                            <input type="text" class="schedule-time" value="${escapeHtml(item.time || '')}" placeholder="Time (e.g., 7:00 PM)">
+                            <input type="text" class="schedule-activity" value="${escapeHtml(item.activity)}" placeholder="Activity">
+                            <button class="delete-schedule-item" data-idx="${idx}">Delete</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button id="saveScheduleBtn" class="btn-primary" style="margin-top:16px;">Save Order & Changes</button>
+            </div>
+        `;
+        container.innerHTML = html;
+        
+        // Attach drag & drop handlers
+        const items = document.querySelectorAll('.schedule-editor-item');
+        items.forEach(item => {
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('drop', handleDrop);
+            item.addEventListener('dragend', handleDragEnd);
+        });
+        
+        document.getElementById('addScheduleItemBtn').addEventListener('click', () => addScheduleItem());
+        document.getElementById('saveScheduleBtn').addEventListener('click', () => saveSchedule());
+        document.querySelectorAll('.delete-schedule-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.idx);
+                scheduleItems.splice(idx, 1);
+                renderScheduleEditor();
+            });
+        });
+        // Update scheduleItems array when inputs change
+        document.querySelectorAll('.schedule-time, .schedule-activity').forEach((input, i) => {
+            input.addEventListener('change', (e) => {
+                const parent = input.closest('.schedule-editor-item');
+                const idx = parseInt(parent.dataset.index);
+                if (input.classList.contains('schedule-time')) {
+                    scheduleItems[idx].time = input.value;
+                } else {
+                    scheduleItems[idx].activity = input.value;
+                }
+            });
+        });
+    }
+    
+    function handleDragStart(e) {
+        dragSrcIndex = parseInt(e.target.closest('.schedule-editor-item').dataset.index);
+        e.dataTransfer.effectAllowed = 'move';
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const targetItem = e.target.closest('.schedule-editor-item');
+        if (targetItem) {
+            dragOverIndex = parseInt(targetItem.dataset.index);
+        }
+    }
+    function handleDrop(e) {
+        e.preventDefault();
+        if (dragSrcIndex !== null && dragOverIndex !== null && dragSrcIndex !== dragOverIndex) {
+            const movedItem = scheduleItems[dragSrcIndex];
+            scheduleItems.splice(dragSrcIndex, 1);
+            scheduleItems.splice(dragOverIndex, 0, movedItem);
+            renderScheduleEditor();
+        }
+        dragSrcIndex = null;
+        dragOverIndex = null;
+    }
+    function handleDragEnd(e) {
+        dragSrcIndex = null;
+        dragOverIndex = null;
+    }
+    
+    function addScheduleItem() {
+        scheduleItems.push({ time: "", activity: "New activity" });
+        renderScheduleEditor();
+    }
+    
+    async function saveSchedule() {
+        // Capture latest values from inputs
+        const items = document.querySelectorAll('.schedule-editor-item');
+        const newItems = [];
+        items.forEach(item => {
+            const time = item.querySelector('.schedule-time').value;
+            const activity = item.querySelector('.schedule-activity').value;
+            newItems.push({ time, activity });
+        });
+        scheduleItems = newItems;
+        await setDoc(doc(db, "party", "schedule"), { items: scheduleItems });
+        showNotification("Schedule saved!");
+    }
+    
+    // ---------- Stats ----------
+    function renderStats() {
+        const container = document.getElementById('statsContainer');
+        if (!container) return;
+        container.innerHTML = `
+            <div class="stat-card"><div class="stat-number">${allUsers.length}</div><div>Total Users</div></div>
+            <div class="stat-card"><div class="stat-number">${allPosts.length}</div><div>Total Posts</div></div>
+            <div class="stat-card"><div class="stat-number">${allLogs.length}</div><div>Total Logs</div></div>
+        `;
+    }
+    
     // ---------- Utilities ----------
     function formatTime(timestamp) {
         if (!timestamp) return 'unknown';
@@ -704,9 +871,18 @@
         currentTab = tab;
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         document.querySelector(`.nav-item[data-tab="${tab}"]`).classList.add('active');
-        document.getElementById('pageTitle').innerText = tab.charAt(0).toUpperCase() + tab.slice(1);
+        const titleMap = {
+            users: 'Users Management',
+            posts: 'Posts Management',
+            logs: 'System Logs',
+            notifiers: 'Send Notifiers',
+            schedule: 'Party Schedule Editor',
+            back: 'Back to Home'
+        };
+        document.getElementById('pageTitle').innerText = titleMap[tab] || 'Admin Dashboard';
         document.getElementById('searchInput').value = '';
         searchQuery = '';
+        
         if (tab === 'users') {
             await loadUsers();
             renderUsers();
@@ -717,8 +893,9 @@
             await loadLogs();
             renderLogs();
         } else if (tab === 'notifiers') {
-            await loadUsers(); // to have user list
-            renderNotifiers();
+            await loadNotifiers();
+        } else if (tab === 'schedule') {
+            await loadSchedule();
         } else if (tab === 'back') {
             window.location.href = "home.html";
         }
@@ -730,6 +907,7 @@
         else if (currentTab === 'posts') renderPosts();
         else if (currentTab === 'logs') renderLogs();
         else if (currentTab === 'notifiers') renderNotifiers();
+        // Schedule tab doesn't need search
     });
     
     document.querySelectorAll('.nav-item').forEach(item => {
