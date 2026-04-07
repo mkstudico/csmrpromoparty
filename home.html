@@ -97,7 +97,7 @@
         .remove-image { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
         .post-btn { background: #0095f6; color: white; border: none; padding: 10px 16px; border-radius: 30px; font-weight: 600; width: 100%; cursor: pointer; }
         .post-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .section-title { font-weight: 700; font-size: 1.1rem; margin: 20px 0 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .section-title { font-weight: 700; font-size: 1.2rem; margin: 20px 0 12px 0; display: flex; justify-content: space-between; align-items: center; }
         .horizontal-scroll { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 8px; scrollbar-width: thin; }
         .horizontal-scroll::-webkit-scrollbar { height: 4px; }
         .discovery-card { flex: 0 0 140px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.04); cursor: pointer; }
@@ -109,17 +109,24 @@
         .grid-item { position: relative; aspect-ratio: 1; cursor: pointer; }
         .grid-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
         .grid-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.6)); color: white; padding: 4px; font-size: 0.7rem; display: flex; justify-content: space-around; border-radius: 0 0 8px 8px; }
+        /* Carousel styles */
+        .carousel-container { position: relative; background: white; border-radius: 16px; overflow: hidden; margin-bottom: 20px; }
+        .carousel-slide { display: flex; transition: transform 0.5s ease; }
+        .carousel-item { flex: 0 0 100%; padding: 20px; text-align: center; min-height: 280px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .carousel-item img { max-width: 100%; max-height: 200px; border-radius: 12px; object-fit: contain; margin-bottom: 12px; }
+        .carousel-text { font-size: 1rem; margin: 12px 0; max-height: 120px; overflow-y: auto; }
+        .carousel-author { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; }
+        .carousel-author img { width: 32px; height: 32px; border-radius: 50%; margin: 0; }
+        .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; }
+        .carousel-btn.prev { left: 8px; }
+        .carousel-btn.next { right: 8px; }
+        .carousel-dots { display: flex; justify-content: center; gap: 8px; padding: 12px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #dbdbdb; cursor: pointer; }
+        .dot.active { background: #0095f6; }
         hr { margin: 16px 0; border: none; border-top: 0.5px solid #efefef; }
-        /* Modals for notifier and verification */
+        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10001; display: flex; align-items: center; justify-content: center; }
         .modal-container { background: white; border-radius: 24px; width: 85%; max-width: 320px; padding: 24px 20px; text-align: center; }
-        .modal-container i { font-size: 3rem; margin-bottom: 12px; }
-        .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
-        .modal-message { font-size: 0.9rem; margin: 12px 0; color: #555; }
-        .modal-btn { padding: 10px 16px; border-radius: 30px; font-weight: 600; border: none; cursor: pointer; background: #0095f6; color: white; width: 100%; margin-top: 8px; }
-        .modal-btn-secondary { background: #efefef; color: #262626; }
-        .flex-buttons { display: flex; gap: 10px; margin-top: 12px; }
-        .flex-buttons .modal-btn { flex: 1; }
         .survey-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
         .survey-container { background: white; border-radius: 24px; width: 90%; max-width: 400px; max-height: 85vh; overflow-y: auto; padding: 20px; }
         .survey-title { font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 16px; background: linear-gradient(135deg, #f77737, #d62976); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -156,7 +163,7 @@
         <div class="nav-item" data-nav="posts"><i class='bx bx-news'></i><span>Posts</span></div>
         <div class="nav-item" data-nav="all"><i class='bx bx-group'></i><span>All</span></div>
         <div class="nav-item" data-nav="available"><i class='bx bx-star'></i><span>Available</span></div>
-        <div class="nav-item" data-nav="movies"><i class='bx bx-movie'></i><span>Hub</span></div>
+        <div class="nav-item" data-nav="movies"><i class='bx bx-movie'></i><span>Movies</span></div>
         <div class="nav-item" data-nav="chat"><i class='bx bx-chat'></i><span>Chat</span></div>
     </div>
 </div>
@@ -169,11 +176,13 @@
     const messaging = getMessaging();
     const IMGBB_KEY = "99c6aa298645e8a4742979117fc73be6";
     
-    let currentUser = null, allUsers = [], postsItems = [], requestsList = [], currentNav = "posts", searchQuery = "", searchDebounceTimer = null, unsubscribeUsers = null;
-    let allPosts = [];
+    let currentUser = null, allUsers = [], allPosts = [], requestsList = [], currentNav = "posts", searchQuery = "", searchDebounceTimer = null, unsubscribeUsers = null;
     let postingType = "text";
     let selectedImageFiles = [];
     let imagePreviewUrls = [];
+    let currentQuestion = "What are you planning to wear in the party?"; // default, will be fetched from Firestore
+    let carouselInterval = null;
+    let currentSlideIndex = 0;
     
     // ---------- Helper functions ----------
     async function addLog(type, actor, target, message) { try { await addDoc(collection(db,"logs"),{type,actor,target,message,timestamp:new Date()}); } catch(e){} }
@@ -192,6 +201,16 @@
     if (!sessionData) { window.location.href = "index.html"; } 
     const session = JSON.parse(sessionData); 
     const currentUsername = session.username;
+    
+    // ---------- Fetch current question from Firestore ----------
+    async function fetchCurrentQuestion() {
+        try {
+            const configDoc = await getDoc(doc(db, "party", "config"));
+            if (configDoc.exists() && configDoc.data().postQuestion) {
+                currentQuestion = configDoc.data().postQuestion;
+            }
+        } catch(e) { console.error("Error fetching question:", e); }
+    }
     
     // ---------- Silent FCM (no modals) ----------
     async function initFCM() {
@@ -307,15 +326,15 @@
             overlay.className = 'modal-overlay';
             const modal = document.createElement('div');
             modal.className = 'modal-container';
-            let innerHtml = `<div class="modal-title">📢 ${notifier.type === 'warning' ? 'Warning' : (notifier.type === 'inquiry' ? 'Inquiry' : 'Update Required')}</div>
-                             <div class="modal-message">${escapeHtml(notifier.message)}</div>`;
+            let innerHtml = `<div style="font-size:1.2rem; font-weight:700; margin-bottom:8px;">📢 ${notifier.type === 'warning' ? 'Warning' : (notifier.type === 'inquiry' ? 'Inquiry' : 'Update Required')}</div>
+                             <div style="margin:12px 0;">${escapeHtml(notifier.message)}</div>`;
             if (notifier.type === 'update') {
                 innerHtml += `<input type="text" id="updateValueInput" placeholder="Enter new value" style="width:100%; padding:10px; border-radius:30px; border:1px solid #dbdbdb; margin:12px 0;">`;
-                innerHtml += `<button id="submitUpdateBtn" class="modal-btn">UPDATE</button>`;
+                innerHtml += `<button id="submitUpdateBtn" style="background:#0095f6; color:white; border:none; padding:10px; border-radius:30px; width:100%;">UPDATE</button>`;
             } else {
-                innerHtml += `<button id="doneBtn" class="modal-btn">DONE</button>`;
+                innerHtml += `<button id="doneBtn" style="background:#0095f6; color:white; border:none; padding:10px; border-radius:30px; width:100%;">DONE</button>`;
             }
-            innerHtml += `<button id="closeModalBtn" class="modal-btn modal-btn-secondary" style="margin-top:8px;">Close</button>`;
+            innerHtml += `<button id="closeModalBtn" style="margin-top:8px; background:transparent; border:none; color:#8e8e8e;">Close</button>`;
             modal.innerHTML = innerHtml;
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
@@ -360,12 +379,12 @@
         const modal = document.createElement('div');
         modal.className = 'modal-container';
         let message = `Hey ${escapeHtml(currentUser.realName || currentUser.username)}! PAY FOR A VERIFICATION BADGE TO HAVE A MORE LEGITIMATE ACCOUNT AND A GOOD POSITION IN THE PROMO PARTY.`;
-        let buttonsHtml = `<div class="flex-buttons"><button id="laterBtn" class="modal-btn modal-btn-secondary">LATER</button><button id="payBtn" class="modal-btn">AM ON IT</button></div>`;
+        let buttonsHtml = `<div style="display:flex; gap:12px; margin-top:16px;"><button id="laterBtn" style="flex:1; padding:10px; border-radius:30px; background:#efefef;">LATER</button><button id="payBtn" style="flex:1; padding:10px; border-radius:30px; background:#0095f6; color:white;">AM ON IT</button></div>`;
         const hasClickedPayBefore = localStorage.getItem('galagram_verify_paid_clicked') === 'true';
         if (hasClickedPayBefore && currentUser.verified === "none") {
-            buttonsHtml = `<button id="paidBtn" class="modal-btn">I Have paid.</button>`;
+            buttonsHtml = `<button id="paidBtn" style="width:100%; padding:10px; border-radius:30px; background:#22c55e; color:white;">I Have paid.</button>`;
         }
-        modal.innerHTML = `<div class="modal-title">🔔 Verification Required</div><div class="modal-message">${message}</div>${buttonsHtml}`;
+        modal.innerHTML = `<div style="font-size:1.2rem; font-weight:700;">🔔 Verification Required</div><div style="margin:12px 0;">${message}</div>${buttonsHtml}`;
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
         const laterBtn = modal.querySelector('#laterBtn');
@@ -458,7 +477,7 @@
         }
     }
     
-    // ---------- POST tab: posting UI + discovery sections ----------
+    // ---------- POST tab: posting UI + discovery sections (with carousel) ----------
     async function uploadToImgBB(file) {
         const fd = new FormData();
         fd.append('image', file);
@@ -477,7 +496,8 @@
             createdAt: new Date(),
             likes: [],
             comments: [],
-            pinned: false
+            pinned: false,
+            question: currentQuestion  // store the question at time of posting
         };
         if (imageUrls.length > 0) {
             postData.type = 'image';
@@ -495,7 +515,7 @@
     function renderPostingArea() {
         return `
             <div class="posting-area">
-                <div class="posting-question">🎤 What are you planning to wear in the party?</div>
+                <div class="posting-question">🎤 ${escapeHtml(currentQuestion)}</div>
                 <div class="posting-tabs">
                     <div class="posting-tab ${postingType === 'text' ? 'active' : ''}" data-type="text">📝 TEXT</div>
                     <div class="posting-tab ${postingType === 'images' ? 'active' : ''}" data-type="images">🖼️ IMAGES</div>
@@ -517,6 +537,74 @@
         `;
     }
     
+    // Carousel for Most Popular
+    let carouselPosts = [];
+    let carouselAutoTimer = null;
+    
+    function initCarousel(posts) {
+        if (carouselAutoTimer) clearInterval(carouselAutoTimer);
+        carouselPosts = posts;
+        if (!carouselPosts.length) return;
+        currentSlideIndex = 0;
+        renderCarousel();
+        carouselAutoTimer = setInterval(() => {
+            if (carouselPosts.length > 1) {
+                currentSlideIndex = (currentSlideIndex + 1) % carouselPosts.length;
+                renderCarousel();
+            }
+        }, 5000);
+    }
+    
+    function renderCarousel() {
+        const container = document.getElementById('carouselContainer');
+        if (!container || !carouselPosts.length) return;
+        const post = carouselPosts[currentSlideIndex];
+        const isImage = post.type === 'image' || (post.imageUrls && post.imageUrls.length > 0);
+        const imageUrl = isImage ? (post.imageUrls?.[0] || post.imageUrl || '') : '';
+        const content = isImage ? '' : (post.text || '');
+        const likes = post.likes?.length || 0;
+        const comments = post.comments?.length || 0;
+        const verifiedIcon = getVerifiedIcon(post.authorVerified);
+        container.innerHTML = `
+            <div class="carousel-item" data-postid="${post.id}">
+                ${isImage ? `<img src="${imageUrl}" alt="post">` : `<div class="carousel-text">${escapeHtml(content)}</div>`}
+                <div class="carousel-author">
+                    <img src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'}" alt="">
+                    <span>${escapeHtml(post.authorName)}</span>
+                    ${verifiedIcon}
+                </div>
+                <div style="font-size:0.7rem; color:#8e8e8e; margin-top:4px;">❤️ ${likes} 💬 ${comments}</div>
+            </div>
+        `;
+        // attach click event
+        const item = container.querySelector('.carousel-item');
+        if (item) item.addEventListener('click', () => window.location.href = `news.html?id=${post.id}`);
+        // update dots
+        const dotsContainer = document.getElementById('carouselDots');
+        if (dotsContainer) {
+            dotsContainer.innerHTML = carouselPosts.map((_, idx) => `<span class="dot ${idx === currentSlideIndex ? 'active' : ''}" data-index="${idx}"></span>`).join('');
+            document.querySelectorAll('.dot').forEach(dot => {
+                dot.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.dataset.index);
+                    if (!isNaN(idx)) {
+                        currentSlideIndex = idx;
+                        renderCarousel();
+                        // reset timer
+                        if (carouselAutoTimer) {
+                            clearInterval(carouselAutoTimer);
+                            carouselAutoTimer = setInterval(() => {
+                                if (carouselPosts.length > 1) {
+                                    currentSlideIndex = (currentSlideIndex + 1) % carouselPosts.length;
+                                    renderCarousel();
+                                }
+                            }, 5000);
+                        }
+                    }
+                });
+            });
+        }
+    }
+    
     function renderDiscoverySections(posts) {
         const sortedByLikes = [...posts].sort((a,b) => (b.likes?.length || 0) - (a.likes?.length || 0));
         const mostPopular = sortedByLikes.slice(0, 15);
@@ -525,18 +613,34 @@
         const imagePosts = posts.filter(p => p.type === 'image' || (p.imageUrls && p.imageUrls.length > 0)).filter(p => !mostPopularIds.has(p.id));
         
         let html = '';
+        
+        // Most Popular Carousel (🔥)
         if (mostPopular.length) {
-            html += `<div class="section-title">🔥 Most Viewed/Liked</div><div class="horizontal-scroll" id="popularScroll">${renderDiscoveryCards(mostPopular)}</div>`;
+            html += `<div class="section-title">🔥</div>
+                     <div class="carousel-container">
+                         <div id="carouselContainer" class="carousel-slide"></div>
+                         <div id="carouselDots" class="carousel-dots"></div>
+                     </div>`;
+            // initialize carousel after DOM is ready
+            setTimeout(() => initCarousel(mostPopular), 0);
         }
+        
+        // All Text Posts Section
         if (textPosts.length) {
-            html += `<div class="section-title">📄 All Text Posts</div><div class="horizontal-scroll" id="textScroll">${renderDiscoveryCards(textPosts)}</div>`;
+            html += `<div class="section-title">📄 All Text Posts</div>
+                     <div class="horizontal-scroll" id="textScroll">${renderDiscoveryCards(textPosts)}</div>`;
         }
+        
+        // All Image Posts Section (Grid)
         if (imagePosts.length) {
-            html += `<div class="section-title">🖼️ All Image Posts</div><div class="image-grid" id="imageGrid">${renderImageGrid(imagePosts)}</div>`;
+            html += `<div class="section-title">🖼️ All Image Posts</div>
+                     <div class="image-grid" id="imageGrid">${renderImageGrid(imagePosts)}</div>`;
         }
+        
         if (mostPopular.length === 0 && textPosts.length === 0 && imagePosts.length === 0) {
             html += `<div class="empty-state">No posts yet. Be the first to post!</div>`;
         }
+        
         return html;
     }
     
@@ -560,12 +664,14 @@
     
     async function renderPostsTab() {
         document.getElementById('searchBar').classList.add('hide');
+        await fetchCurrentQuestion(); // ensure latest question
         const snapshot = await getDocs(collection(db, "news"));
         allPosts = [];
         snapshot.forEach(docSnap => allPosts.push({ id: docSnap.id, ...docSnap.data() }));
         const container = document.getElementById('contentArea');
         container.innerHTML = renderPostingArea() + renderDiscoverySections(allPosts);
         
+        // Attach posting UI events
         document.querySelectorAll('.posting-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 postingType = tab.dataset.type;
@@ -574,72 +680,82 @@
         });
         
         if (postingType === 'text') {
-            document.getElementById('submitPostBtn').addEventListener('click', async () => {
-                const text = document.getElementById('postText').value.trim();
-                if (!text) { showNotificationMessage("Please enter text", "error"); return; }
-                document.getElementById('submitPostBtn').disabled = true;
-                await createPost(text);
-                document.getElementById('submitPostBtn').disabled = false;
-                document.getElementById('postText').value = '';
-                renderPostsTab();
-            });
+            const submitBtn = document.getElementById('submitPostBtn');
+            const postText = document.getElementById('postText');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', async () => {
+                    const text = postText.value.trim();
+                    if (!text) { showNotificationMessage("Please enter text", "error"); return; }
+                    submitBtn.disabled = true;
+                    await createPost(text);
+                    submitBtn.disabled = false;
+                    postText.value = '';
+                    renderPostsTab();
+                });
+            }
         } else {
             const fileInput = document.getElementById('imageUploadInput');
             const selectBtn = document.getElementById('selectImagesBtn');
             const previewGrid = document.getElementById('imagePreviewGrid');
             const descriptionInput = document.getElementById('imageDescription');
-            selectBtn.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', async (e) => {
-                const files = Array.from(e.target.files);
-                if (selectedImageFiles.length + files.length > 10) {
-                    showNotificationMessage("Max 10 images allowed", "error");
-                    return;
+            const submitBtn = document.getElementById('submitPostBtn');
+            if (selectBtn) {
+                selectBtn.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', async (e) => {
+                    const files = Array.from(e.target.files);
+                    if (selectedImageFiles.length + files.length > 10) {
+                        showNotificationMessage("Max 10 images allowed", "error");
+                        return;
+                    }
+                    for (const file of files) {
+                        if (!file.type.startsWith('image/')) continue;
+                        selectedImageFiles.push(file);
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            imagePreviewUrls.push(ev.target.result);
+                            renderImagePreviews();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                    fileInput.value = '';
+                });
+                function renderImagePreviews() {
+                    if (previewGrid) {
+                        previewGrid.innerHTML = selectedImageFiles.map((_, idx) => `<div class="image-preview-item"><img src="${imagePreviewUrls[idx]}" alt="preview"><div class="remove-image" data-index="${idx}">✕</div></div>`).join('');
+                        document.querySelectorAll('.remove-image').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const idx = parseInt(btn.dataset.index);
+                                selectedImageFiles.splice(idx, 1);
+                                imagePreviewUrls.splice(idx, 1);
+                                renderImagePreviews();
+                            });
+                        });
+                    }
                 }
-                for (const file of files) {
-                    if (!file.type.startsWith('image/')) continue;
-                    selectedImageFiles.push(file);
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        imagePreviewUrls.push(ev.target.result);
-                        renderImagePreviews();
-                    };
-                    reader.readAsDataURL(file);
-                }
-                fileInput.value = '';
-            });
-            function renderImagePreviews() {
-                previewGrid.innerHTML = selectedImageFiles.map((_, idx) => `<div class="image-preview-item"><img src="${imagePreviewUrls[idx]}" alt="preview"><div class="remove-image" data-index="${idx}">✕</div></div>`).join('');
-                document.querySelectorAll('.remove-image').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const idx = parseInt(btn.dataset.index);
-                        selectedImageFiles.splice(idx, 1);
-                        imagePreviewUrls.splice(idx, 1);
-                        renderImagePreviews();
-                    });
+                submitBtn.addEventListener('click', async () => {
+                    if (selectedImageFiles.length === 0) { showNotificationMessage("Select at least one image", "error"); return; }
+                    const description = descriptionInput.value.trim();
+                    submitBtn.disabled = true;
+                    try {
+                        const uploadedUrls = [];
+                        for (const file of selectedImageFiles) {
+                            const url = await uploadToImgBB(file);
+                            uploadedUrls.push(url);
+                        }
+                        await createPost('', uploadedUrls, description);
+                        selectedImageFiles = [];
+                        imagePreviewUrls = [];
+                        renderPostsTab();
+                    } catch (err) {
+                        showNotificationMessage("Upload failed: " + err.message, "error");
+                    } finally {
+                        submitBtn.disabled = false;
+                    }
                 });
             }
-            document.getElementById('submitPostBtn').addEventListener('click', async () => {
-                if (selectedImageFiles.length === 0) { showNotificationMessage("Select at least one image", "error"); return; }
-                const description = descriptionInput.value.trim();
-                document.getElementById('submitPostBtn').disabled = true;
-                try {
-                    const uploadedUrls = [];
-                    for (const file of selectedImageFiles) {
-                        const url = await uploadToImgBB(file);
-                        uploadedUrls.push(url);
-                    }
-                    await createPost('', uploadedUrls, description);
-                    selectedImageFiles = [];
-                    imagePreviewUrls = [];
-                    renderPostsTab();
-                } catch (err) {
-                    showNotificationMessage("Upload failed: " + err.message, "error");
-                } finally {
-                    document.getElementById('submitPostBtn').disabled = false;
-                }
-            });
         }
         
+        // Attach click listeners to discovery cards and grid items
         document.querySelectorAll('.discovery-card, .grid-item').forEach(el => {
             el.addEventListener('click', (e) => {
                 const postId = el.dataset.postid;
