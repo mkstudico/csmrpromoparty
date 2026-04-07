@@ -1,4 +1,4 @@
-const CACHE_NAME = 'galagram-v5';
+const CACHE_NAME = 'galagram-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
