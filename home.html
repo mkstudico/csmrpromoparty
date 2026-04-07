@@ -127,15 +127,68 @@
     import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     let currentUser = null, allUsers = [], postsItems = [], requestsList = [], currentTab = "posts", searchQuery = "", searchDebounceTimer = null, unsubscribeMessages = null, recentSuggestions = [];
+    
     async function addLog(type, actor, target, message) { try { await addDoc(collection(db,"logs"),{type,actor,target,message,timestamp:new Date()}); } catch(e){} }
     function showNotification(message, type = "info") { const existing = document.querySelector('.galagram-toast'); if(existing) existing.remove(); const toast = document.createElement('div'); toast.className = `galagram-toast`; toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${message}</span>`; document.body.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => toast.remove(), 4000); }
     const sessionData = localStorage.getItem('galagram_session'); if (!sessionData) { window.location.href = "index.html"; } const session = JSON.parse(sessionData); const currentUsername = session.username;
+    
     async function loadCurrentUser() { const userDoc = await getDoc(doc(db, "users", currentUsername)); if (userDoc.exists()) { currentUser = { id: currentUsername, ...userDoc.data() }; if (!currentUser.galaStatus) await updateDoc(doc(db, "users", currentUsername), { galaStatus: "available", requests: [], sentRequests: [] }); if (!currentUser.requests) await updateDoc(doc(db, "users", currentUsername), { requests: [] }); if (!currentUser.sentRequests) await updateDoc(doc(db, "users", currentUsername), { sentRequests: [] }); if (!currentUser.verified) await updateDoc(doc(db, "users", currentUsername), { verified: "none" }); requestsList = currentUser.requests || []; updateRequestBadge(); document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'; if (!currentUser.survey) showSurvey(); } }
-    function showSurvey() { /* survey code same as earlier – omitted for brevity, but you can keep it */ }
+    
+    function showSurvey() {
+        if (currentUser.survey) return;
+        const overlay = document.createElement('div');
+        overlay.className = 'survey-overlay';
+        overlay.innerHTML = `<div class="survey-container"><div class="survey-title">🎉 Complete your profile</div><div id="surveySteps"></div><div class="survey-progress"><div class="survey-progress-bar" id="surveyProgress"></div></div><div class="survey-buttons"><button id="surveyPrev" class="survey-btn survey-btn-secondary" disabled>Back</button><button id="surveyNext" class="survey-btn survey-btn-primary">Next</button></div></div>`;
+        document.body.appendChild(overlay);
+        const questions = [
+            { key: "district", label: "Which district are you from?", type: "select", options: ["Kigali", "Rubavu", "Musanze", "Huye", "Muhanga", "Rusizi", "Other"] },
+            { key: "ageRange", label: "Age range", type: "select", options: ["18-22", "23-27", "28-32", "33+"] },
+            { key: "height", label: "Height", type: "select", options: ["Tall (180cm+)", "Medium (165-179cm)", "Short (<165cm)"] },
+            { key: "hobby", label: "Favorite hobby", type: "select", options: ["Music", "Sports", "Art", "Travel", "Reading", "Gaming"] },
+            { key: "classCombo", label: "Class combo (optional)", type: "select", options: ["Science", "Arts", "Business", "Not specified"] },
+            { key: "everKissed", label: "Ever kissed?", type: "select", options: ["Yes", "No", "Prefer not to say"] }
+        ];
+        let step = 0;
+        const answers = {};
+        function renderStep() {
+            const container = document.getElementById('surveySteps');
+            const q = questions[step];
+            let html = `<div class="survey-question"><div class="survey-label">${q.label}</div>`;
+            if (q.type === "select") {
+                html += `<select id="surveyValue" class="survey-select">${q.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}</select>`;
+            } else {
+                html += `<input type="text" id="surveyValue" class="survey-input" placeholder="${q.label}">`;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+            if (answers[q.key]) document.getElementById('surveyValue').value = answers[q.key];
+            document.getElementById('surveyPrev').disabled = step === 0;
+            const progress = ((step + 1) / questions.length) * 100;
+            document.getElementById('surveyProgress').style.width = `${progress}%`;
+        }
+        document.getElementById('surveyNext').onclick = () => {
+            const val = document.getElementById('surveyValue').value;
+            if (!val) { showNotification("Please select an option", "error"); return; }
+            answers[questions[step].key] = val;
+            if (step + 1 < questions.length) { step++; renderStep(); }
+            else {
+                // save survey
+                updateDoc(doc(db, "users", currentUsername), { survey: answers }).then(() => {
+                    currentUser.survey = answers;
+                    showNotification("Survey completed! Better matches now.", "success");
+                    overlay.remove();
+                }).catch(() => showNotification("Error saving survey", "error"));
+            }
+        };
+        document.getElementById('surveyPrev').onclick = () => { if (step > 0) { step--; renderStep(); } };
+        renderStep();
+    }
+    
     function computeCompatibilityScore(user) { if (user.id === currentUsername || user.galaStatus !== "available" || currentUser.sentRequests?.includes(user.id) || currentUser.requests?.includes(user.id) || currentUser.gender === user.gender) return -Infinity; let score = 50; if (currentUser.gender !== user.gender) score += 30; const mySurvey = currentUser.survey, theirSurvey = user.survey; if (mySurvey && theirSurvey) { if (mySurvey.district === theirSurvey.district) score += 25; if (mySurvey.ageRange === theirSurvey.ageRange) score += 15; if (mySurvey.height === theirSurvey.height) score += 10; if (mySurvey.hobby === theirSurvey.hobby) score += 30; if (mySurvey.classCombo === theirSurvey.classCombo) score += 35; if (mySurvey.everKissed === theirSurvey.everKissed) score += 10; } score += Math.min(user.rejectionCount || 0, 8) * 3; if (user.createdAt) { const daysSinceJoin = (Date.now() - new Date(user.createdAt).getTime()) / (1000*3600*24); if (daysSinceJoin < 3) score += 20; } score += Math.min(user.chatMessageCount || 0, 100) * 0.3; if (recentSuggestions.includes(user.id)) score -= 40; if (user.verified === "blue") score += 25; else if (user.verified === "gray") score += 15; return score; }
     function getTopSuggestions(users, count = 5) { return users.filter(u => u.galaStatus === "available" && u.id !== currentUsername && currentUser.gender !== u.gender).map(u => ({ user: u, score: computeCompatibilityScore(u) })).sort((a,b) => b.score - a.score).slice(0, count).map(item => item.user); }
     function addToRecentSuggestions(userId) { recentSuggestions.unshift(userId); if (recentSuggestions.length > 10) recentSuggestions.pop(); }
     async function showSuggestionPopupIfNeeded() { if (!currentUser || currentUser.galaStatus !== "available") return; const today = new Date().toDateString(); if (localStorage.getItem('galagram_suggestion_date') === today) return; const suggestions = getTopSuggestions(allUsers, 3); if (suggestions.length === 0) return; const topMatch = suggestions[0]; addToRecentSuggestions(topMatch.id); const overlay = document.createElement('div'); overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);'; const popup = document.createElement('div'); popup.style.cssText = 'background:white;border-radius:24px;width:85%;max-width:320px;padding:24px 20px;text-align:center;'; const pronoun = topMatch.gender === 'BOY' ? 'him' : 'her'; popup.innerHTML = `<div style="font-size:1.3rem;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,#f77737,#d62976);-webkit-background-clip:text;background-clip:text;color:transparent;">✨ Perfect Match ✨</div><div style="display:flex;align-items:center;gap:12px;background:#f8f8f8;padding:12px;border-radius:16px;margin:16px 0;"><img src="${topMatch.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;"><div><div style="font-weight:600;font-size:1rem;">${escapeHtml(topMatch.realName)}</div><div style="font-size:0.7rem;color:#8e8e8e;">@${topMatch.username}</div></div></div><p>Are you interested in ${escapeHtml(topMatch.realName)}? Request ${pronoun} to be your gala!</p><div style="display:flex;gap:12px;margin-top:16px;"><button id="suggAccept" style="flex:1;padding:10px;border-radius:30px;font-weight:600;background:#0095f6;color:white;border:none;">Request</button><button id="suggDecline" style="flex:1;padding:10px;border-radius:30px;font-weight:600;background:#efefef;color:#262626;border:none;">No, Thanks</button></div>`; overlay.appendChild(popup); document.body.appendChild(overlay); popup.querySelector('#suggAccept').addEventListener('click', async () => { try { await updateDoc(doc(db, "users", topMatch.id), { requests: arrayUnion(currentUsername) }); await updateDoc(doc(db, "users", currentUsername), { sentRequests: arrayUnion(topMatch.id) }); showNotification(`Request sent to ${topMatch.realName}!`, 'success'); await addLog('request', currentUsername, topMatch.id, `${currentUsername} requested ${topMatch.realName} (via suggestion popup)`); } catch(e) { showNotification("Error sending request", "error"); } overlay.remove(); localStorage.setItem('galagram_suggestion_date', today); }); popup.querySelector('#suggDecline').addEventListener('click', () => { overlay.remove(); localStorage.setItem('galagram_suggestion_date', today); }); }
+    
     function calculatePostScore(post) { const likes = post.likes?.length || 0, comments = post.comments?.length || 0; const engagementScore = likes * 1.5 + comments * 1.0; const createdAt = post.createdAt?.toDate ? post.createdAt.toDate() : new Date(post.createdAt); const hoursSince = (new Date() - createdAt) / (1000 * 60 * 60); let decayFactor = hoursSince > 48 ? Math.max(0.3, 1.0 - (hoursSince - 48) / 168) : 1.0 - (hoursSince / 96); return (engagementScore * decayFactor) + (post.pinned ? 1000 : 0); }
     function loadPosts() { const q = query(collection(db, "news")); onSnapshot(q, (snapshot) => { postsItems = []; snapshot.forEach(docSnap => postsItems.push({ id: docSnap.id, ...docSnap.data() })); postsItems.sort((a,b) => calculatePostScore(b) - calculatePostScore(a)); if (currentTab === "posts") renderPosts(); }); }
     let unsubscribeUsers = null; function loadUsers() { if (unsubscribeUsers) unsubscribeUsers(); unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => { allUsers = []; snapshot.forEach(docSnap => { if (docSnap.id !== currentUsername) allUsers.push({ id: docSnap.id, ...docSnap.data(), galaStatus: docSnap.data().galaStatus || "available", verified: docSnap.data().verified || "none" }); }); if (currentTab !== "posts" && currentTab !== "chat") renderUsers(); }); }
@@ -158,10 +211,154 @@
     document.getElementById('requestsHeart').addEventListener('click', () => window.location.href = `requests.html`);
     document.getElementById('profileAvatar').addEventListener('click', () => window.location.href = `profile.html`);
     document.getElementById('fabBtn').addEventListener('click', () => window.location.href = `add-news.html`);
+    
+    // ================== NEW FEATURE 1: PENDING NOTIFIERS ==================
+    async function checkPendingNotifiers() {
+        if (!currentUser) return;
+        const notifiersRef = collection(db, "notifiers");
+        const q = query(notifiersRef, where("userId", "==", currentUsername), where("completed", "==", false));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return;
+        for (const docSnap of snapshot.docs) {
+            const notifier = { id: docSnap.id, ...docSnap.data() };
+            await showNotifierModal(notifier);
+            break; // show one at a time
+        }
+    }
+    
+    async function showNotifierModal(notifier) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:10001; display:flex; align-items:center; justify-content:center;';
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:white; border-radius:24px; width:85%; max-width:320px; padding:24px 20px; text-align:center;';
+            
+            let innerHtml = `<div style="font-size:1.3rem; font-weight:700; margin-bottom:12px;">📢 ${notifier.type === 'warning' ? 'Warning' : (notifier.type === 'inquiry' ? 'Inquiry' : 'Update Required')}</div>
+                             <p style="margin:12px 0; font-size:0.9rem;">${escapeHtml(notifier.message)}</p>`;
+            
+            if (notifier.type === 'update') {
+                innerHtml += `<div style="margin:12px 0;"><input type="text" id="updateValueInput" placeholder="Enter new value" style="width:100%; padding:10px; border-radius:30px; border:1px solid #dbdbdb;"></div>
+                              <button id="submitUpdateBtn" style="background:#0095f6; color:white; border:none; padding:10px 20px; border-radius:30px; font-weight:600; width:100%;">UPDATE</button>`;
+            } else {
+                innerHtml += `<button id="doneBtn" style="background:#0095f6; color:white; border:none; padding:10px 20px; border-radius:30px; font-weight:600; width:100%;">DONE</button>`;
+            }
+            innerHtml += `<button id="closeModalBtn" style="margin-top:10px; background:transparent; border:none; color:#8e8e8e; font-size:0.8rem;">Close</button>`;
+            modal.innerHTML = innerHtml;
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            const closeModal = () => { overlay.remove(); resolve(); };
+            
+            if (notifier.type === 'update') {
+                const submitBtn = modal.querySelector('#submitUpdateBtn');
+                const inputField = modal.querySelector('#updateValueInput');
+                submitBtn.addEventListener('click', async () => {
+                    const newValue = inputField.value.trim();
+                    if (!newValue) { showNotification("Please enter a value", "error"); return; }
+                    const fieldToUpdate = notifier.fields[0];
+                    if (fieldToUpdate) {
+                        await updateDoc(doc(db, "users", currentUsername), { [fieldToUpdate]: newValue });
+                        showNotification(`${fieldToUpdate} updated to ${newValue}`, "success");
+                    }
+                    await updateDoc(doc(db, "notifiers", notifier.id), { completed: true });
+                    closeModal();
+                    await loadCurrentUser();
+                    checkPendingNotifiers();
+                });
+            } else {
+                const doneBtn = modal.querySelector('#doneBtn');
+                doneBtn.addEventListener('click', async () => {
+                    await updateDoc(doc(db, "notifiers", notifier.id), { completed: true });
+                    closeModal();
+                    checkPendingNotifiers();
+                });
+            }
+            modal.querySelector('#closeModalBtn').addEventListener('click', closeModal);
+        });
+    }
+    
+    // ================== NEW FEATURE 2: VERIFICATION BADGE PROMPT ==================
+    async function checkVerificationPrompt() {
+        if (!currentUser) return;
+        if (currentUser.verified !== "none") return;
+        
+        const laterUntil = localStorage.getItem('galagram_verify_later_until');
+        if (laterUntil && Date.now() < parseInt(laterUntil)) return;
+        
+        let laterCount = parseInt(localStorage.getItem('galagram_verify_later_count') || '0');
+        
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:10002; display:flex; align-items:center; justify-content:center;';
+        const modal = document.createElement('div');
+        modal.style.cssText = 'background:white; border-radius:24px; width:85%; max-width:320px; padding:24px 20px; text-align:center;';
+        
+        let message = `Hey ${escapeHtml(currentUser.realName || currentUser.username)}! PAY FOR A VERIFICATION BADGE TO HAVE A MORE LEGITIMATE ACCOUNT AND A GOOD POSITION IN THE PROMO PARTY.`;
+        let buttonsHtml = `<div style="display:flex; gap:12px; margin-top:16px;">
+            <button id="laterBtn" style="flex:1; padding:10px; border-radius:30px; background:#efefef; border:none; font-weight:600;">LATER</button>
+            <button id="payBtn" style="flex:1; padding:10px; border-radius:30px; background:#0095f6; color:white; border:none; font-weight:600;">AM ON IT</button>
+        </div>`;
+        
+        const hasClickedPayBefore = localStorage.getItem('galagram_verify_paid_clicked') === 'true';
+        if (hasClickedPayBefore && currentUser.verified === "none") {
+            buttonsHtml = `<div style="margin-top:16px;"><button id="paidBtn" style="width:100%; padding:10px; border-radius:30px; background:#22c55e; color:white; border:none; font-weight:600;">I Have paid.</button></div>`;
+        }
+        
+        modal.innerHTML = `<div style="font-size:1.3rem; font-weight:700; margin-bottom:12px;">🔔 Verification Required</div>
+                           <p style="margin:12px 0;">${message}</p>
+                           ${buttonsHtml}`;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        const laterBtn = modal.querySelector('#laterBtn');
+        const payBtn = modal.querySelector('#payBtn');
+        const paidBtn = modal.querySelector('#paidBtn');
+        
+        if (laterBtn) {
+            laterBtn.addEventListener('click', () => {
+                const newCount = laterCount + 1;
+                localStorage.setItem('galagram_verify_later_count', newCount);
+                const until = Date.now() + (12 * 60 * 60 * 1000);
+                localStorage.setItem('galagram_verify_later_until', until);
+                overlay.remove();
+            });
+        }
+        
+        if (payBtn) {
+            payBtn.addEventListener('click', () => {
+                localStorage.setItem('galagram_verify_paid_clicked', 'true');
+                window.location.href = "tel:*182*1*1*0795513139*8000%23";
+                overlay.remove();
+                setTimeout(() => {
+                    if (currentUser.verified === "none") {
+                        checkVerificationPrompt();
+                    }
+                }, 1000);
+            });
+        }
+        
+        if (paidBtn) {
+            paidBtn.addEventListener('click', () => {
+                alert("Please contact 0795065789 for verification confirmation.");
+                overlay.remove();
+            });
+        }
+    }
+    
+    // Anti-screenshot, resize, and startup
     (function antiScreenshot() { const blackFlash = () => { const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); }; document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } }); document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); }); })();
     function handleResize() { const blocker = document.getElementById('pcBlocker'); const app = document.getElementById('appRoot'); if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; } else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; } }
     window.addEventListener('resize', handleResize); handleResize();
-    (async () => { await loadCurrentUser(); loadPosts(); loadUsers(); listenToCurrentUser(); if (currentTab === 'posts') document.getElementById('fabBtn').classList.remove('hidden'); })();
+    
+    (async () => {
+        await loadCurrentUser();
+        loadPosts();
+        loadUsers();
+        listenToCurrentUser();
+        if (currentTab === 'posts') document.getElementById('fabBtn').classList.remove('hidden');
+        await checkPendingNotifiers();     // Show admin notifiers first
+        await checkVerificationPrompt();   // Then show verification prompt if needed
+        showSuggestionPopupIfNeeded();
+    })();
 </script>
 </body>
 </html>
