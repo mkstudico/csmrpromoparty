@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Galagram • Chat</title>
+    <title>Galagram • Direct</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
@@ -27,6 +27,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 0 20px rgba(0,0,0,0.02);
         }
         /* Header */
         .header {
@@ -38,10 +39,12 @@
             gap: 16px;
         }
         .back-btn {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             cursor: pointer;
             color: #262626;
+            transition: transform 0.1s;
         }
+        .back-btn:active { transform: scale(0.9); }
         .logo {
             font-weight: 700;
             font-size: 1.4rem;
@@ -50,24 +53,15 @@
             background-clip: text;
             color: transparent;
         }
-        /* Tabs */
-        .tabs {
+        .header-actions {
+            margin-left: auto;
             display: flex;
-            border-bottom: 1px solid #dbdbdb;
-            background: white;
+            gap: 16px;
         }
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 12px;
-            font-weight: 600;
-            color: #8e8e8e;
+        .header-actions i {
+            font-size: 1.4rem;
             cursor: pointer;
-            border-bottom: 2px solid transparent;
-        }
-        .tab.active {
-            color: #0095f6;
-            border-bottom-color: #0095f6;
+            color: #262626;
         }
         /* Main chat layout */
         .chat-layout {
@@ -75,81 +69,140 @@
             flex: 1;
             overflow: hidden;
         }
-        /* Conversations sidebar (private) */
+        /* Conversations sidebar (Unified Inbox) */
         .conversations-panel {
-            width: 320px;
+            width: 360px;
             border-right: 1px solid #dbdbdb;
             background: white;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
         }
-        .conversation-item {
-            padding: 14px 16px;
+        .inbox-header {
+            padding: 16px 16px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .inbox-header h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .new-msg-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #0095f6;
+        }
+        .search-box {
+            padding: 8px 16px 16px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px;
+            background: #efefef;
+            border: none;
+            border-radius: 24px;
+            font-size: 0.9rem;
+        }
+        .search-results {
+            max-height: 240px;
+            overflow-y: auto;
+            margin: 0 16px 8px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #efefef;
+        }
+        .search-result-item {
+            padding: 12px 16px;
             display: flex;
             align-items: center;
             gap: 12px;
             cursor: pointer;
             border-bottom: 1px solid #efefef;
+        }
+        .search-result-item:hover { background: #fafafa; }
+        
+        /* Conversation items */
+        .conversation-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
             transition: background 0.1s;
+            border-bottom: 1px solid #f0f0f0;
         }
-        .conversation-item:hover {
-            background: #f8f8f8;
-        }
-        .conversation-item.active {
-            background: #eef7ff;
-        }
+        .conversation-item:hover { background: #f8f8f8; }
+        .conversation-item.active { background: #eef7ff; }
         .conv-avatar {
-            width: 48px;
-            height: 48px;
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             object-fit: cover;
+            border: 1px solid #efefef;
         }
         .conv-details {
             flex: 1;
+            min-width: 0;
+        }
+        .conv-name-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
         }
         .conv-name {
             font-weight: 600;
             font-size: 0.95rem;
-        }
-        .conv-last-msg {
-            font-size: 0.75rem;
-            color: #8e8e8e;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .new-conversation {
-            padding: 12px 16px;
-            border-bottom: 1px solid #dbdbdb;
-            background: #fafafa;
-        }
-        .new-conversation input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #dbdbdb;
-            border-radius: 30px;
-            font-size: 0.85rem;
-        }
-        .search-results {
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 8px;
-            background: white;
+        .pinned-badge {
+            background: #efefef;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 2px 8px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #8e8e8e;
         }
-        .search-result-item {
-            padding: 10px 12px;
+        .conv-last-msg {
+            font-size: 0.8rem;
+            color: #8e8e8e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             display: flex;
             align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #efefef;
+            gap: 4px;
         }
-        .search-result-item:hover {
-            background: #f0f0f0;
+        .conv-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
         }
+        .conv-time {
+            font-size: 0.7rem;
+            color: #8e8e8e;
+        }
+        .unread-badge {
+            background: #0095f6;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .verified-badge {
+            font-size: 1rem;
+        }
+        .verified-badge.blue { color: #0095f6; }
+        .verified-badge.gray { color: #8e8e8e; }
+        
         /* Messages panel */
         .messages-panel {
             flex: 1;
@@ -157,61 +210,81 @@
             flex-direction: column;
             background: #ffffff;
             overflow: hidden;
+            position: relative;
         }
         .chat-header {
-            padding: 12px 20px;
+            padding: 14px 20px;
             border-bottom: 1px solid #dbdbdb;
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: white;
         }
-        .chat-header .cancel-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #ed4956;
-            display: none;
+        .chat-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .chat-header h3 {
+        .chat-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .chat-title-section h3 {
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 700;
         }
-        .chat-header .block-btn {
-            background: none;
-            border: none;
-            color: #ed4956;
+        .chat-subtitle {
+            font-size: 0.75rem;
+            color: #8e8e8e;
+        }
+        .typing-indicator {
+            color: #0095f6;
+            font-size: 0.75rem;
+        }
+        .chat-actions {
+            display: flex;
+            gap: 16px;
+        }
+        .chat-actions i {
+            font-size: 1.3rem;
             cursor: pointer;
-            font-size: 0.85rem;
+            color: #262626;
         }
         .messages-container {
             flex: 1;
             overflow-y: auto;
-            padding: 16px;
+            padding: 16px 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
+            background: #fafafa;
+        }
+        .message-date-divider {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #8e8e8e;
+            margin: 8px 0;
         }
         .message {
             display: flex;
             flex-direction: column;
-            max-width: 75%;
+            max-width: 70%;
             align-self: flex-start;
             position: relative;
         }
-        .message.own {
-            align-self: flex-end;
-        }
+        .message.own { align-self: flex-end; }
         .message-header {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-bottom: 4px;
+            padding-left: 4px;
         }
         .message-avatar {
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             object-fit: cover;
         }
@@ -219,134 +292,165 @@
             font-weight: 600;
             font-size: 0.8rem;
         }
-        .verified-badge {
-            font-size: 0.8rem;
-        }
-        .verified-badge.blue {
-            color: #0095f6;
-        }
-        .verified-badge.gray {
-            color: #8e8e8e;
-        }
         .message-bubble {
-            background: #efefef;
-            padding: 10px 14px;
-            border-radius: 20px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 22px;
             font-size: 0.9rem;
             word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid #efefef;
         }
         .message.own .message-bubble {
             background: #0095f6;
             color: white;
+            border: none;
         }
         .message-info {
             font-size: 0.7rem;
             color: #8e8e8e;
             margin-top: 4px;
-            margin-left: 8px;
+            margin-left: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        .message-status {
+            display: flex;
+            align-items: center;
+        }
+        .message.own .message-info { justify-content: flex-end; margin-right: 12px; }
         .message-actions-btn {
             position: absolute;
             right: 0;
             top: 0;
             cursor: pointer;
-            padding: 4px;
+            padding: 6px;
             background: white;
             border-radius: 50%;
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
             transition: opacity 0.1s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            border: 1px solid #efefef;
         }
-        .message:hover .message-actions-btn {
-            opacity: 1;
-        }
-        .message.own .message-actions-btn {
-            right: auto;
-            left: 0;
-        }
+        .message:hover .message-actions-btn { opacity: 1; }
+        .message.own .message-actions-btn { right: auto; left: 0; }
+        
         .dropdown-menu {
             position: absolute;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
             z-index: 1000;
-            min-width: 120px;
+            min-width: 140px;
             overflow: hidden;
+            border: 1px solid #efefef;
         }
         .dropdown-menu div {
-            padding: 10px 16px;
+            padding: 12px 20px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
-        .dropdown-menu div:hover {
-            background: #f0f0f0;
-        }
+        .dropdown-menu div:hover { background: #f8f8f8; }
+        .dropdown-menu div.danger { color: #ed4956; }
+        
         .reply-preview {
-            font-size: 0.7rem;
-            background: #e0e0e0;
-            padding: 4px 8px;
-            border-radius: 12px;
-            margin-bottom: 4px;
+            font-size: 0.75rem;
+            background: #e9e9e9;
+            padding: 6px 12px;
+            border-radius: 18px;
+            margin-bottom: 6px;
             color: #555;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .message.own .reply-preview {
-            background: #006bbf;
-            color: #ddd;
-        }
+        .message.own .reply-preview { background: #0074cc; color: #e0e0e0; }
+        
         .input-area {
-            padding: 12px 16px;
+            padding: 16px 20px;
             border-top: 1px solid #dbdbdb;
             display: flex;
-            gap: 10px;
-            align-items: center;
+            gap: 12px;
+            align-items: flex-end;
             background: white;
         }
-        .emoji-btn {
-            font-size: 1.5rem;
+        .attach-btn {
+            font-size: 1.8rem;
             background: none;
             border: none;
             cursor: pointer;
+            color: #262626;
+        }
+        .message-input-wrapper {
+            flex: 1;
+            background: #f0f0f0;
+            border-radius: 28px;
+            padding: 4px 12px;
+            display: flex;
+            align-items: center;
         }
         .message-input {
             flex: 1;
-            padding: 10px 14px;
-            border: 1px solid #dbdbdb;
-            border-radius: 24px;
-            font-size: 0.9rem;
+            padding: 12px 8px;
+            background: transparent;
+            border: none;
+            font-size: 0.95rem;
             resize: none;
             font-family: inherit;
+            max-height: 100px;
+        }
+        .message-input:focus { outline: none; }
+        .emoji-btn, .send-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px;
+            color: #0095f6;
         }
         .send-btn {
             background: #0095f6;
             color: white;
-            border: none;
             width: 40px;
             height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            font-size: 1.2rem;
         }
+        .send-btn i { font-size: 1.4rem; }
         emoji-picker {
             position: absolute;
-            bottom: 70px;
-            right: 20px;
+            bottom: 90px;
+            right: 30px;
             z-index: 100;
-            width: 320px;
-            max-height: 400px;
+            width: 360px;
+            max-height: 450px;
             display: none;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border-radius: 20px;
         }
         .empty-state {
             text-align: center;
-            padding: 40px;
+            padding: 60px 20px;
             color: #8e8e8e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
         }
-        /* Custom edit modal */
+        .empty-state i {
+            font-size: 4rem;
+            color: #dbdbdb;
+        }
+        /* Edit modal */
         .edit-modal-overlay {
             position: fixed;
             top: 0;
@@ -362,18 +466,19 @@
         }
         .edit-modal {
             background: white;
-            border-radius: 16px;
+            border-radius: 20px;
             width: 90%;
-            max-width: 400px;
-            padding: 20px;
+            max-width: 420px;
+            padding: 24px;
         }
         .edit-modal textarea {
             width: 100%;
-            padding: 12px;
+            padding: 16px;
             border: 1px solid #dbdbdb;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            margin: 12px 0;
+            border-radius: 16px;
+            font-size: 1rem;
+            margin: 16px 0;
+            resize: none;
         }
         .edit-modal .modal-buttons {
             display: flex;
@@ -381,31 +486,22 @@
             justify-content: flex-end;
         }
         .edit-modal button {
-            padding: 8px 16px;
+            padding: 12px 24px;
             border-radius: 30px;
             border: none;
             cursor: pointer;
+            font-weight: 600;
         }
         .edit-modal .save-btn {
             background: #0095f6;
             color: white;
         }
+        
         @media (max-width: 768px) {
-            .chat-layout {
-                flex-direction: column;
-            }
-            .conversations-panel {
-                width: 100%;
-                max-height: 40%;
-                border-right: none;
-                border-bottom: 1px solid #dbdbdb;
-            }
-            .messages-panel {
-                height: 60%;
-            }
-            .chat-header .cancel-btn {
-                display: block;
-            }
+            .chat-layout { flex-direction: column; }
+            .conversations-panel { width: 100%; max-height: 100%; border-right: none; }
+            .messages-panel { height: 100%; }
+            .message { max-width: 85%; }
         }
     </style>
 </head>
@@ -413,34 +509,56 @@
 <div class="app-container">
     <div class="header">
         <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
-        <div class="logo">Galagram Chat</div>
+        <div class="logo">Galagram Direct</div>
+        <div class="header-actions">
+            <i class='bx bx-video'></i>
+            <i class='bx bx-dots-vertical-rounded'></i>
+        </div>
     </div>
-    <div class="tabs">
-        <div class="tab active" data-tab="public">🌍 PUBLIC</div>
-        <div class="tab" data-tab="private">💬 PRIVATE</div>
-    </div>
+    
     <div class="chat-layout" id="chatLayout">
-        <!-- Private conversations sidebar -->
-        <div id="conversationsPanel" class="conversations-panel" style="display: none;">
-            <div class="new-conversation">
-                <input type="text" id="newConvSearch" placeholder="Search username or real name...">
+        <!-- Unified Inbox Sidebar -->
+        <div id="conversationsPanel" class="conversations-panel">
+            <div class="inbox-header">
+                <h2>Messages</h2>
+                <button class="new-msg-btn" id="newMsgBtn"><i class='bx bx-edit-alt'></i></button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="newConvSearch" placeholder="🔍 Search">
                 <div id="searchResults" class="search-results" style="display: none;"></div>
             </div>
             <div id="conversationsList"></div>
         </div>
-        <!-- Messages panel -->
+        
+        <!-- Messages Panel -->
         <div id="messagesPanel" class="messages-panel">
             <div class="chat-header">
-                <button id="cancelPrivateBtn" class="cancel-btn"><i class='bx bx-x'></i> Cancel</button>
-                <h3 id="chatTitle">Select a chat</h3>
-                <button id="blockBtn" class="block-btn" style="display: none;">Block</button>
+                <div class="chat-info">
+                    <i class='bx bx-x back-to-list' id="mobileBackBtn" style="display:none; font-size:1.8rem; cursor:pointer; margin-right:8px;"></i>
+                    <img class="chat-avatar" id="chatAvatar" src="https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40" alt="">
+                    <div class="chat-title-section">
+                        <h3 id="chatTitle">Public Chat</h3>
+                        <div id="chatSubtitle" class="chat-subtitle">🌍 Everyone</div>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <i class='bx bx-phone' id="callBtn" style="display:none;"></i>
+                    <i class='bx bx-info-circle' id="infoBtn"></i>
+                </div>
             </div>
             <div id="messagesContainer" class="messages-container">
-                <div class="empty-state">Select a conversation to start messaging</div>
+                <div class="empty-state">
+                    <i class='bx bx-message-detail'></i>
+                    <h3>Your messages</h3>
+                    <p>Send private messages or join the public chat</p>
+                </div>
             </div>
             <div class="input-area" id="inputArea" style="display: none;">
-                <button id="emojiBtn" class="emoji-btn"><i class='bx bx-smile'></i></button>
-                <textarea id="messageInput" class="message-input" rows="1" placeholder="Type a message..."></textarea>
+                <button class="attach-btn"><i class='bx bx-image'></i></button>
+                <div class="message-input-wrapper">
+                    <textarea id="messageInput" class="message-input" rows="1" placeholder="Message..."></textarea>
+                    <button id="emojiBtn" class="emoji-btn"><i class='bx bx-smile'></i></button>
+                </div>
                 <button id="sendBtn" class="send-btn"><i class='bx bx-send'></i></button>
             </div>
         </div>
@@ -459,35 +577,32 @@
         projectId: "akademia-c56ff",
         storageBucket: "akademia-c56ff.firebasestorage.app",
         messagingSenderId: "678278775270",
-        appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
-        measurementId: "G-X3CHCJE5LK"
+        appId: "1:678278775270:web:ed5aee3d358d613c8cd627"
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     
-    // Session
     const sessionData = localStorage.getItem('galagram_session');
     if (!sessionData) window.location.href = "index.html";
     const session = JSON.parse(sessionData);
     const currentUser = session.username;
     let currentUserDoc = null;
     
-    // State
-    let currentTab = "public";
-    let activePrivateChat = null;
+    let activeChat = { type: 'public', id: 'public' };
     let publicUnsubscribe = null;
     let privateUnsubscribe = null;
     let replyToMessage = null;
     let activeDropdown = null;
     
-    // DOM elements
     const backBtn = document.getElementById('backBtn');
+    const mobileBackBtn = document.getElementById('mobileBackBtn');
     const conversationsPanel = document.getElementById('conversationsPanel');
     const messagesContainer = document.getElementById('messagesContainer');
     const inputArea = document.getElementById('inputArea');
     const chatTitle = document.getElementById('chatTitle');
-    const cancelPrivateBtn = document.getElementById('cancelPrivateBtn');
-    const blockBtn = document.getElementById('blockBtn');
+    const chatSubtitle = document.getElementById('chatSubtitle');
+    const chatAvatar = document.getElementById('chatAvatar');
+    const callBtn = document.getElementById('callBtn');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const emojiBtn = document.getElementById('emojiBtn');
@@ -495,539 +610,284 @@
     const newConvSearch = document.getElementById('newConvSearch');
     const searchResults = document.getElementById('searchResults');
     
-    // Helper functions
     async function getUserProfile(username) {
-        const docSnap = await getDoc(doc(db, "users", username));
-        if (docSnap.exists()) return docSnap.data();
-        return null;
+        const snap = await getDoc(doc(db, "users", username));
+        return snap.exists() ? snap.data() : null;
     }
     
-    function showToast(msg, type = "info") {
+    function showToast(msg) {
         const toast = document.createElement('div');
-        toast.style.cssText = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;padding:10px 20px;border-radius:40px;z-index:10000;font-size:0.85rem;`;
+        toast.style.cssText = `position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#262626;color:white;padding:12px 24px;border-radius:40px;z-index:10000;font-weight:500;`;
         toast.innerText = msg;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
     }
     
-    function formatTime(timestamp) {
-        if (!timestamp) return 'just now';
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    function formatTime(ts) {
+        if (!ts) return '';
+        const d = ts.toDate ? ts.toDate() : new Date(ts);
         const now = new Date();
-        const diff = Math.floor((now - date) / 1000);
-        if (diff < 60) return `${diff}s ago`;
-        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-        return date.toLocaleDateString();
+        const diff = Math.floor((now - d) / 1000);
+        if (diff < 60) return 'Now';
+        if (diff < 3600) return `${Math.floor(diff/60)}m`;
+        if (diff < 86400) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        return d.toLocaleDateString();
     }
     
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
-    }
+    function escapeHtml(s) { return s ? s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) : ''; }
     
-    function getVerifiedIcon(verified) {
-        if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>';
-        if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>';
+    function getVerifiedIcon(v) {
+        if (v==='blue') return '<i class="bx bx-check-circle verified-badge blue"></i>';
+        if (v==='gray') return '<i class="bx bxs-check-circle verified-badge gray"></i>';
         return '';
     }
     
-    function scrollToBottom() {
-        setTimeout(() => messagesContainer.scrollTop = messagesContainer.scrollHeight, 100);
-    }
+    function closeDropdown() { if(activeDropdown) { activeDropdown.remove(); activeDropdown=null; } }
     
-    // Custom edit modal
-    function showEditModal(currentText, onSave) {
-        const overlay = document.createElement('div');
-        overlay.className = 'edit-modal-overlay';
-        overlay.innerHTML = `
-            <div class="edit-modal">
-                <h4>Edit message</h4>
-                <textarea id="editTextarea" rows="3">${escapeHtml(currentText)}</textarea>
-                <div class="modal-buttons">
-                    <button class="cancel-edit">Cancel</button>
-                    <button class="save-btn">Save</button>
+    // ---------- RENDER INBOX (Unified) ----------
+    async function loadInbox() {
+        const container = document.getElementById('conversationsList');
+        // Pinned Public Chat
+        const publicChatHtml = `
+            <div class="conversation-item ${activeChat.type === 'public' ? 'active' : ''}" data-chat-type="public" data-chat-id="public">
+                <img class="conv-avatar" src="https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80&name=Public" alt="">
+                <div class="conv-details">
+                    <div class="conv-name-row">
+                        <span class="conv-name">🌍 Public Chat</span>
+                        <span class="pinned-badge"><i class='bx bx-pin'></i> Pinned</span>
+                    </div>
+                    <div class="conv-last-msg"><i class='bx bx-group'></i> <span id="publicLastMsg">Everyone can chat</span></div>
+                </div>
+                <div class="conv-meta">
+                    <span class="conv-time" id="publicTime"></span>
                 </div>
             </div>
         `;
-        document.body.appendChild(overlay);
-        const textarea = overlay.querySelector('#editTextarea');
-        const saveBtn = overlay.querySelector('.save-btn');
-        const cancelBtn = overlay.querySelector('.cancel-edit');
-        saveBtn.onclick = () => {
-            const newText = textarea.value.trim();
-            if (newText) onSave(newText);
-            overlay.remove();
-        };
-        cancelBtn.onclick = () => overlay.remove();
-        textarea.focus();
-    }
-    
-    // ---------- PUBLIC CHAT ----------
-    async function loadPublicChat() {
-        if (publicUnsubscribe) publicUnsubscribe();
-        const q = query(collection(db, "chatMessages"), orderBy("timestamp", "asc"));
-        publicUnsubscribe = onSnapshot(q, (snapshot) => {
-            if (currentTab !== "public") return;
-            messagesContainer.innerHTML = '';
-            if (snapshot.empty) {
-                messagesContainer.innerHTML = '<div class="empty-state">No messages yet. Be the first!</div>';
-                return;
-            }
-            snapshot.forEach(docSnap => {
-                const msg = docSnap.data();
-                renderPublicMessage(msg, docSnap.id);
-            });
-            scrollToBottom();
-        });
-        inputArea.style.display = 'flex';
-        chatTitle.innerText = "Public Chat";
-        blockBtn.style.display = 'none';
-        cancelPrivateBtn.style.display = 'none';
-    }
-    
-    async function renderPublicMessage(msg, msgId) {
-        const isOwn = msg.username === currentUser;
-        const userProfile = await getUserProfile(msg.username);
-        const avatar = userProfile?.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40';
-        const verified = userProfile?.verified || "none";
         
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isOwn ? 'own' : ''}`;
-        messageDiv.dataset.id = msgId;
-        let replyHtml = '';
-        if (msg.replyTo) {
-            replyHtml = `<div class="reply-preview">↩️ Replying to ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0, 50))}</div>`;
-        }
-        messageDiv.innerHTML = `
-            <div class="message-header">
-                <img class="message-avatar" src="${avatar}" alt="">
-                <span class="message-sender">${escapeHtml(msg.username)}</span>
-                ${getVerifiedIcon(verified)}
-            </div>
-            ${replyHtml}
-            <div class="message-bubble">${escapeHtml(msg.text)}${msg.edited ? ' <span style="font-size:0.7rem;">(edited)</span>' : ''}</div>
-            <div class="message-info">
-                <span>${formatTime(msg.timestamp)}</span>
-            </div>
-            <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
-        `;
-        messagesContainer.appendChild(messageDiv);
-        
-        const actionsBtn = messageDiv.querySelector('.message-actions-btn');
-        actionsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeDropdown();
-            const dropdown = document.createElement('div');
-            dropdown.className = 'dropdown-menu';
-            dropdown.innerHTML = `
-                <div class="reply-action">↩️ Reply</div>
-                ${isOwn ? `<div class="edit-action">✏️ Edit</div>` : ''}
-                ${isOwn ? `<div class="delete-action">🗑️ Delete</div>` : ''}
-            `;
-            const rect = actionsBtn.getBoundingClientRect();
-            dropdown.style.position = 'fixed';
-            dropdown.style.top = `${rect.bottom + 4}px`;
-            dropdown.style.left = `${rect.left}px`;
-            document.body.appendChild(dropdown);
-            activeDropdown = dropdown;
-            
-            dropdown.querySelector('.reply-action')?.addEventListener('click', () => {
-                replyToMessage = { id: msgId, text: msg.text, senderName: msg.username };
-                messageInput.placeholder = `Replying to ${replyToMessage.senderName}...`;
-                messageInput.focus();
-                closeDropdown();
-            });
-            if (isOwn) {
-                dropdown.querySelector('.edit-action')?.addEventListener('click', () => {
-                    showEditModal(msg.text, async (newText) => {
-                        await updateDoc(doc(db, "chatMessages", msgId), { text: newText, edited: true });
-                    });
-                    closeDropdown();
-                });
-                dropdown.querySelector('.delete-action')?.addEventListener('click', async () => {
-                    if (confirm("Delete this message?")) await deleteDoc(doc(db, "chatMessages", msgId));
-                    closeDropdown();
-                });
-            }
-        });
-    }
-    
-    async function sendPublicMessage(text) {
-        if (!text.trim()) return;
-        const messageData = {
-            username: currentUser,
-            text: text.trim(),
-            userAvatar: currentUserDoc?.profileImage || '',
-            userVerified: currentUserDoc?.verified || "none",
-            timestamp: serverTimestamp()
-        };
-        if (replyToMessage) {
-            messageData.replyTo = { id: replyToMessage.id, text: replyToMessage.text, senderName: replyToMessage.senderName };
-            replyToMessage = null;
-            messageInput.placeholder = "Type a message...";
-        }
-        await addDoc(collection(db, "chatMessages"), messageData);
-        messageInput.value = '';
-        const newCount = (currentUserDoc?.chatMessageCount || 0) + 1;
-        await updateDoc(doc(db, "users", currentUser), { chatMessageCount: newCount });
-        currentUserDoc.chatMessageCount = newCount;
-    }
-    
-    // ---------- PRIVATE CHAT ----------
-    async function getOrCreatePrivateChat(otherUserId) {
-        const chatId = [currentUser, otherUserId].sort().join('_');
-        const chatRef = doc(db, "privateChats", chatId);
-        const chatSnap = await getDoc(chatRef);
-        if (!chatSnap.exists()) {
-            await setDoc(chatRef, {
-                participants: [currentUser, otherUserId],
-                createdAt: new Date(),
-                lastMessage: null,
-                lastUpdated: new Date()
-            });
-        }
-        return chatId;
-    }
-    
-    async function loadConversations() {
+        // Private convos
         const q = query(collection(db, "privateChats"), where("participants", "array-contains", currentUser));
-        const snapshot = await getDocs(q);
-        const convos = [];
-        for (const docSnap of snapshot.docs) {
+        const snap = await getDocs(q);
+        let privateHtml = '';
+        for (const docSnap of snap.docs) {
             const data = docSnap.data();
             const otherId = data.participants.find(p => p !== currentUser);
-            const userProfile = await getUserProfile(otherId);
-            if (userProfile) {
-                const blockedByOther = userProfile.blockedUsers?.includes(currentUser) || false;
-                const blockedByMe = currentUserDoc?.blockedUsers?.includes(otherId) || false;
-                convos.push({
-                    chatId: docSnap.id,
-                    otherUserId: otherId,
-                    username: otherId,
-                    realName: userProfile.realName || otherId,
-                    avatar: userProfile.profileImage,
-                    lastMessage: data.lastMessage,
-                    lastUpdated: data.lastUpdated,
-                    blocked: blockedByMe,
-                    blockedByOther: blockedByOther
-                });
-            }
-        }
-        convos.sort((a,b) => (b.lastUpdated?.toDate?.() || 0) - (a.lastUpdated?.toDate?.() || 0));
-        renderConversations(convos);
-    }
-    
-    function renderConversations(conversations) {
-        const container = document.getElementById('conversationsList');
-        if (!container) return;
-        if (conversations.length === 0) {
-            container.innerHTML = '<div class="empty-state" style="padding:20px;">No conversations. Start a new one!</div>';
-            return;
-        }
-        container.innerHTML = conversations.map(conv => `
-            <div class="conversation-item ${activePrivateChat?.otherUserId === conv.otherUserId ? 'active' : ''}" data-userid="${conv.otherUserId}">
-                <img class="conv-avatar" src="${conv.avatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
-                <div class="conv-details">
-                    <div class="conv-name">${escapeHtml(conv.realName)} (@${conv.username})</div>
-                    <div class="conv-last-msg">${conv.lastMessage ? escapeHtml(conv.lastMessage.substring(0, 40)) : 'No messages yet'}</div>
-                </div>
-                ${conv.blocked ? '<i class="bx bx-block" style="color:#ed4956;"></i>' : (conv.blockedByOther ? '<i class="bx bx-lock" style="color:#8e8e8e;"></i>' : '')}
-            </div>
-        `).join('');
-        document.querySelectorAll('.conversation-item').forEach(el => {
-            el.addEventListener('click', () => openPrivateChat(el.dataset.userid));
-        });
-    }
-    
-    async function openPrivateChat(otherUserId) {
-        const otherProfile = await getUserProfile(otherUserId);
-        const isBlockedByMe = currentUserDoc?.blockedUsers?.includes(otherUserId);
-        const isBlockedByOther = otherProfile?.blockedUsers?.includes(currentUser);
-        if (isBlockedByOther) {
-            showToast("You cannot message this user (you are blocked).");
-            return;
-        }
-        activePrivateChat = {
-            otherUserId: otherUserId,
-            username: otherUserId,
-            realName: otherProfile?.realName || otherUserId,
-            avatar: otherProfile?.profileImage,
-            blocked: isBlockedByMe || false
-        };
-        chatTitle.innerText = `${escapeHtml(activePrivateChat.realName)} (@${activePrivateChat.username})`;
-        blockBtn.style.display = 'flex';
-        blockBtn.innerText = activePrivateChat.blocked ? "Unblock" : "Block";
-        cancelPrivateBtn.style.display = 'block';
-        inputArea.style.display = 'flex';
-        if (privateUnsubscribe) privateUnsubscribe();
-        const chatId = [currentUser, otherUserId].sort().join('_');
-        const messagesRef = collection(db, "privateChats", chatId, "messages");
-        const q = query(messagesRef, orderBy("timestamp", "asc"));
-        privateUnsubscribe = onSnapshot(q, (snapshot) => {
-            if (!activePrivateChat || activePrivateChat.otherUserId !== otherUserId) return;
-            messagesContainer.innerHTML = '';
-            if (snapshot.empty) {
-                messagesContainer.innerHTML = '<div class="empty-state">No messages yet. Start the conversation!</div>';
-                return;
-            }
-            snapshot.forEach(docSnap => {
-                const msg = docSnap.data();
-                renderPrivateMessage(msg, docSnap.id, chatId);
-            });
-            scrollToBottom();
-        });
-        loadConversations();
-    }
-    
-    function renderPrivateMessage(msg, msgId, chatId) {
-        const isOwn = msg.senderId === currentUser;
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isOwn ? 'own' : ''}`;
-        messageDiv.dataset.id = msgId;
-        let replyHtml = '';
-        if (msg.replyTo) {
-            replyHtml = `<div class="reply-preview">↩️ Replying to ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0, 50))}</div>`;
-        }
-        messageDiv.innerHTML = `
-            ${replyHtml}
-            <div class="message-bubble">${escapeHtml(msg.text)}${msg.edited ? ' <span style="font-size:0.7rem;">(edited)</span>' : ''}</div>
-            <div class="message-info">
-                <span>${isOwn ? 'You' : escapeHtml(msg.senderName)}</span>
-                <span>${formatTime(msg.timestamp)}</span>
-            </div>
-            <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
-        `;
-        messagesContainer.appendChild(messageDiv);
-        
-        const actionsBtn = messageDiv.querySelector('.message-actions-btn');
-        actionsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeDropdown();
-            const dropdown = document.createElement('div');
-            dropdown.className = 'dropdown-menu';
-            dropdown.innerHTML = `
-                <div class="reply-action">↩️ Reply</div>
-                ${isOwn ? `<div class="edit-action">✏️ Edit</div>` : ''}
-                ${isOwn ? `<div class="delete-action">🗑️ Delete</div>` : ''}
-            `;
-            const rect = actionsBtn.getBoundingClientRect();
-            dropdown.style.position = 'fixed';
-            dropdown.style.top = `${rect.bottom + 4}px`;
-            dropdown.style.left = `${rect.left}px`;
-            document.body.appendChild(dropdown);
-            activeDropdown = dropdown;
-            
-            dropdown.querySelector('.reply-action')?.addEventListener('click', () => {
-                replyToMessage = { id: msgId, text: msg.text, senderName: isOwn ? 'You' : msg.senderName };
-                messageInput.placeholder = `Replying to ${replyToMessage.senderName}...`;
-                messageInput.focus();
-                closeDropdown();
-            });
-            if (isOwn) {
-                dropdown.querySelector('.edit-action')?.addEventListener('click', () => {
-                    showEditModal(msg.text, async (newText) => {
-                        await updateDoc(doc(db, "privateChats", chatId, "messages", msgId), { text: newText, edited: true });
-                    });
-                    closeDropdown();
-                });
-                dropdown.querySelector('.delete-action')?.addEventListener('click', async () => {
-                    if (confirm("Delete this message?")) await deleteDoc(doc(db, "privateChats", chatId, "messages", msgId));
-                    closeDropdown();
-                });
-            }
-        });
-    }
-    
-    async function sendPrivateMessage(text) {
-        if (!activePrivateChat) return;
-        if (activePrivateChat.blocked) {
-            showToast("You have blocked this user. Unblock to send messages.");
-            return;
-        }
-        if (!text.trim()) return;
-        const chatId = [currentUser, activePrivateChat.otherUserId].sort().join('_');
-        const messageData = {
-            senderId: currentUser,
-            senderName: currentUserDoc?.realName || currentUser,
-            text: text.trim(),
-            timestamp: serverTimestamp()
-        };
-        if (replyToMessage) {
-            messageData.replyTo = { id: replyToMessage.id, text: replyToMessage.text, senderName: replyToMessage.senderName };
-            replyToMessage = null;
-            messageInput.placeholder = "Type a message...";
-        }
-        await addDoc(collection(db, "privateChats", chatId, "messages"), messageData);
-        await updateDoc(doc(db, "privateChats", chatId), {
-            lastMessage: text.trim(),
-            lastUpdated: new Date()
-        });
-        messageInput.value = '';
-        loadConversations();
-    }
-    
-    async function blockCurrentUser() {
-        if (!activePrivateChat) return;
-        const isBlocked = currentUserDoc?.blockedUsers?.includes(activePrivateChat.otherUserId);
-        if (isBlocked) {
-            await updateDoc(doc(db, "users", currentUser), {
-                blockedUsers: arrayRemove(activePrivateChat.otherUserId)
-            });
-            currentUserDoc.blockedUsers = currentUserDoc.blockedUsers?.filter(id => id !== activePrivateChat.otherUserId) || [];
-            showToast(`Unblocked ${activePrivateChat.realName}`);
-            activePrivateChat.blocked = false;
-            blockBtn.innerText = "Block";
-        } else {
-            await updateDoc(doc(db, "users", currentUser), {
-                blockedUsers: arrayUnion(activePrivateChat.otherUserId)
-            });
-            currentUserDoc.blockedUsers = [...(currentUserDoc.blockedUsers || []), activePrivateChat.otherUserId];
-            showToast(`Blocked ${activePrivateChat.realName}. You cannot message them.`);
-            activePrivateChat.blocked = true;
-            blockBtn.innerText = "Unblock";
-        }
-        loadConversations();
-    }
-    
-    // Live search for users
-    let searchTimeout = null;
-    newConvSearch.addEventListener('input', () => {
-        if (searchTimeout) clearTimeout(searchTimeout);
-        const query = newConvSearch.value.trim().toLowerCase();
-        if (query.length < 2) {
-            searchResults.style.display = 'none';
-            return;
-        }
-        searchTimeout = setTimeout(async () => {
-            const usersRef = collection(db, "users");
-            const snapshot = await getDocs(usersRef);
-            const matches = [];
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                const username = docSnap.id;
-                if (username === currentUser) return;
-                const realName = data.realName || '';
-                if (username.toLowerCase().includes(query) || realName.toLowerCase().includes(query)) {
-                    matches.push({ username, realName, avatar: data.profileImage });
-                }
-            });
-            if (matches.length === 0) {
-                searchResults.style.display = 'none';
-                return;
-            }
-            searchResults.style.display = 'block';
-            searchResults.innerHTML = matches.map(u => `
-                <div class="search-result-item" data-username="${u.username}">
-                    <img src="${u.avatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" style="width:36px;height:36px;border-radius:50%;">
-                    <div>
-                        <div><strong>${escapeHtml(u.realName)}</strong></div>
-                        <div style="font-size:0.75rem;color:#8e8e8e;">@${u.username}</div>
+            const profile = await getUserProfile(otherId);
+            if (!profile) continue;
+            const blocked = currentUserDoc?.blockedUsers?.includes(otherId) || profile.blockedUsers?.includes(currentUser);
+            const lastMsg = data.lastMessage || 'No messages';
+            const time = data.lastUpdated ? formatTime(data.lastUpdated) : '';
+            privateHtml += `
+                <div class="conversation-item ${activeChat.type === 'private' && activeChat.id === otherId ? 'active' : ''}" data-chat-type="private" data-chat-id="${otherId}">
+                    <img class="conv-avatar" src="${profile.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}">
+                    <div class="conv-details">
+                        <div class="conv-name-row">
+                            <span class="conv-name">${escapeHtml(profile.realName || otherId)}</span>
+                            ${getVerifiedIcon(profile.verified)}
+                        </div>
+                        <div class="conv-last-msg">${blocked ? '🔒 ' : ''}${escapeHtml(lastMsg.substring(0,30))}</div>
+                    </div>
+                    <div class="conv-meta">
+                        <span class="conv-time">${time}</span>
                     </div>
                 </div>
-            `).join('');
-            document.querySelectorAll('.search-result-item').forEach(el => {
-                el.addEventListener('click', async () => {
-                    const username = el.dataset.username;
-                    const userProfile = await getUserProfile(username);
-                    if (!userProfile) return;
-                    const chatId = [currentUser, username].sort().join('_');
-                    const chatRef = doc(db, "privateChats", chatId);
-                    const chatSnap = await getDoc(chatRef);
-                    if (!chatSnap.exists()) {
-                        await setDoc(chatRef, {
-                            participants: [currentUser, username],
-                            createdAt: new Date(),
-                            lastMessage: null,
-                            lastUpdated: new Date()
-                        });
-                    }
-                    newConvSearch.value = '';
-                    searchResults.style.display = 'none';
-                    await loadConversations();
-                    openPrivateChat(username);
-                });
+            `;
+        }
+        container.innerHTML = publicChatHtml + privateHtml;
+        
+        // Attach listeners
+        container.querySelectorAll('.conversation-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const type = el.dataset.chatType;
+                const id = el.dataset.chatId;
+                if (type === 'public') openPublicChat();
+                else openPrivateChat(id);
             });
+        });
+        
+        // Update public last msg
+        const publicQ = query(collection(db, "chatMessages"), orderBy("timestamp", "desc"));
+        onSnapshot(publicQ, (snap) => {
+            if (!snap.empty) {
+                const last = snap.docs[0].data();
+                const lastMsgSpan = document.getElementById('publicLastMsg');
+                if(lastMsgSpan) lastMsgSpan.innerText = `${last.username}: ${last.text.substring(0,25)}`;
+                const timeSpan = document.getElementById('publicTime');
+                if(timeSpan) timeSpan.innerText = formatTime(last.timestamp);
+            }
+        });
+    }
+    
+    // ---------- OPEN CHATS ----------
+    function openPublicChat() {
+        activeChat = { type: 'public', id: 'public' };
+        if (privateUnsubscribe) privateUnsubscribe();
+        chatTitle.innerText = 'Public Chat';
+        chatSubtitle.innerText = '🌍 Everyone • Active now';
+        chatAvatar.src = 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40&name=Public';
+        callBtn.style.display = 'none';
+        inputArea.style.display = 'flex';
+        
+        const q = query(collection(db, "chatMessages"), orderBy("timestamp", "asc"));
+        publicUnsubscribe = onSnapshot(q, (snap) => {
+            if (activeChat.type !== 'public') return;
+            messagesContainer.innerHTML = '';
+            snap.forEach(doc => renderPublicMessage(doc.data(), doc.id));
+            scrollToBottom();
+        });
+        loadInbox();
+    }
+    
+    async function openPrivateChat(otherId) {
+        const profile = await getUserProfile(otherId);
+        if (profile?.blockedUsers?.includes(currentUser)) { showToast("You cannot message this user"); return; }
+        activeChat = { type: 'private', id: otherId };
+        if (publicUnsubscribe) publicUnsubscribe();
+        chatTitle.innerText = profile?.realName || otherId;
+        chatSubtitle.innerText = `@${otherId}`;
+        chatAvatar.src = profile?.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40';
+        callBtn.style.display = 'block';
+        inputArea.style.display = 'flex';
+        
+        const chatId = [currentUser, otherId].sort().join('_');
+        const ref = collection(db, "privateChats", chatId, "messages");
+        const q = query(ref, orderBy("timestamp", "asc"));
+        privateUnsubscribe = onSnapshot(q, (snap) => {
+            if (activeChat.type !== 'private' || activeChat.id !== otherId) return;
+            messagesContainer.innerHTML = '';
+            snap.forEach(doc => renderPrivateMessage(doc.data(), doc.id, chatId));
+            scrollToBottom();
+        });
+        loadInbox();
+    }
+    
+    function renderPublicMessage(msg, id) {
+        const isOwn = msg.username === currentUser;
+        const div = document.createElement('div');
+        div.className = `message ${isOwn ? 'own' : ''}`;
+        div.innerHTML = `
+            ${!isOwn ? `<div class="message-header"><span class="message-sender">${escapeHtml(msg.username)}</span> ${getVerifiedIcon(msg.userVerified)}</div>` : ''}
+            ${msg.replyTo ? `<div class="reply-preview"><i class='bx bx-reply'></i> ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0,40))}</div>` : ''}
+            <div class="message-bubble">${escapeHtml(msg.text)} ${msg.edited?'<span style="opacity:0.7;">(edited)</span>':''}</div>
+            <div class="message-info"><span>${formatTime(msg.timestamp)}</span> ${isOwn?'<span class="message-status"><i class="bx bx-check-double"></i></span>':''}</div>
+            <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
+        `;
+        messagesContainer.appendChild(div);
+        setupMessageActions(div, msg, id, 'public');
+    }
+    
+    function renderPrivateMessage(msg, id, chatId) {
+        const isOwn = msg.senderId === currentUser;
+        const div = document.createElement('div');
+        div.className = `message ${isOwn ? 'own' : ''}`;
+        div.innerHTML = `
+            ${msg.replyTo ? `<div class="reply-preview"><i class='bx bx-reply'></i> ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0,40))}</div>` : ''}
+            <div class="message-bubble">${escapeHtml(msg.text)} ${msg.edited?'<span style="opacity:0.7;">(edited)</span>':''}</div>
+            <div class="message-info"><span>${formatTime(msg.timestamp)}</span> ${isOwn?'<span class="message-status"><i class="bx bx-check-double"></i></span>':''}</div>
+            <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
+        `;
+        messagesContainer.appendChild(div);
+        setupMessageActions(div, msg, id, 'private', chatId);
+    }
+    
+    function setupMessageActions(el, msg, msgId, type, chatIdParam) {
+        const btn = el.querySelector('.message-actions-btn');
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); closeDropdown();
+            const dropdown = document.createElement('div'); dropdown.className = 'dropdown-menu';
+            const isOwn = type==='public' ? msg.username===currentUser : msg.senderId===currentUser;
+            dropdown.innerHTML = `
+                <div class="reply-action"><i class='bx bx-reply'></i> Reply</div>
+                ${isOwn ? '<div class="edit-action"><i class="bx bx-edit"></i> Edit</div>' : ''}
+                ${isOwn ? '<div class="delete-action danger"><i class="bx bx-trash"></i> Delete</div>' : ''}
+            `;
+            const rect = btn.getBoundingClientRect();
+            dropdown.style.position = 'fixed'; dropdown.style.top = rect.bottom+4+'px'; dropdown.style.left = rect.left+'px';
+            document.body.appendChild(dropdown); activeDropdown = dropdown;
+            
+            dropdown.querySelector('.reply-action')?.addEventListener('click', () => {
+                replyToMessage = { id: msgId, text: msg.text, senderName: type==='public'?msg.username:(isOwn?'You':msg.senderName) };
+                messageInput.placeholder = `Reply to ${replyToMessage.senderName}`; messageInput.focus(); closeDropdown();
+            });
+            dropdown.querySelector('.edit-action')?.addEventListener('click', () => {
+                showEditModal(msg.text, async (newText) => {
+                    const ref = type==='public' ? doc(db,"chatMessages",msgId) : doc(db,"privateChats",chatIdParam,"messages",msgId);
+                    await updateDoc(ref, {text:newText, edited:true});
+                }); closeDropdown();
+            });
+            dropdown.querySelector('.delete-action')?.addEventListener('click', async () => {
+                if(confirm('Delete message?')) {
+                    const ref = type==='public' ? doc(db,"chatMessages",msgId) : doc(db,"privateChats",chatIdParam,"messages",msgId);
+                    await deleteDoc(ref);
+                } closeDropdown();
+            });
+        });
+    }
+    
+    function showEditModal(text, cb) {
+        const ov = document.createElement('div'); ov.className='edit-modal-overlay';
+        ov.innerHTML = `<div class="edit-modal"><h4>Edit message</h4><textarea id="editTxt">${escapeHtml(text)}</textarea><div class="modal-buttons"><button class="cancel-edit">Cancel</button><button class="save-btn">Save</button></div></div>`;
+        document.body.appendChild(ov);
+        const ta = ov.querySelector('#editTxt');
+        ov.querySelector('.save-btn').onclick = () => { const v = ta.value.trim(); if(v) cb(v); ov.remove(); };
+        ov.querySelector('.cancel-edit').onclick = () => ov.remove();
+    }
+    
+    async function sendMessage() {
+        const text = messageInput.value.trim(); if(!text) return;
+        if(activeChat.type === 'public') {
+            const data = { username: currentUser, text, timestamp: serverTimestamp(), userVerified: currentUserDoc?.verified };
+            if(replyToMessage) { data.replyTo = replyToMessage; replyToMessage=null; messageInput.placeholder='Message...'; }
+            await addDoc(collection(db,"chatMessages"), data);
+        } else {
+            const chatId = [currentUser, activeChat.id].sort().join('_');
+            const data = { senderId: currentUser, senderName: currentUserDoc?.realName||currentUser, text, timestamp: serverTimestamp() };
+            if(replyToMessage) { data.replyTo = replyToMessage; replyToMessage=null; messageInput.placeholder='Message...'; }
+            await addDoc(collection(db,`privateChats/${chatId}/messages`), data);
+            await updateDoc(doc(db,"privateChats",chatId), { lastMessage: text, lastUpdated: new Date() });
+        }
+        messageInput.value = '';
+    }
+    
+    function scrollToBottom() { setTimeout(() => messagesContainer.scrollTop = messagesContainer.scrollHeight, 50); }
+    
+    // Search & new conversation
+    newConvSearch.addEventListener('input', () => {
+        const q = newConvSearch.value.trim().toLowerCase();
+        if(q.length<2) { searchResults.style.display='none'; return; }
+        setTimeout(async () => {
+            const snap = await getDocs(collection(db,"users"));
+            const matches = [];
+            snap.forEach(d => { if(d.id!==currentUser && (d.id.includes(q) || (d.data().realName||'').toLowerCase().includes(q))) matches.push({...d.data(), username:d.id}); });
+            searchResults.style.display = matches.length ? 'block' : 'none';
+            searchResults.innerHTML = matches.map(u => `<div class="search-result-item" data-username="${u.username}"><img src="${u.profileImage||'https://ui-avatars.com/api/?size=40'}" style="width:40px;height:40px;border-radius:50%;"><div><strong>${escapeHtml(u.realName||u.username)}</strong><div style="font-size:0.75rem;">@${u.username}</div></div></div>`).join('');
+            document.querySelectorAll('.search-result-item').forEach(el => el.addEventListener('click', async () => {
+                const un = el.dataset.username; newConvSearch.value=''; searchResults.style.display='none';
+                const chatId = [currentUser, un].sort().join('_');
+                await setDoc(doc(db,"privateChats",chatId), { participants: [currentUser, un], createdAt: new Date(), lastUpdated: new Date() }, {merge:true});
+                openPrivateChat(un); loadInbox();
+            }));
         }, 300);
     });
     
-    function closeDropdown() {
-        if (activeDropdown) {
-            activeDropdown.remove();
-            activeDropdown = null;
-        }
-    }
-    document.addEventListener('click', () => closeDropdown());
-    
-    // Tab switching
-    async function switchTab(tab) {
-        currentTab = tab;
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-        closeDropdown();
-        if (tab === 'public') {
-            conversationsPanel.style.display = 'none';
-            if (privateUnsubscribe) privateUnsubscribe();
-            activePrivateChat = null;
-            loadPublicChat();
-        } else {
-            conversationsPanel.style.display = 'flex';
-            if (publicUnsubscribe) publicUnsubscribe();
-            messagesContainer.innerHTML = '<div class="empty-state">Select a conversation or start a new one</div>';
-            inputArea.style.display = 'none';
-            chatTitle.innerText = "Private Messages";
-            blockBtn.style.display = 'none';
-            cancelPrivateBtn.style.display = 'none';
-            await loadConversations();
-        }
-    }
-    
     // Event listeners
-    backBtn.addEventListener('click', () => window.location.href = "home.html");
-    sendBtn.addEventListener('click', async () => {
-        const text = messageInput.value;
-        if (currentTab === 'public') await sendPublicMessage(text);
-        else if (activePrivateChat) await sendPrivateMessage(text);
-    });
-    messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendBtn.click();
-        }
-    });
-    emojiBtn.addEventListener('click', () => {
-        emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
-    });
-    emojiPicker.addEventListener('emoji-click', (e) => {
-        messageInput.value += e.detail.unicode;
-        emojiPicker.style.display = 'none';
-        messageInput.focus();
-    });
-    document.addEventListener('click', (e) => {
-        if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) {
-            emojiPicker.style.display = 'none';
-        }
-    });
-    cancelPrivateBtn.addEventListener('click', () => {
-        activePrivateChat = null;
-        if (privateUnsubscribe) privateUnsubscribe();
-        messagesContainer.innerHTML = '<div class="empty-state">Select a conversation to start messaging</div>';
-        inputArea.style.display = 'none';
-        chatTitle.innerText = "Private Messages";
-        blockBtn.style.display = 'none';
-        cancelPrivateBtn.style.display = 'none';
-        loadConversations();
-    });
-    blockBtn.addEventListener('click', blockCurrentUser);
+    backBtn.onclick = () => window.location.href = "home.html";
+    mobileBackBtn.onclick = () => { /* mobile nav handled by CSS */ };
+    sendBtn.onclick = sendMessage;
+    messageInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMessage(); } });
+    emojiBtn.onclick = () => emojiPicker.style.display = emojiPicker.style.display==='none'?'block':'none';
+    emojiPicker.addEventListener('emoji-click', e => { messageInput.value += e.detail.unicode; emojiPicker.style.display='none'; messageInput.focus(); });
+    document.addEventListener('click', (e) => { if(!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) emojiPicker.style.display='none'; closeDropdown(); });
+    document.getElementById('newMsgBtn').onclick = () => newConvSearch.focus();
+    document.getElementById('infoBtn').onclick = () => showToast(activeChat.type==='public'?'Public chat for everyone':'Private conversation');
+    callBtn.onclick = () => showToast('Voice call feature coming soon');
     
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
-    
-    // Load current user data
-    const userDoc = await getDoc(doc(db, "users", currentUser));
-    if (userDoc.exists()) currentUserDoc = userDoc.data();
-    switchTab('public');
+    // Init
+    (async () => {
+        const snap = await getDoc(doc(db,"users",currentUser));
+        if(snap.exists()) currentUserDoc = snap.data();
+        await loadInbox();
+        openPublicChat(); // Default to public chat pinned
+    })();
 </script>
 </body>
 </html>
