@@ -35,18 +35,14 @@
         .admin-tab { padding: 12px 0; font-size: 0.8rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
         .admin-tab.active { color: #0095f6; border-bottom-color: #0095f6; }
         .content { padding: 16px; background: #fafafa; min-height: 85vh; }
-        .user-item, .post-item, .log-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .user-item, .post-item, .log-item { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
         .user-info, .post-info { display: flex; align-items: center; gap: 12px; flex: 1; }
         .user-avatar, .post-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
         .user-details, .post-details { flex: 1; }
         .user-name, .post-author { font-weight: 600; font-size: 0.9rem; }
         .user-username, .post-time, .log-time { font-size: 0.7rem; color: #8e8e8e; }
-        .post-text { font-size: 0.8rem; margin-top: 4px; color: #262626; }
-        .log-message { font-size: 0.85rem; flex: 1; }
         .badge-select, .action-btn { padding: 6px 12px; border-radius: 20px; border: 1px solid #dbdbdb; background: white; cursor: pointer; font-size: 0.75rem; margin-left: 8px; }
-        .action-btn.pin { background: #f59e0b; color: white; border: none; }
-        .action-btn.delete { background: #ef4444; color: white; border: none; }
-        .action-btn.edit { background: #0095f6; color: white; border: none; }
+        .action-btn.send { background: #0095f6; color: white; border: none; }
         .search-bar { margin-bottom: 16px; }
         .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.85rem; }
         .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; z-index: 10000; transition: transform 0.25s; }
@@ -54,12 +50,12 @@
         .loading { text-align: center; padding: 40px; color: #8e8e8e; }
         .bx-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .log-icon { font-size: 1.2rem; margin-right: 8px; }
-        .log-icon.request { color: #f59e0b; }
-        .log-icon.accept { color: #22c55e; }
-        .log-icon.reject { color: #ef4444; }
-        .log-icon.pair { color: #0095f6; }
-        .log-icon.unpair { color: #8e8e8e; }
+        .notifier-form { background: white; border-radius: 16px; padding: 16px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { font-weight: 600; font-size: 0.8rem; display: block; margin-bottom: 4px; }
+        .form-group select, .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #dbdbdb; border-radius: 10px; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+        .checkbox-group label { display: flex; align-items: center; gap: 6px; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -75,14 +71,15 @@
     <div class="admin-tabs">
         <div class="admin-tab" data-tab="users">👥 Users</div>
         <div class="admin-tab" data-tab="posts">📝 Posts</div>
-        <div class="admin-tab active" data-tab="logs">📋 Logs</div>
+        <div class="admin-tab" data-tab="logs">📋 Logs</div>
+        <div class="admin-tab" data-tab="notifiers">📢 Notifiers</div>
     </div>
     
     <div class="content">
         <div class="search-bar">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search logs...">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search...">
         </div>
-        <div id="adminContent"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading logs...</div></div>
+        <div id="adminContent"><div class="loading"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div></div>
     </div>
 </div>
 
@@ -140,43 +137,109 @@
         renderLogs();
     }
     
-    function renderUsers() {
+    // ------------------- NOTIFIER UI -------------------
+    function renderNotifiers() {
+        const container = document.getElementById('adminContent');
         let filtered = allUsers;
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            filtered = allUsers.filter(u => 
-                u.realName?.toLowerCase().includes(q) || 
-                u.username?.toLowerCase().includes(q)
-            );
+            filtered = allUsers.filter(u => u.realName?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q));
         }
-        const container = document.getElementById('adminContent');
         if (!filtered.length) {
             container.innerHTML = `<div class="loading">No users found</div>`;
             return;
         }
         
+        let html = `<div class="notifier-form">
+            <h4 style="margin-bottom:12px;">✉️ Send a notifier</h4>
+            <div class="form-group">
+                <label>Select user</label>
+                <select id="notifierUserSelect">
+                    <option value="">-- Choose user --</option>
+                    ${filtered.map(u => `<option value="${u.id}">${escapeHtml(u.realName)} (@${u.username})</option>`).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Notification type</label>
+                <select id="notifierType">
+                    <option value="warning">⚠️ Warning</option>
+                    <option value="inquiry">❓ Inquiry</option>
+                    <option value="update">🔄 Update (request field change)</option>
+                </select>
+            </div>
+            <div id="updateFieldsContainer" class="form-group" style="display:none;">
+                <label>Select fields to update (user will be asked to provide new value)</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" value="realName"> Real Name</label>
+                    <label><input type="checkbox" value="gender"> Gender</label>
+                    <label><input type="checkbox" value="phoneNumber"> Phone Number</label>
+                    <label><input type="checkbox" value="username"> Username</label>
+                    <label><input type="checkbox" value="instagramName"> Instagram Name</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Message to user</label>
+                <textarea id="notifierMessage" rows="3" placeholder="Write your message..."></textarea>
+            </div>
+            <button id="sendNotifierBtn" class="action-btn send" style="width:100%;">📨 Send Notifier</button>
+        </div>`;
+        
+        container.innerHTML = html;
+        
+        // Toggle update fields visibility
+        const typeSelect = document.getElementById('notifierType');
+        const updateFieldsDiv = document.getElementById('updateFieldsContainer');
+        typeSelect.addEventListener('change', () => {
+            updateFieldsDiv.style.display = typeSelect.value === 'update' ? 'block' : 'none';
+        });
+        
+        document.getElementById('sendNotifierBtn').addEventListener('click', async () => {
+            const userId = document.getElementById('notifierUserSelect').value;
+            if (!userId) { showNotification("Select a user"); return; }
+            const type = typeSelect.value;
+            const message = document.getElementById('notifierMessage').value.trim();
+            if (!message) { showNotification("Message is required"); return; }
+            
+            let fieldsToUpdate = [];
+            if (type === 'update') {
+                const checkboxes = document.querySelectorAll('#updateFieldsContainer input[type="checkbox"]:checked');
+                fieldsToUpdate = Array.from(checkboxes).map(cb => cb.value);
+                if (fieldsToUpdate.length === 0) { showNotification("Select at least one field to update"); return; }
+            }
+            
+            try {
+                await addDoc(collection(db, "notifiers"), {
+                    userId: userId,
+                    type: type,
+                    message: message,
+                    fields: fieldsToUpdate,
+                    completed: false,
+                    createdAt: new Date(),
+                    adminNote: ""
+                });
+                showNotification(`Notifier sent to ${userId}`);
+                document.getElementById('notifierMessage').value = '';
+                if (typeSelect.value === 'update') {
+                    document.querySelectorAll('#updateFieldsContainer input[type="checkbox"]').forEach(cb => cb.checked = false);
+                }
+            } catch(e) { showNotification("Error: "+e.message); }
+        });
+    }
+    
+    function renderUsers() {
+        let filtered = allUsers;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = allUsers.filter(u => u.realName?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q));
+        }
+        const container = document.getElementById('adminContent');
+        if (!filtered.length) { container.innerHTML = `<div class="loading">No users found</div>`; return; }
         let html = '';
         filtered.forEach(user => {
             const currentBadge = user.verified || "none";
-            html += `
-                <div class="user-item">
-                    <div class="user-info">
-                        <img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
-                        <div class="user-details">
-                            <div class="user-name">${escapeHtml(user.realName)}</div>
-                            <div class="user-username">@${user.username}</div>
-                        </div>
-                    </div>
-                    <select class="badge-select" data-id="${user.id}">
-                        <option value="none" ${currentBadge === 'none' ? 'selected' : ''}>No badge</option>
-                        <option value="gray" ${currentBadge === 'gray' ? 'selected' : ''}>Gray ✓</option>
-                        <option value="blue" ${currentBadge === 'blue' ? 'selected' : ''}>Blue ✓✓</option>
-                    </select>
-                </div>
-            `;
+            html += `<div class="user-item"><div class="user-info"><img class="user-avatar" src="${user.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div class="user-details"><div class="user-name">${escapeHtml(user.realName)}</div><div class="user-username">@${user.username}</div></div></div><select class="badge-select" data-id="${user.id}"><option value="none" ${currentBadge === 'none' ? 'selected' : ''}>No badge</option><option value="gray" ${currentBadge === 'gray' ? 'selected' : ''}>Gray ✓</option><option value="blue" ${currentBadge === 'blue' ? 'selected' : ''}>Blue ✓✓</option></select></div>`;
         });
         container.innerHTML = html;
-        
         document.querySelectorAll('.badge-select').forEach(select => {
             select.addEventListener('change', async (e) => {
                 const userId = select.dataset.id;
@@ -191,108 +254,36 @@
         let filtered = allPosts;
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            filtered = allPosts.filter(p => 
-                p.text?.toLowerCase().includes(q) || 
-                p.authorName?.toLowerCase().includes(q)
-            );
+            filtered = allPosts.filter(p => p.text?.toLowerCase().includes(q) || p.authorName?.toLowerCase().includes(q));
         }
         const container = document.getElementById('adminContent');
-        if (!filtered.length) {
-            container.innerHTML = `<div class="loading">No posts found</div>`;
-            return;
-        }
-        
+        if (!filtered.length) { container.innerHTML = `<div class="loading">No posts found</div>`; return; }
         let html = '';
         filtered.forEach(post => {
             const isPinned = post.pinned || false;
-            html += `
-                <div class="post-item">
-                    <div class="post-info">
-                        <img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
-                        <div class="post-details">
-                            <div class="post-author">${escapeHtml(post.authorName)}</div>
-                            <div class="post-time">${formatTime(post.createdAt)}</div>
-                            <div class="post-text">${escapeHtml(post.text.substring(0, 80))}${post.text.length > 80 ? '...' : ''}</div>
-                        </div>
-                    </div>
-                    <div>
-                        <button class="action-btn pin" data-id="${post.id}" data-pinned="${isPinned}">${isPinned ? '📌 Unpin' : '📍 Pin'}</button>
-                        <button class="action-btn edit" data-id="${post.id}">✏️ Edit</button>
-                        <button class="action-btn delete" data-id="${post.id}">🗑️ Delete</button>
-                    </div>
-                </div>
-            `;
+            html += `<div class="post-item"><div class="post-info"><img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div class="post-details"><div class="post-author">${escapeHtml(post.authorName)}</div><div class="post-time">${formatTime(post.createdAt)}</div><div class="post-text">${escapeHtml(post.text.substring(0, 80))}${post.text.length > 80 ? '...' : ''}</div></div></div><div><button class="action-btn pin" data-id="${post.id}" data-pinned="${isPinned}">${isPinned ? '📌 Unpin' : '📍 Pin'}</button><button class="action-btn edit" data-id="${post.id}">✏️ Edit</button><button class="action-btn delete" data-id="${post.id}">🗑️ Delete</button></div></div>`;
         });
         container.innerHTML = html;
-        
-        document.querySelectorAll('.action-btn.pin').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const postId = btn.dataset.id;
-                const currentlyPinned = btn.dataset.pinned === 'true';
-                await updateDoc(doc(db, "news", postId), { pinned: !currentlyPinned });
-                showNotification(currentlyPinned ? 'Post unpinned' : 'Post pinned');
-                loadPosts();
-            });
-        });
-        
-        document.querySelectorAll('.action-btn.edit').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const postId = btn.dataset.id;
-                const post = allPosts.find(p => p.id === postId);
-                const newText = prompt("Edit post content:", post.text);
-                if (newText && newText.trim()) {
-                    await updateDoc(doc(db, "news", postId), { text: newText.trim() });
-                    showNotification('Post updated');
-                    loadPosts();
-                }
-            });
-        });
-        
-        document.querySelectorAll('.action-btn.delete').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                if (confirm('Delete this post permanently?')) {
-                    const postId = btn.dataset.id;
-                    await deleteDoc(doc(db, "news", postId));
-                    showNotification('Post deleted');
-                    loadPosts();
-                }
-            });
-        });
+        document.querySelectorAll('.action-btn.pin').forEach(btn => btn.addEventListener('click', async (e) => { const postId = btn.dataset.id; const currentlyPinned = btn.dataset.pinned === 'true'; await updateDoc(doc(db, "news", postId), { pinned: !currentlyPinned }); showNotification(currentlyPinned ? 'Post unpinned' : 'Post pinned'); loadPosts(); }));
+        document.querySelectorAll('.action-btn.edit').forEach(btn => btn.addEventListener('click', async (e) => { const postId = btn.dataset.id; const post = allPosts.find(p => p.id === postId); const newText = prompt("Edit post content:", post.text); if (newText && newText.trim()) { await updateDoc(doc(db, "news", postId), { text: newText.trim() }); showNotification('Post updated'); loadPosts(); } }));
+        document.querySelectorAll('.action-btn.delete').forEach(btn => btn.addEventListener('click', async (e) => { if (confirm('Delete this post permanently?')) { const postId = btn.dataset.id; await deleteDoc(doc(db, "news", postId)); showNotification('Post deleted'); loadPosts(); } }));
     }
     
     function renderLogs() {
         let filtered = allLogs;
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            filtered = allLogs.filter(log => 
-                log.message?.toLowerCase().includes(q) ||
-                log.actor?.toLowerCase().includes(q) ||
-                log.target?.toLowerCase().includes(q)
-            );
+            filtered = allLogs.filter(log => log.message?.toLowerCase().includes(q) || log.actor?.toLowerCase().includes(q));
         }
         const container = document.getElementById('adminContent');
-        if (!filtered.length) {
-            container.innerHTML = `<div class="loading">No logs found</div>`;
-            return;
-        }
-        
+        if (!filtered.length) { container.innerHTML = `<div class="loading">No logs found</div>`; return; }
         let html = '';
         filtered.forEach(log => {
-            let iconClass = '';
             let icon = 'bx-info-circle';
-            if (log.type === 'request') { icon = 'bx-heart'; iconClass = 'request'; }
-            else if (log.type === 'accept') { icon = 'bx-check-circle'; iconClass = 'accept'; }
-            else if (log.type === 'reject') { icon = 'bx-x-circle'; iconClass = 'reject'; }
-            else if (log.type === 'pair') { icon = 'bx-party'; iconClass = 'pair'; }
-            else if (log.type === 'unpair') { icon = 'bx-heart-broken'; iconClass = 'unpair'; }
-            
-            html += `
-                <div class="log-item">
-                    <i class='bx ${icon} log-icon ${iconClass}'></i>
-                    <div class="log-message">${escapeHtml(log.message)}</div>
-                    <div class="log-time">${formatTime(log.timestamp)}</div>
-                </div>
-            `;
+            if (log.type === 'request') icon = 'bx-heart';
+            else if (log.type === 'accept') icon = 'bx-check-circle';
+            else if (log.type === 'reject') icon = 'bx-x-circle';
+            html += `<div class="log-item"><i class='bx ${icon}'></i><div class="log-message">${escapeHtml(log.message)}</div><div class="log-time">${formatTime(log.timestamp)}</div></div>`;
         });
         container.innerHTML = html;
     }
@@ -318,7 +309,8 @@
         searchQuery = e.target.value;
         if (currentTab === 'users') renderUsers();
         else if (currentTab === 'posts') renderPosts();
-        else renderLogs();
+        else if (currentTab === 'logs') renderLogs();
+        else if (currentTab === 'notifiers') renderNotifiers();
     });
     
     document.querySelectorAll('.admin-tab').forEach(tab => {
@@ -328,25 +320,20 @@
             currentTab = tab.dataset.tab;
             document.getElementById('searchInput').value = '';
             searchQuery = '';
-            if (currentTab === 'users') {
-                loadUsers();
-            } else if (currentTab === 'posts') {
-                loadPosts();
-            } else {
-                loadLogs();
-            }
+            if (currentTab === 'users') { loadUsers(); }
+            else if (currentTab === 'posts') { loadPosts(); }
+            else if (currentTab === 'logs') { loadLogs(); }
+            else if (currentTab === 'notifiers') { loadUsers().then(() => renderNotifiers()); }
         });
     });
     
+    // Anti-screenshot + resize
     (function antiScreenshot() {
         const blackFlash = () => {
             const overlay = document.createElement('div');
-            overlay.style.position = 'fixed';
-            overlay.style.top = overlay.style.left = '0';
-            overlay.style.width = overlay.style.height = '100%';
-            overlay.style.backgroundColor = '#000000';
-            overlay.style.zIndex = '999999';
-            document.body.appendChild(overlay);
+            overlay.style.position = 'fixed'; overlay.style.top = overlay.style.left = '0';
+            overlay.style.width = overlay.style.height = '100%'; overlay.style.backgroundColor = '#000000';
+            overlay.style.zIndex = '999999'; document.body.appendChild(overlay);
             setTimeout(() => overlay.remove(), 200);
         };
         document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
@@ -362,7 +349,7 @@
     window.addEventListener('resize', handleResize);
     handleResize();
     
-    // Default to logs tab
+    // Default load logs
     loadLogs();
 </script>
 </body>
