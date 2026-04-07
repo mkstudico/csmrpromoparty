@@ -3,437 +3,783 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Galagram • Chats</title>
+    <title>Galagram • Chat</title>
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Galagram">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <!-- Firebase + Firestore -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit, setDoc, increment } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
-            authDomain: "akademia-c56ff.firebaseapp.com",
-            databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
-            projectId: "akademia-c56ff",
-            storageBucket: "akademia-c56ff.firebasestorage.app",
-            messagingSenderId: "678278775270",
-            appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
-            measurementId: "G-X3CHCJE5LK"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        window.db = db;
-        window.arrayUnion = arrayUnion;
-        window.arrayRemove = arrayRemove;
-        window.serverTimestamp = serverTimestamp;
-    </script>
     <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.9.0/index.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .pc-blocker i { font-size: 4rem; margin-bottom: 1.2rem; color: #d62976; }
-        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; position: relative; }
-        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; background: white; }
-        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
-        .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .header-actions { margin-left: auto; display: flex; gap: 16px; }
-        .header-actions i { font-size: 1.4rem; color: #262626; cursor: pointer; }
-        .main-container { display: flex; flex-direction: column; height: calc(100vh - 60px); overflow: hidden; }
-        /* Chat Rooms List */
-        .rooms-sidebar { background: #fff; border-right: 0.5px solid #efefef; overflow-y: auto; flex-shrink: 0; max-height: 100%; }
-        .rooms-header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #efefef; }
-        .rooms-header h4 { font-size: 0.9rem; font-weight: 600; }
-        .new-group-btn { background: #0095f6; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; cursor: pointer; }
-        .room-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.1s; border-bottom: 0.5px solid #f0f0f0; }
-        .room-item.active { background: #f0f7ff; border-left: 3px solid #0095f6; }
-        .room-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: #efefef; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
-        .room-info { flex: 1; min-width: 0; }
-        .room-name { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .room-last-msg { font-size: 0.7rem; color: #8e8e8e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .room-time { font-size: 0.65rem; color: #aaa; }
-        .unread-badge { background: #ed4956; color: white; border-radius: 20px; padding: 2px 8px; font-size: 0.65rem; font-weight: 600; margin-left: 8px; }
-        /* Chat area */
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #fafafa; overflow: hidden; }
-        .chat-header { padding: 12px 16px; background: white; border-bottom: 0.5px solid #efefef; display: flex; align-items: center; gap: 12px; }
-        .chat-header-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .chat-header-info { flex: 1; }
-        .chat-header-name { font-weight: 600; font-size: 1rem; }
-        .chat-header-status { font-size: 0.7rem; color: #8e8e8e; }
-        .chat-actions { display: flex; gap: 12px; }
-        .chat-actions i { font-size: 1.3rem; cursor: pointer; color: #262626; }
-        .messages-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-        .message { display: flex; gap: 8px; max-width: 85%; animation: fadeInUp 0.2s ease; }
-        .message.own { align-self: flex-end; flex-direction: row-reverse; }
-        .message-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; align-self: flex-end; }
-        .message-bubble { background: white; padding: 10px 14px; border-radius: 20px; font-size: 0.85rem; box-shadow: 0 1px 1px rgba(0,0,0,0.05); word-wrap: break-word; max-width: 100%; }
-        .message.own .message-bubble { background: #0095f6; color: white; }
-        .message-name { font-size: 0.7rem; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-        .message-time { font-size: 0.6rem; color: #aaa; margin-top: 4px; text-align: right; }
-        .message.own .message-time { color: rgba(255,255,255,0.7); }
-        .input-area { padding: 12px 16px; background: white; border-top: 0.5px solid #efefef; display: flex; gap: 10px; align-items: center; }
-        .emoji-btn { font-size: 1.5rem; background: none; border: none; cursor: pointer; color: #8e8e8e; }
-        .chat-input { flex: 1; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 24px; font-size: 0.9rem; background: #fafafa; }
-        .send-btn { background: #0095f6; color: white; border: none; width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        emoji-picker { position: absolute; bottom: 70px; right: 16px; z-index: 1001; width: 280px; max-height: 350px; display: none; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .modal-content { background: white; border-radius: 24px; width: 90%; max-width: 340px; padding: 20px; }
-        .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; text-align: center; }
-        .modal-input { width: 100%; padding: 12px; border: 1px solid #dbdbdb; border-radius: 12px; margin-bottom: 12px; }
-        .user-select-list { max-height: 200px; overflow-y: auto; margin: 12px 0; }
-        .user-checkbox-item { display: flex; align-items: center; gap: 12px; padding: 8px; border-bottom: 0.5px solid #efefef; }
-        .user-checkbox-item img { width: 36px; height: 36px; border-radius: 50%; }
-        .modal-buttons { display: flex; gap: 12px; margin-top: 16px; }
-        .modal-btn { flex: 1; padding: 10px; border-radius: 30px; font-weight: 600; border: none; cursor: pointer; }
-        .modal-btn-primary { background: #0095f6; color: white; }
-        .modal-btn-secondary { background: #efefef; color: #262626; }
-        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
-        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
-        .bx-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .empty-chat { text-align: center; padding: 40px; color: #aaa; }
-        .loading-spinner { text-align: center; padding: 20px; color: #aaa; }
-        .hidden { display: none; }
-        @media (min-width: 768px) { .rooms-sidebar { width: 280px; } .main-container { flex-direction: row; } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #fafafa;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Header */
+        .header {
+            background: white;
+            padding: 12px 20px;
+            border-bottom: 1px solid #dbdbdb;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .back-btn {
+            font-size: 1.6rem;
+            cursor: pointer;
+            color: #262626;
+        }
+        .logo {
+            font-weight: 700;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, #f77737, #d62976, #962fbf);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #dbdbdb;
+            background: white;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            font-weight: 600;
+            color: #8e8e8e;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            color: #0095f6;
+            border-bottom-color: #0095f6;
+        }
+        /* Main chat layout (two columns) */
+        .chat-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        /* Conversations sidebar (for private chat) */
+        .conversations-panel {
+            width: 320px;
+            border-right: 1px solid #dbdbdb;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            transition: transform 0.2s;
+        }
+        .conversations-panel.hide-on-mobile {
+            display: flex;
+        }
+        .conversation-item {
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #efefef;
+            transition: background 0.1s;
+        }
+        .conversation-item:hover {
+            background: #f8f8f8;
+        }
+        .conversation-item.active {
+            background: #eef7ff;
+        }
+        .conv-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .conv-details {
+            flex: 1;
+        }
+        .conv-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .conv-last-msg {
+            font-size: 0.75rem;
+            color: #8e8e8e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .new-conversation {
+            padding: 12px 16px;
+            border-bottom: 1px solid #dbdbdb;
+            background: #fafafa;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .new-conversation input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #dbdbdb;
+            border-radius: 30px;
+            font-size: 0.85rem;
+        }
+        .new-conversation button {
+            background: #0095f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        /* Messages panel (right side) */
+        .messages-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid #dbdbdb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+        }
+        .chat-header .cancel-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #ed4956;
+            display: none;
+        }
+        .chat-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .chat-header .block-btn {
+            background: none;
+            border: none;
+            color: #ed4956;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+            align-self: flex-start;
+        }
+        .message.own {
+            align-self: flex-end;
+        }
+        .message-bubble {
+            background: #efefef;
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            position: relative;
+        }
+        .message.own .message-bubble {
+            background: #0095f6;
+            color: white;
+        }
+        .message-info {
+            font-size: 0.7rem;
+            color: #8e8e8e;
+            margin-top: 4px;
+            margin-left: 8px;
+            display: flex;
+            gap: 12px;
+        }
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+            font-size: 0.7rem;
+        }
+        .message-actions span {
+            cursor: pointer;
+            color: #8e8e8e;
+        }
+        .message-actions span:hover {
+            color: #0095f6;
+        }
+        .reply-preview {
+            font-size: 0.7rem;
+            background: #e0e0e0;
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            color: #555;
+        }
+        .message.own .reply-preview {
+            background: #006bbf;
+            color: #ddd;
+        }
+        .input-area {
+            padding: 12px 16px;
+            border-top: 1px solid #dbdbdb;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: white;
+        }
+        .emoji-btn {
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .message-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #dbdbdb;
+            border-radius: 24px;
+            font-size: 0.9rem;
+            resize: none;
+            font-family: inherit;
+        }
+        .send-btn {
+            background: #0095f6;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        emoji-picker {
+            position: absolute;
+            bottom: 70px;
+            right: 20px;
+            z-index: 100;
+            width: 320px;
+            max-height: 400px;
+            display: none;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #8e8e8e;
+        }
+        @media (max-width: 768px) {
+            .chat-layout {
+                flex-direction: column;
+            }
+            .conversations-panel {
+                width: 100%;
+                max-height: 40%;
+                border-right: none;
+                border-bottom: 1px solid #dbdbdb;
+            }
+            .messages-panel {
+                height: 60%;
+            }
+            .chat-header .cancel-btn {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
-<div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
-<div id="appRoot" class="app-container">
+<div class="app-container">
     <div class="header">
         <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
-        <div class="logo">Galagram • Chats</div>
-        <div class="header-actions"><i class='bx bx-group' id="createGroupBtn"></i></div>
+        <div class="logo">Galagram Chat</div>
     </div>
-    <div class="main-container" id="mainChatContainer">
-        <!-- Rooms list (left side) -->
-        <div class="rooms-sidebar" id="roomsSidebar">
-            <div class="rooms-header">
-                <h4><i class='bx bx-chat'></i> Conversations</h4>
-                <button class="new-group-btn" id="newGroupBtnMobile">+ New Group</button>
+    <div class="tabs">
+        <div class="tab active" data-tab="public">🌍 PUBLIC</div>
+        <div class="tab" data-tab="private">💬 PRIVATE</div>
+    </div>
+    <div class="chat-layout" id="chatLayout">
+        <!-- Private conversations sidebar -->
+        <div id="conversationsPanel" class="conversations-panel" style="display: none;">
+            <div class="new-conversation">
+                <input type="text" id="newConvUsername" placeholder="Username to start chat...">
+                <button id="startConvBtn">Start</button>
             </div>
-            <div id="roomsList"></div>
+            <div id="conversationsList"></div>
         </div>
-        <!-- Chat area -->
-        <div class="chat-area" id="chatArea">
-            <div class="chat-header" id="chatHeader" style="display: none;">
-                <img class="chat-header-avatar" id="chatHeaderAvatar" src="">
-                <div class="chat-header-info">
-                    <div class="chat-header-name" id="chatHeaderName">Select a chat</div>
-                    <div class="chat-header-status" id="chatHeaderStatus"></div>
-                </div>
-                <div class="chat-actions"><i class='bx bx-info-circle' id="chatInfoBtn"></i></div>
+        <!-- Messages panel -->
+        <div id="messagesPanel" class="messages-panel">
+            <div class="chat-header">
+                <button id="cancelPrivateBtn" class="cancel-btn"><i class='bx bx-x'></i> Cancel</button>
+                <h3 id="chatTitle">Select a chat</h3>
+                <button id="blockBtn" class="block-btn" style="display: none;">Block</button>
             </div>
-            <div class="messages-container" id="messagesContainer">
-                <div class="empty-chat">✨ Tap a conversation to start messaging</div>
+            <div id="messagesContainer" class="messages-container">
+                <div class="empty-state">Select a conversation to start messaging</div>
             </div>
             <div class="input-area" id="inputArea" style="display: none;">
-                <button class="emoji-btn" id="chatEmojiBtn"><i class='bx bx-smile'></i></button>
-                <input type="text" id="chatMessageInput" class="chat-input" placeholder="Type a message...">
-                <button class="send-btn" id="sendMessageBtn"><i class='bx bx-send'></i></button>
+                <button id="emojiBtn" class="emoji-btn"><i class='bx bx-smile'></i></button>
+                <textarea id="messageInput" class="message-input" rows="1" placeholder="Type a message..."></textarea>
+                <button id="sendBtn" class="send-btn"><i class='bx bx-send'></i></button>
             </div>
-            <emoji-picker id="chatEmojiPicker"></emoji-picker>
         </div>
     </div>
+    <emoji-picker id="emojiPicker"></emoji-picker>
 </div>
 
 <script type="module">
-    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit, setDoc, increment } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-    const db = window.db;
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, orderBy, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     
-    // Globals
-    let currentUser = null;
-    let currentRoomId = null;
-    let currentRoomType = null; // 'private' or 'group'
-    let unsubscribeMessages = null;
-    let unsubscribeRooms = null;
-    let allUsersMap = new Map(); // username -> userData
+    const firebaseConfig = {
+        apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+        authDomain: "akademia-c56ff.firebaseapp.com",
+        databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+        projectId: "akademia-c56ff",
+        storageBucket: "akademia-c56ff.firebasestorage.app",
+        messagingSenderId: "678278775270",
+        appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+        measurementId: "G-X3CHCJE5LK"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
     
-    function showNotification(msg, type = 'info') {
-        const existing = document.querySelector('.galagram-toast');
-        if (existing) existing.remove();
-        const toast = document.createElement('div');
-        toast.className = 'galagram-toast';
-        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${msg}</span>`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => toast.remove(), 4000);
-    }
-    
-    // Session check
+    // Session
     const sessionData = localStorage.getItem('galagram_session');
-    if (!sessionData) { window.location.href = "index.html"; }
+    if (!sessionData) window.location.href = "index.html";
     const session = JSON.parse(sessionData);
-    const currentUsername = session.username;
+    const currentUser = session.username;
+    let currentUserDoc = null;
     
+    // State
+    let currentTab = "public";
+    let activePrivateChat = null; // { userId, username, realName, avatar, blocked }
+    let publicUnsubscribe = null;
+    let privateUnsubscribe = null;
+    let replyToMessage = null; // { id, text, senderName }
+    
+    // DOM elements
+    const backBtn = document.getElementById('backBtn');
+    const conversationsPanel = document.getElementById('conversationsPanel');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const inputArea = document.getElementById('inputArea');
+    const chatTitle = document.getElementById('chatTitle');
+    const cancelPrivateBtn = document.getElementById('cancelPrivateBtn');
+    const blockBtn = document.getElementById('blockBtn');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const emojiBtn = document.getElementById('emojiBtn');
+    const emojiPicker = document.getElementById('emojiPicker');
+    
+    // Helper: fetch user profile
+    async function getUserProfile(username) {
+        const docSnap = await getDoc(doc(db, "users", username));
+        if (docSnap.exists()) return docSnap.data();
+        return null;
+    }
+    
+    // Helper: show notification
+    function showToast(msg, type = "info") {
+        const toast = document.createElement('div');
+        toast.style.cssText = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;padding:10px 20px;border-radius:40px;z-index:10000;font-size:0.85rem;`;
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // Load current user data
     async function loadCurrentUser() {
-        const userDoc = await getDoc(doc(db, "users", currentUsername));
-        if (userDoc.exists()) {
-            currentUser = { id: currentUsername, ...userDoc.data() };
-            if (!currentUser.chatRooms) await updateDoc(doc(db, "users", currentUsername), { chatRooms: [] });
-        } else { window.location.href = "index.html"; }
+        const docSnap = await getDoc(doc(db, "users", currentUser));
+        if (docSnap.exists()) currentUserDoc = docSnap.data();
     }
     
-    // Generate private room ID (sorted usernames)
-    function getPrivateRoomId(userA, userB) {
-        return [userA, userB].sort().join('_');
-    }
-    
-    // Load all users for group creation
-    async function fetchAllUsers() {
-        const usersSnap = await getDocs(collection(db, "users"));
-        usersSnap.forEach(docSnap => {
-            if (docSnap.id !== currentUsername) {
-                allUsersMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-            }
-        });
-    }
-    
-    // Create or get private chat
-    async function openPrivateChat(targetUsername) {
-        const roomId = getPrivateRoomId(currentUsername, targetUsername);
-        const roomRef = doc(db, "chatRooms", roomId);
-        const roomSnap = await getDoc(roomRef);
-        if (!roomSnap.exists()) {
-            // create new private room
-            await setDoc(roomRef, {
-                type: "private",
-                participants: [currentUsername, targetUsername],
-                createdAt: serverTimestamp(),
-                lastMessage: "",
-                lastMessageTime: serverTimestamp(),
-                lastMessageSender: ""
-            });
-            // add room to both users' chatRooms
-            await updateDoc(doc(db, "users", currentUsername), { chatRooms: arrayUnion(roomId) });
-            await updateDoc(doc(db, "users", targetUsername), { chatRooms: arrayUnion(roomId) });
-        }
-        // also ensure current user has it in list
-        if (!currentUser.chatRooms?.includes(roomId)) {
-            await updateDoc(doc(db, "users", currentUsername), { chatRooms: arrayUnion(roomId) });
-            currentUser.chatRooms = [...(currentUser.chatRooms || []), roomId];
-        }
-        selectRoom(roomId, "private");
-    }
-    
-    // Create group
-    async function createGroup(groupName, selectedMembers) {
-        if (!groupName.trim()) { showNotification("Group name required", "error"); return; }
-        if (selectedMembers.length === 0) { showNotification("Select at least one member", "error"); return; }
-        const participants = [currentUsername, ...selectedMembers];
-        const roomId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-        const roomRef = doc(db, "chatRooms", roomId);
-        await setDoc(roomRef, {
-            type: "group",
-            groupName: groupName.trim(),
-            participants: participants,
-            createdBy: currentUsername,
-            createdAt: serverTimestamp(),
-            lastMessage: "",
-            lastMessageTime: serverTimestamp(),
-            groupAvatar: null
-        });
-        // add room to all participants
-        for (const p of participants) {
-            await updateDoc(doc(db, "users", p), { chatRooms: arrayUnion(roomId) });
-        }
-        showNotification(`Group "${groupName}" created!`, "success");
-        // refresh rooms and select
-        if (currentUser.chatRooms) currentUser.chatRooms.push(roomId);
-        selectRoom(roomId, "group");
-    }
-    
-    // Render rooms list with realtime updates
-    function renderRooms(roomsData) {
-        const container = document.getElementById('roomsList');
-        if (!roomsData.length) {
-            container.innerHTML = `<div style="padding: 20px; text-align: center; color: #aaa;"><i class='bx bx-message-rounded-dots'></i><p>No chats yet. Start one!</p></div>`;
-            return;
-        }
-        container.innerHTML = roomsData.map(room => {
-            const isActive = currentRoomId === room.id;
-            let displayName = "";
-            let avatarHtml = `<i class='bx bx-chat' style="font-size:1.8rem;"></i>`;
-            if (room.type === "private") {
-                const other = room.participants.find(p => p !== currentUsername);
-                const otherUser = allUsersMap.get(other) || { realName: other, username: other, profileImage: null };
-                displayName = otherUser.realName || other;
-                avatarHtml = `<img class="room-avatar" src="${otherUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80&name='+encodeURIComponent(otherUser.realName||'')}" onerror="this.src='https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'">`;
-            } else {
-                displayName = room.groupName || "Group Chat";
-                avatarHtml = `<div class="room-avatar" style="background:linear-gradient(135deg,#f77737,#d62976); color:white;"><i class='bx bx-group'></i></div>`;
-            }
-            const lastMsg = room.lastMessage ? (room.lastMessage.length > 25 ? room.lastMessage.substring(0,25)+"..." : room.lastMessage) : "No messages yet";
-            const unread = room.unreadCount && room.unreadCount[currentUsername] ? room.unreadCount[currentUsername] : 0;
-            return `<div class="room-item ${isActive ? 'active' : ''}" data-roomid="${room.id}" data-roomtype="${room.type}">
-                        ${avatarHtml}
-                        <div class="room-info">
-                            <div class="room-name">${escapeHtml(displayName)} ${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div>
-                            <div class="room-last-msg">${escapeHtml(lastMsg)}</div>
-                        </div>
-                        <div class="room-time">${formatRelativeTime(room.lastMessageTime)}</div>
-                    </div>`;
-        }).join('');
-        // attach click handlers
-        document.querySelectorAll('.room-item').forEach(el => {
-            el.addEventListener('click', () => {
-                const roomId = el.dataset.roomid;
-                const roomType = el.dataset.roomtype;
-                selectRoom(roomId, roomType);
-            });
-        });
-    }
-    
-    function formatRelativeTime(timestamp) {
-        if (!timestamp) return '';
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        const now = new Date();
-        const diff = Math.floor((now - date) / 1000);
-        if (diff < 60) return `${diff}s`;
-        if (diff < 3600) return `${Math.floor(diff/60)}m`;
-        if (diff < 86400) return `${Math.floor(diff/3600)}h`;
-        return `${Math.floor(diff/86400)}d`;
-    }
-    
-    // Subscribe to rooms list for current user
-    function subscribeToRooms() {
-        if (!currentUser) return;
-        const userRef = doc(db, "users", currentUsername);
-        unsubscribeRooms = onSnapshot(userRef, async (userSnap) => {
-            if (userSnap.exists()) {
-                const userData = userSnap.data();
-                currentUser.chatRooms = userData.chatRooms || [];
-                const roomIds = currentUser.chatRooms;
-                if (!roomIds.length) { renderRooms([]); return; }
-                // fetch each room details
-                const roomsPromises = roomIds.map(async (rid) => {
-                    const roomDoc = await getDoc(doc(db, "chatRooms", rid));
-                    if (roomDoc.exists()) return { id: rid, ...roomDoc.data() };
-                    return null;
-                });
-                const roomsArr = (await Promise.all(roomsPromises)).filter(r => r !== null);
-                // sort by lastMessageTime desc
-                roomsArr.sort((a,b) => (b.lastMessageTime?.toDate?.() || 0) - (a.lastMessageTime?.toDate?.() || 0));
-                renderRooms(roomsArr);
-            }
-        });
-    }
-    
-    // Select room and load messages
-    async function selectRoom(roomId, type) {
-        if (unsubscribeMessages) unsubscribeMessages();
-        currentRoomId = roomId;
-        currentRoomType = type;
-        const roomDoc = await getDoc(doc(db, "chatRooms", roomId));
-        if (!roomDoc.exists()) return;
-        const roomData = roomDoc.data();
-        // Update UI header
-        const headerDiv = document.getElementById('chatHeader');
-        const inputDiv = document.getElementById('inputArea');
-        headerDiv.style.display = 'flex';
-        inputDiv.style.display = 'flex';
-        if (type === "private") {
-            const other = roomData.participants.find(p => p !== currentUsername);
-            const otherUser = allUsersMap.get(other) || { realName: other, username: other, profileImage: null };
-            document.getElementById('chatHeaderName').innerText = otherUser.realName || other;
-            document.getElementById('chatHeaderAvatar').src = otherUser.profileImage || `https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80&name=${encodeURIComponent(otherUser.realName||'')}`;
-            document.getElementById('chatHeaderStatus').innerText = "@" + (otherUser.username || other);
-        } else {
-            document.getElementById('chatHeaderName').innerText = roomData.groupName || "Group";
-            document.getElementById('chatHeaderAvatar').src = roomData.groupAvatar || `https://ui-avatars.com/api/?background=f77737&color=fff&rounded=true&size=80&name=${encodeURIComponent(roomData.groupName || 'G')}`;
-            const count = roomData.participants?.length || 0;
-            document.getElementById('chatHeaderStatus').innerText = `${count} members`;
-        }
-        // Mark unread as read for this room
-        const userRoomRef = doc(db, "users", currentUsername);
-        const userSnap = await getDoc(userRoomRef);
-        if (userSnap.exists()) {
-            const unreads = userSnap.data().roomUnread || {};
-            if (unreads[roomId]) {
-                delete unreads[roomId];
-                await updateDoc(userRoomRef, { roomUnread: unreads });
-            }
-        }
-        // Load messages realtime
-        const messagesRef = collection(db, "chatRooms", roomId, "messages");
-        const q = query(messagesRef, orderBy("timestamp", "asc"), limit(100));
-        unsubscribeMessages = onSnapshot(q, (snapshot) => {
-            const container = document.getElementById('messagesContainer');
+    // ---------- PUBLIC CHAT ----------
+    function loadPublicChat() {
+        if (publicUnsubscribe) publicUnsubscribe();
+        const q = query(collection(db, "chatMessages"), orderBy("timestamp", "asc"));
+        publicUnsubscribe = onSnapshot(q, (snapshot) => {
+            if (currentTab !== "public") return;
+            messagesContainer.innerHTML = '';
             if (snapshot.empty) {
-                container.innerHTML = `<div class="empty-chat">💬 No messages yet. Say hi!</div>`;
+                messagesContainer.innerHTML = '<div class="empty-state">No messages yet. Be the first!</div>';
                 return;
             }
-            let html = '';
-            snapshot.forEach(docMsg => {
-                const msg = docMsg.data();
-                const isOwn = msg.sender === currentUsername;
-                const verifiedIcon = msg.senderVerified === 'blue' ? '<i class="bx bx-check-circle" style="color:#0095f6; font-size:0.7rem;"></i>' : (msg.senderVerified === 'gray' ? '<i class="bx bxs-check-circle" style="color:#8e8e8e; font-size:0.7rem;"></i>' : '');
-                const senderName = msg.senderName || msg.sender;
-                html += `<div class="message ${isOwn ? 'own' : ''}">
-                            <img class="message-avatar" src="${msg.senderAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'}" onerror="this.src='https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'">
-                            <div class="message-bubble">
-                                ${!isOwn && currentRoomType === 'group' ? `<div class="message-name">${escapeHtml(senderName)} ${verifiedIcon}</div>` : ''}
-                                <div>${escapeHtml(msg.text)}</div>
-                                <div class="message-time">${formatTime(msg.timestamp)}</div>
-                            </div>
-                        </div>`;
+            snapshot.forEach(docSnap => {
+                const msg = docSnap.data();
+                renderPublicMessage(msg, docSnap.id);
             });
-            container.innerHTML = html;
-            container.scrollTop = container.scrollHeight;
+            scrollToBottom();
+        });
+        // Show input area
+        inputArea.style.display = 'flex';
+        chatTitle.innerText = "Public Chat";
+        blockBtn.style.display = 'none';
+        cancelPrivateBtn.style.display = 'none';
+    }
+    
+    function renderPublicMessage(msg, msgId) {
+        const isOwn = msg.username === currentUser;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+        let replyHtml = '';
+        if (msg.replyTo) {
+            replyHtml = `<div class="reply-preview">↩️ Replying to ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0, 50))}</div>`;
+        }
+        messageDiv.innerHTML = `
+            ${replyHtml}
+            <div class="message-bubble">${escapeHtml(msg.text)}</div>
+            <div class="message-info">
+                <span>${escapeHtml(msg.username)}</span>
+                <span>${formatTime(msg.timestamp)}</span>
+            </div>
+            <div class="message-actions">
+                <span class="reply-action" data-id="${msgId}" data-text="${escapeHtml(msg.text)}" data-sender="${escapeHtml(msg.username)}">↩️ Reply</span>
+                ${isOwn ? `<span class="edit-action" data-id="${msgId}" data-text="${escapeHtml(msg.text)}">✏️ Edit</span>` : ''}
+                ${isOwn ? `<span class="delete-action" data-id="${msgId}">🗑️ Delete</span>` : ''}
+            </div>
+        `;
+        messagesContainer.appendChild(messageDiv);
+        
+        // Attach event listeners
+        messageDiv.querySelectorAll('.reply-action').forEach(el => {
+            el.addEventListener('click', () => {
+                replyToMessage = { id: el.dataset.id, text: el.dataset.text, senderName: el.dataset.sender };
+                messageInput.placeholder = `Replying to ${replyToMessage.senderName}...`;
+                messageInput.focus();
+            });
+        });
+        if (isOwn) {
+            messageDiv.querySelectorAll('.edit-action').forEach(el => {
+                el.addEventListener('click', () => {
+                    const newText = prompt("Edit your message:", el.dataset.text);
+                    if (newText && newText.trim()) {
+                        updateDoc(doc(db, "chatMessages", el.dataset.id), { text: newText.trim() });
+                    }
+                });
+            });
+            messageDiv.querySelectorAll('.delete-action').forEach(el => {
+                el.addEventListener('click', async () => {
+                    if (confirm("Delete this message?")) {
+                        await deleteDoc(doc(db, "chatMessages", el.dataset.id));
+                    }
+                });
+            });
+        }
+    }
+    
+    async function sendPublicMessage(text) {
+        if (!text.trim()) return;
+        const messageData = {
+            username: currentUser,
+            text: text.trim(),
+            userAvatar: currentUserDoc?.profileImage || '',
+            userVerified: currentUserDoc?.verified || "none",
+            timestamp: serverTimestamp()
+        };
+        if (replyToMessage) {
+            messageData.replyTo = { id: replyToMessage.id, text: replyToMessage.text, senderName: replyToMessage.senderName };
+            replyToMessage = null;
+            messageInput.placeholder = "Type a message...";
+        }
+        await addDoc(collection(db, "chatMessages"), messageData);
+        messageInput.value = '';
+        // Update chat message count
+        const newCount = (currentUserDoc?.chatMessageCount || 0) + 1;
+        await updateDoc(doc(db, "users", currentUser), { chatMessageCount: newCount });
+        currentUserDoc.chatMessageCount = newCount;
+    }
+    
+    // ---------- PRIVATE CHAT ----------
+    // Store private messages in subcollection: users/{userId}/privateChats/{otherUserId}/messages
+    // Also maintain a conversation list for each user.
+    async function getOrCreatePrivateChat(otherUserId) {
+        const chatId = [currentUser, otherUserId].sort().join('_');
+        const chatRef = doc(db, "privateChats", chatId);
+        const chatSnap = await getDoc(chatRef);
+        if (!chatSnap.exists()) {
+            await setDoc(chatRef, {
+                participants: [currentUser, otherUserId],
+                createdAt: new Date(),
+                lastMessage: null,
+                lastUpdated: new Date()
+            });
+        }
+        return chatId;
+    }
+    
+    // Load user's private conversations
+    async function loadConversations() {
+        const q = query(collection(db, "privateChats"), where("participants", "array-contains", currentUser));
+        const snapshot = await getDocs(q);
+        const convos = [];
+        for (const docSnap of snapshot.docs) {
+            const data = docSnap.data();
+            const otherId = data.participants.find(p => p !== currentUser);
+            const userProfile = await getUserProfile(otherId);
+            if (userProfile) {
+                // Check if blocked
+                const blockedByOther = userProfile.blockedUsers?.includes(currentUser) || false;
+                const blockedByMe = currentUserDoc?.blockedUsers?.includes(otherId) || false;
+                convos.push({
+                    chatId: docSnap.id,
+                    otherUserId: otherId,
+                    username: otherId,
+                    realName: userProfile.realName || otherId,
+                    avatar: userProfile.profileImage,
+                    lastMessage: data.lastMessage,
+                    lastUpdated: data.lastUpdated,
+                    blocked: blockedByMe,
+                    blockedByOther: blockedByOther
+                });
+            }
+        }
+        convos.sort((a,b) => (b.lastUpdated?.toDate?.() || 0) - (a.lastUpdated?.toDate?.() || 0));
+        renderConversations(convos);
+    }
+    
+    function renderConversations(conversations) {
+        const container = document.getElementById('conversationsList');
+        if (!container) return;
+        if (conversations.length === 0) {
+            container.innerHTML = '<div class="empty-state" style="padding:20px;">No conversations. Start a new one!</div>';
+            return;
+        }
+        container.innerHTML = conversations.map(conv => `
+            <div class="conversation-item ${activePrivateChat?.otherUserId === conv.otherUserId ? 'active' : ''}" data-userid="${conv.otherUserId}">
+                <img class="conv-avatar" src="${conv.avatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt="">
+                <div class="conv-details">
+                    <div class="conv-name">${escapeHtml(conv.realName)} (@${conv.username})</div>
+                    <div class="conv-last-msg">${conv.lastMessage ? escapeHtml(conv.lastMessage.substring(0, 40)) : 'No messages yet'}</div>
+                </div>
+                ${conv.blocked ? '<i class="bx bx-block" style="color:#ed4956;"></i>' : (conv.blockedByOther ? '<i class="bx bx-lock" style="color:#8e8e8e;"></i>' : '')}
+            </div>
+        `).join('');
+        document.querySelectorAll('.conversation-item').forEach(el => {
+            el.addEventListener('click', () => openPrivateChat(el.dataset.userid));
         });
     }
     
-    async function sendMessage() {
-        const input = document.getElementById('chatMessageInput');
-        const text = input.value.trim();
-        if (!text || !currentRoomId) return;
-        try {
-            const roomRef = doc(db, "chatRooms", currentRoomId);
-            const roomSnap = await getDoc(roomRef);
-            if (!roomSnap.exists()) return;
-            const roomData = roomSnap.data();
-            const messageObj = {
-                text: text,
-                sender: currentUsername,
-                senderName: currentUser.realName || currentUsername,
-                senderAvatar: currentUser.profileImage || null,
-                senderVerified: currentUser.verified || "none",
-                timestamp: serverTimestamp()
-            };
-            await addDoc(collection(db, "chatRooms", currentRoomId, "messages"), messageObj);
-            // Update room last message
-            await updateDoc(roomRef, {
-                lastMessage: text,
-                lastMessageTime: serverTimestamp(),
-                lastMessageSender: currentUsername
-            });
-            // Increment unread count for other participants
-            const participants = roomData.participants || [];
-            for (const participant of participants) {
-                if (participant !== currentUsername) {
-                    const userRef = doc(db, "users", participant);
-                    const userDoc = await getDoc(userRef);
-                    if (userDoc.exists()) {
-                        const unreads = userDoc.data().roomUnread || {};
-                        unreads[currentRoomId] = (unreads[currentRoomId] || 0) + 1;
-                        await updateDoc(userRef, { roomUnread: unreads });
-                    }
-                }
+    async function openPrivateChat(otherUserId) {
+        // Check block status
+        const otherProfile = await getUserProfile(otherUserId);
+        const isBlockedByMe = currentUserDoc?.blockedUsers?.includes(otherUserId);
+        const isBlockedByOther = otherProfile?.blockedUsers?.includes(currentUser);
+        if (isBlockedByOther) {
+            showToast("You cannot message this user (you are blocked).");
+            return;
+        }
+        activePrivateChat = {
+            otherUserId: otherUserId,
+            username: otherUserId,
+            realName: otherProfile?.realName || otherUserId,
+            avatar: otherProfile?.profileImage,
+            blocked: isBlockedByMe || false
+        };
+        // Update UI
+        chatTitle.innerText = `${escapeHtml(activePrivateChat.realName)} (@${activePrivateChat.username})`;
+        blockBtn.style.display = 'flex';
+        blockBtn.innerText = activePrivateChat.blocked ? "Unblock" : "Block";
+        cancelPrivateBtn.style.display = 'block';
+        inputArea.style.display = 'flex';
+        // Load messages
+        if (privateUnsubscribe) privateUnsubscribe();
+        const chatId = [currentUser, otherUserId].sort().join('_');
+        const messagesRef = collection(db, "privateChats", chatId, "messages");
+        const q = query(messagesRef, orderBy("timestamp", "asc"));
+        privateUnsubscribe = onSnapshot(q, (snapshot) => {
+            if (!activePrivateChat || activePrivateChat.otherUserId !== otherUserId) return;
+            messagesContainer.innerHTML = '';
+            if (snapshot.empty) {
+                messagesContainer.innerHTML = '<div class="empty-state">No messages yet. Start the conversation!</div>';
+                return;
             }
-            input.value = '';
-        } catch(e) { showNotification("Failed to send", "error"); }
+            snapshot.forEach(docSnap => {
+                const msg = docSnap.data();
+                renderPrivateMessage(msg, docSnap.id);
+            });
+            scrollToBottom();
+        });
+        // Highlight active conversation in list
+        loadConversations();
+    }
+    
+    function renderPrivateMessage(msg, msgId) {
+        const isOwn = msg.senderId === currentUser;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+        let replyHtml = '';
+        if (msg.replyTo) {
+            replyHtml = `<div class="reply-preview">↩️ Replying to ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0, 50))}</div>`;
+        }
+        let editedHtml = msg.edited ? ' <span style="font-size:0.7rem;">(edited)</span>' : '';
+        messageDiv.innerHTML = `
+            ${replyHtml}
+            <div class="message-bubble">${escapeHtml(msg.text)}${editedHtml}</div>
+            <div class="message-info">
+                <span>${isOwn ? 'You' : escapeHtml(msg.senderName)}</span>
+                <span>${formatTime(msg.timestamp)}</span>
+            </div>
+            <div class="message-actions">
+                <span class="reply-action" data-id="${msgId}" data-text="${escapeHtml(msg.text)}" data-sender="${escapeHtml(msg.senderName)}">↩️ Reply</span>
+                ${isOwn ? `<span class="edit-action" data-id="${msgId}" data-text="${escapeHtml(msg.text)}">✏️ Edit</span>` : ''}
+                ${isOwn ? `<span class="delete-action" data-id="${msgId}">🗑️ Delete</span>` : ''}
+            </div>
+        `;
+        messagesContainer.appendChild(messageDiv);
+        
+        messageDiv.querySelectorAll('.reply-action').forEach(el => {
+            el.addEventListener('click', () => {
+                replyToMessage = { id: el.dataset.id, text: el.dataset.text, senderName: el.dataset.sender };
+                messageInput.placeholder = `Replying to ${replyToMessage.senderName}...`;
+                messageInput.focus();
+            });
+        });
+        if (isOwn) {
+            messageDiv.querySelectorAll('.edit-action').forEach(el => {
+                el.addEventListener('click', () => {
+                    const newText = prompt("Edit your message:", el.dataset.text);
+                    if (newText && newText.trim()) {
+                        const chatId = [currentUser, activePrivateChat.otherUserId].sort().join('_');
+                        updateDoc(doc(db, "privateChats", chatId, "messages", el.dataset.id), { text: newText.trim(), edited: true });
+                    }
+                });
+            });
+            messageDiv.querySelectorAll('.delete-action').forEach(el => {
+                el.addEventListener('click', async () => {
+                    if (confirm("Delete this message?")) {
+                        const chatId = [currentUser, activePrivateChat.otherUserId].sort().join('_');
+                        await deleteDoc(doc(db, "privateChats", chatId, "messages", el.dataset.id));
+                    }
+                });
+            });
+        }
+    }
+    
+    async function sendPrivateMessage(text) {
+        if (!activePrivateChat) return;
+        if (activePrivateChat.blocked) {
+            showToast("You have blocked this user. Unblock to send messages.");
+            return;
+        }
+        if (!text.trim()) return;
+        const chatId = [currentUser, activePrivateChat.otherUserId].sort().join('_');
+        const messageData = {
+            senderId: currentUser,
+            senderName: currentUserDoc?.realName || currentUser,
+            text: text.trim(),
+            timestamp: serverTimestamp()
+        };
+        if (replyToMessage) {
+            messageData.replyTo = { id: replyToMessage.id, text: replyToMessage.text, senderName: replyToMessage.senderName };
+            replyToMessage = null;
+            messageInput.placeholder = "Type a message...";
+        }
+        await addDoc(collection(db, "privateChats", chatId, "messages"), messageData);
+        // Update last message in chat metadata
+        await updateDoc(doc(db, "privateChats", chatId), {
+            lastMessage: text.trim(),
+            lastUpdated: new Date()
+        });
+        messageInput.value = '';
+        // Reload conversations to update last message
+        loadConversations();
+    }
+    
+    async function blockCurrentUser() {
+        if (!activePrivateChat) return;
+        const isBlocked = currentUserDoc?.blockedUsers?.includes(activePrivateChat.otherUserId);
+        if (isBlocked) {
+            // Unblock
+            await updateDoc(doc(db, "users", currentUser), {
+                blockedUsers: arrayRemove(activePrivateChat.otherUserId)
+            });
+            currentUserDoc.blockedUsers = currentUserDoc.blockedUsers?.filter(id => id !== activePrivateChat.otherUserId) || [];
+            showToast(`Unblocked ${activePrivateChat.realName}`);
+            activePrivateChat.blocked = false;
+            blockBtn.innerText = "Block";
+        } else {
+            // Block
+            await updateDoc(doc(db, "users", currentUser), {
+                blockedUsers: arrayUnion(activePrivateChat.otherUserId)
+            });
+            currentUserDoc.blockedUsers = [...(currentUserDoc.blockedUsers || []), activePrivateChat.otherUserId];
+            showToast(`Blocked ${activePrivateChat.realName}. You cannot message them.`);
+            activePrivateChat.blocked = true;
+            blockBtn.innerText = "Unblock";
+            // Optionally close chat? Keep open but block sending.
+        }
+        loadConversations(); // refresh list to show block icon
+    }
+    
+    async function startNewConversation() {
+        const username = document.getElementById('newConvUsername').value.trim();
+        if (!username) return;
+        if (username === currentUser) {
+            showToast("You cannot chat with yourself.");
+            return;
+        }
+        const userProfile = await getUserProfile(username);
+        if (!userProfile) {
+            showToast("User not found.");
+            return;
+        }
+        // Check if already have a conversation
+        const chatId = [currentUser, username].sort().join('_');
+        const chatRef = doc(db, "privateChats", chatId);
+        const chatSnap = await getDoc(chatRef);
+        if (!chatSnap.exists()) {
+            await setDoc(chatRef, {
+                participants: [currentUser, username],
+                createdAt: new Date(),
+                lastMessage: null,
+                lastUpdated: new Date()
+            });
+        }
+        document.getElementById('newConvUsername').value = '';
+        await loadConversations();
+        openPrivateChat(username);
+    }
+    
+    // ---------- UI Helpers ----------
+    function scrollToBottom() {
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
     }
     
     function formatTime(timestamp) {
-        if (!timestamp) return '';
+        if (!timestamp) return 'just now';
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return `${diff}s ago`;
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return date.toLocaleDateString();
     }
     
     function escapeHtml(str) {
@@ -441,87 +787,78 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
-    // Group creation modal
-    function showCreateGroupModal() {
-        const modalDiv = document.createElement('div');
-        modalDiv.className = 'modal';
-        const usersListHtml = Array.from(allUsersMap.values()).map(u => `
-            <label class="user-checkbox-item">
-                <input type="checkbox" value="${u.id}" class="group-member-check">
-                <img src="${u.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" onerror="this.src='https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'">
-                <div><strong>${escapeHtml(u.realName)}</strong><br><span style="font-size:0.7rem;">@${u.username}</span></div>
-            </label>
-        `).join('');
-        modalDiv.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-title">✨ New Group Chat</div>
-                <input type="text" id="groupNameInput" class="modal-input" placeholder="Group name">
-                <div class="user-select-list">${usersListHtml || '<div>No users found</div>'}</div>
-                <div class="modal-buttons">
-                    <button class="modal-btn modal-btn-secondary" id="cancelGroupBtn">Cancel</button>
-                    <button class="modal-btn modal-btn-primary" id="confirmGroupBtn">Create</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modalDiv);
-        const confirmBtn = modalDiv.querySelector('#confirmGroupBtn');
-        const cancelBtn = modalDiv.querySelector('#cancelGroupBtn');
-        confirmBtn.onclick = async () => {
-            const groupName = modalDiv.querySelector('#groupNameInput').value.trim();
-            const selected = Array.from(modalDiv.querySelectorAll('.group-member-check:checked')).map(cb => cb.value);
-            await createGroup(groupName, selected);
-            modalDiv.remove();
-        };
-        cancelBtn.onclick = () => modalDiv.remove();
-    }
-    
-    // Anti-screenshot & resize
-    (function antiScreenshot() {
-        const blackFlash = () => { const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); };
-        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
-        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
-    })();
-    
-    function handleResize() {
-        const blocker = document.getElementById('pcBlocker');
-        const app = document.getElementById('appRoot');
-        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
-        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
-    }
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    
-    // UI event bindings
-    document.getElementById('backBtn').addEventListener('click', () => { window.location.href = "home.html"; });
-    document.getElementById('createGroupBtn').addEventListener('click', () => showCreateGroupModal());
-    document.getElementById('newGroupBtnMobile').addEventListener('click', () => showCreateGroupModal());
-    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
-    document.getElementById('chatMessageInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
-    // Emoji picker
-    const emojiPicker = document.getElementById('chatEmojiPicker');
-    const emojiBtn = document.getElementById('chatEmojiBtn');
-    emojiBtn.addEventListener('click', () => { emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none'; });
-    emojiPicker.addEventListener('emoji-click', (event) => {
-        const input = document.getElementById('chatMessageInput');
-        input.value += event.detail.unicode;
-        emojiPicker.style.display = 'none';
-    });
-    document.addEventListener('click', (e) => { if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) emojiPicker.style.display = 'none'; });
-    document.getElementById('chatInfoBtn').addEventListener('click', () => {
-        if (currentRoomId) showNotification(`Room ID: ${currentRoomId}`, 'info');
-    });
-    
-    (async () => {
-        await loadCurrentUser();
-        await fetchAllUsers();
-        subscribeToRooms();
-        // optional: open chat from query param
-        const urlParams = new URLSearchParams(window.location.search);
-        const openUser = urlParams.get('openUser');
-        if (openUser && openUser !== currentUsername) {
-            await openPrivateChat(openUser);
+    // ---------- Tab switching ----------
+    async function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+        
+        if (tab === 'public') {
+            conversationsPanel.style.display = 'none';
+            if (publicUnsubscribe) publicUnsubscribe();
+            if (privateUnsubscribe) privateUnsubscribe();
+            activePrivateChat = null;
+            loadPublicChat();
+        } else {
+            conversationsPanel.style.display = 'flex';
+            if (publicUnsubscribe) publicUnsubscribe();
+            messagesContainer.innerHTML = '<div class="empty-state">Select a conversation or start a new one</div>';
+            inputArea.style.display = 'none';
+            chatTitle.innerText = "Private Messages";
+            blockBtn.style.display = 'none';
+            cancelPrivateBtn.style.display = 'none';
+            await loadConversations();
         }
-    })();
+    }
+    
+    // ---------- Event Listeners ----------
+    backBtn.addEventListener('click', () => window.location.href = "home.html");
+    sendBtn.addEventListener('click', async () => {
+        const text = messageInput.value;
+        if (currentTab === 'public') await sendPublicMessage(text);
+        else if (activePrivateChat) await sendPrivateMessage(text);
+    });
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendBtn.click();
+        }
+    });
+    emojiBtn.addEventListener('click', () => {
+        emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+    });
+    emojiPicker.addEventListener('emoji-click', (e) => {
+        messageInput.value += e.detail.unicode;
+        emojiPicker.style.display = 'none';
+        messageInput.focus();
+    });
+    document.addEventListener('click', (e) => {
+        if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) {
+            emojiPicker.style.display = 'none';
+        }
+    });
+    cancelPrivateBtn.addEventListener('click', () => {
+        activePrivateChat = null;
+        if (privateUnsubscribe) privateUnsubscribe();
+        messagesContainer.innerHTML = '<div class="empty-state">Select a conversation to start messaging</div>';
+        inputArea.style.display = 'none';
+        chatTitle.innerText = "Private Messages";
+        blockBtn.style.display = 'none';
+        cancelPrivateBtn.style.display = 'none';
+        loadConversations();
+    });
+    blockBtn.addEventListener('click', blockCurrentUser);
+    document.getElementById('startConvBtn').addEventListener('click', startNewConversation);
+    document.getElementById('newConvUsername').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') startNewConversation();
+    });
+    
+    // Initial load
+    await loadCurrentUser();
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+    switchTab('public');
 </script>
 </body>
 </html>
