@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Galagram • Chats</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Galagram">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <!-- Firebase + Firestore -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit, setDoc, increment } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
+            authDomain: "akademia-c56ff.firebaseapp.com",
+            databaseURL: "https://akademia-c56ff-default-rtdb.firebaseio.com",
+            projectId: "akademia-c56ff",
+            storageBucket: "akademia-c56ff.firebasestorage.app",
+            messagingSenderId: "678278775270",
+            appId: "1:678278775270:web:ed5aee3d358d613c8cd627",
+            measurementId: "G-X3CHCJE5LK"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        window.arrayUnion = arrayUnion;
+        window.arrayRemove = arrayRemove;
+        window.serverTimestamp = serverTimestamp;
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .pc-blocker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a; z-index: 9999; color: white; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .pc-blocker i { font-size: 4rem; margin-bottom: 1.2rem; color: #d62976; }
+        .app-container { display: block; max-width: 480px; margin: 0 auto; background: #ffffff; min-height: 100vh; position: relative; }
+        .header { background: #ffffff; padding: 12px 16px; display: flex; align-items: center; gap: 16px; border-bottom: 0.5px solid #efefef; position: sticky; top: 0; z-index: 10; background: white; }
+        .back-btn { font-size: 1.6rem; cursor: pointer; color: #262626; }
+        .logo { font-weight: 620; font-size: 1.3rem; background: linear-gradient(135deg, #f77737, #d62976, #962fbf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .header-actions { margin-left: auto; display: flex; gap: 16px; }
+        .header-actions i { font-size: 1.4rem; color: #262626; cursor: pointer; }
+        .main-container { display: flex; flex-direction: column; height: calc(100vh - 60px); overflow: hidden; }
+        /* Chat Rooms List */
+        .rooms-sidebar { background: #fff; border-right: 0.5px solid #efefef; overflow-y: auto; flex-shrink: 0; max-height: 100%; }
+        .rooms-header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #efefef; }
+        .rooms-header h4 { font-size: 0.9rem; font-weight: 600; }
+        .new-group-btn { background: #0095f6; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; cursor: pointer; }
+        .room-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.1s; border-bottom: 0.5px solid #f0f0f0; }
+        .room-item.active { background: #f0f7ff; border-left: 3px solid #0095f6; }
+        .room-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: #efefef; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+        .room-info { flex: 1; min-width: 0; }
+        .room-name { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .room-last-msg { font-size: 0.7rem; color: #8e8e8e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .room-time { font-size: 0.65rem; color: #aaa; }
+        .unread-badge { background: #ed4956; color: white; border-radius: 20px; padding: 2px 8px; font-size: 0.65rem; font-weight: 600; margin-left: 8px; }
+        /* Chat area */
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: #fafafa; overflow: hidden; }
+        .chat-header { padding: 12px 16px; background: white; border-bottom: 0.5px solid #efefef; display: flex; align-items: center; gap: 12px; }
+        .chat-header-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .chat-header-info { flex: 1; }
+        .chat-header-name { font-weight: 600; font-size: 1rem; }
+        .chat-header-status { font-size: 0.7rem; color: #8e8e8e; }
+        .chat-actions { display: flex; gap: 12px; }
+        .chat-actions i { font-size: 1.3rem; cursor: pointer; color: #262626; }
+        .messages-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .message { display: flex; gap: 8px; max-width: 85%; animation: fadeInUp 0.2s ease; }
+        .message.own { align-self: flex-end; flex-direction: row-reverse; }
+        .message-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; align-self: flex-end; }
+        .message-bubble { background: white; padding: 10px 14px; border-radius: 20px; font-size: 0.85rem; box-shadow: 0 1px 1px rgba(0,0,0,0.05); word-wrap: break-word; max-width: 100%; }
+        .message.own .message-bubble { background: #0095f6; color: white; }
+        .message-name { font-size: 0.7rem; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+        .message-time { font-size: 0.6rem; color: #aaa; margin-top: 4px; text-align: right; }
+        .message.own .message-time { color: rgba(255,255,255,0.7); }
+        .input-area { padding: 12px 16px; background: white; border-top: 0.5px solid #efefef; display: flex; gap: 10px; align-items: center; }
+        .emoji-btn { font-size: 1.5rem; background: none; border: none; cursor: pointer; color: #8e8e8e; }
+        .chat-input { flex: 1; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 24px; font-size: 0.9rem; background: #fafafa; }
+        .send-btn { background: #0095f6; color: white; border: none; width: 40px; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        emoji-picker { position: absolute; bottom: 70px; right: 16px; z-index: 1001; width: 280px; max-height: 350px; display: none; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; border-radius: 24px; width: 90%; max-width: 340px; padding: 20px; }
+        .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; text-align: center; }
+        .modal-input { width: 100%; padding: 12px; border: 1px solid #dbdbdb; border-radius: 12px; margin-bottom: 12px; }
+        .user-select-list { max-height: 200px; overflow-y: auto; margin: 12px 0; }
+        .user-checkbox-item { display: flex; align-items: center; gap: 12px; padding: 8px; border-bottom: 0.5px solid #efefef; }
+        .user-checkbox-item img { width: 36px; height: 36px; border-radius: 50%; }
+        .modal-buttons { display: flex; gap: 12px; margin-top: 16px; }
+        .modal-btn { flex: 1; padding: 10px; border-radius: 30px; font-weight: 600; border: none; cursor: pointer; }
+        .modal-btn-primary { background: #0095f6; color: white; }
+        .modal-btn-secondary { background: #efefef; color: #262626; }
+        .galagram-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 12px 20px; border-radius: 40px; font-size: 0.85rem; z-index: 10000; transition: transform 0.25s; pointer-events: none; }
+        .galagram-toast.show { transform: translateX(-50%) translateY(0); }
+        .bx-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .empty-chat { text-align: center; padding: 40px; color: #aaa; }
+        .loading-spinner { text-align: center; padding: 20px; color: #aaa; }
+        .hidden { display: none; }
+        @media (min-width: 768px) { .rooms-sidebar { width: 280px; } .main-container { flex-direction: row; } }
+    </style>
+</head>
+<body>
+<div id="pcBlocker" class="pc-blocker"><i class='bx bx-mobile-alt'></i><p>Use your phone — PC is not supported</p></div>
+<div id="appRoot" class="app-container">
+    <div class="header">
+        <i class='bx bx-arrow-back back-btn' id="backBtn"></i>
+        <div class="logo">Galagram • Chats</div>
+        <div class="header-actions"><i class='bx bx-group' id="createGroupBtn"></i></div>
+    </div>
+    <div class="main-container" id="mainChatContainer">
+        <!-- Rooms list (left side) -->
+        <div class="rooms-sidebar" id="roomsSidebar">
+            <div class="rooms-header">
+                <h4><i class='bx bx-chat'></i> Conversations</h4>
+                <button class="new-group-btn" id="newGroupBtnMobile">+ New Group</button>
+            </div>
+            <div id="roomsList"></div>
+        </div>
+        <!-- Chat area -->
+        <div class="chat-area" id="chatArea">
+            <div class="chat-header" id="chatHeader" style="display: none;">
+                <img class="chat-header-avatar" id="chatHeaderAvatar" src="">
+                <div class="chat-header-info">
+                    <div class="chat-header-name" id="chatHeaderName">Select a chat</div>
+                    <div class="chat-header-status" id="chatHeaderStatus"></div>
+                </div>
+                <div class="chat-actions"><i class='bx bx-info-circle' id="chatInfoBtn"></i></div>
+            </div>
+            <div class="messages-container" id="messagesContainer">
+                <div class="empty-chat">✨ Tap a conversation to start messaging</div>
+            </div>
+            <div class="input-area" id="inputArea" style="display: none;">
+                <button class="emoji-btn" id="chatEmojiBtn"><i class='bx bx-smile'></i></button>
+                <input type="text" id="chatMessageInput" class="chat-input" placeholder="Type a message...">
+                <button class="send-btn" id="sendMessageBtn"><i class='bx bx-send'></i></button>
+            </div>
+            <emoji-picker id="chatEmojiPicker"></emoji-picker>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, arrayUnion, arrayRemove, orderBy, addDoc, serverTimestamp, limit, setDoc, increment } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    const db = window.db;
+    
+    // Globals
+    let currentUser = null;
+    let currentRoomId = null;
+    let currentRoomType = null; // 'private' or 'group'
+    let unsubscribeMessages = null;
+    let unsubscribeRooms = null;
+    let allUsersMap = new Map(); // username -> userData
+    
+    function showNotification(msg, type = 'info') {
+        const existing = document.querySelector('.galagram-toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = 'galagram-toast';
+        toast.innerHTML = `<i class='bx ${type === 'error' ? 'bx-error-circle' : 'bx-check-circle'}'></i><span>${msg}</span>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => toast.remove(), 4000);
+    }
+    
+    // Session check
+    const sessionData = localStorage.getItem('galagram_session');
+    if (!sessionData) { window.location.href = "index.html"; }
+    const session = JSON.parse(sessionData);
+    const currentUsername = session.username;
+    
+    async function loadCurrentUser() {
+        const userDoc = await getDoc(doc(db, "users", currentUsername));
+        if (userDoc.exists()) {
+            currentUser = { id: currentUsername, ...userDoc.data() };
+            if (!currentUser.chatRooms) await updateDoc(doc(db, "users", currentUsername), { chatRooms: [] });
+        } else { window.location.href = "index.html"; }
+    }
+    
+    // Generate private room ID (sorted usernames)
+    function getPrivateRoomId(userA, userB) {
+        return [userA, userB].sort().join('_');
+    }
+    
+    // Load all users for group creation
+    async function fetchAllUsers() {
+        const usersSnap = await getDocs(collection(db, "users"));
+        usersSnap.forEach(docSnap => {
+            if (docSnap.id !== currentUsername) {
+                allUsersMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+            }
+        });
+    }
+    
+    // Create or get private chat
+    async function openPrivateChat(targetUsername) {
+        const roomId = getPrivateRoomId(currentUsername, targetUsername);
+        const roomRef = doc(db, "chatRooms", roomId);
+        const roomSnap = await getDoc(roomRef);
+        if (!roomSnap.exists()) {
+            // create new private room
+            await setDoc(roomRef, {
+                type: "private",
+                participants: [currentUsername, targetUsername],
+                createdAt: serverTimestamp(),
+                lastMessage: "",
+                lastMessageTime: serverTimestamp(),
+                lastMessageSender: ""
+            });
+            // add room to both users' chatRooms
+            await updateDoc(doc(db, "users", currentUsername), { chatRooms: arrayUnion(roomId) });
+            await updateDoc(doc(db, "users", targetUsername), { chatRooms: arrayUnion(roomId) });
+        }
+        // also ensure current user has it in list
+        if (!currentUser.chatRooms?.includes(roomId)) {
+            await updateDoc(doc(db, "users", currentUsername), { chatRooms: arrayUnion(roomId) });
+            currentUser.chatRooms = [...(currentUser.chatRooms || []), roomId];
+        }
+        selectRoom(roomId, "private");
+    }
+    
+    // Create group
+    async function createGroup(groupName, selectedMembers) {
+        if (!groupName.trim()) { showNotification("Group name required", "error"); return; }
+        if (selectedMembers.length === 0) { showNotification("Select at least one member", "error"); return; }
+        const participants = [currentUsername, ...selectedMembers];
+        const roomId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        const roomRef = doc(db, "chatRooms", roomId);
+        await setDoc(roomRef, {
+            type: "group",
+            groupName: groupName.trim(),
+            participants: participants,
+            createdBy: currentUsername,
+            createdAt: serverTimestamp(),
+            lastMessage: "",
+            lastMessageTime: serverTimestamp(),
+            groupAvatar: null
+        });
+        // add room to all participants
+        for (const p of participants) {
+            await updateDoc(doc(db, "users", p), { chatRooms: arrayUnion(roomId) });
+        }
+        showNotification(`Group "${groupName}" created!`, "success");
+        // refresh rooms and select
+        if (currentUser.chatRooms) currentUser.chatRooms.push(roomId);
+        selectRoom(roomId, "group");
+    }
+    
+    // Render rooms list with realtime updates
+    function renderRooms(roomsData) {
+        const container = document.getElementById('roomsList');
+        if (!roomsData.length) {
+            container.innerHTML = `<div style="padding: 20px; text-align: center; color: #aaa;"><i class='bx bx-message-rounded-dots'></i><p>No chats yet. Start one!</p></div>`;
+            return;
+        }
+        container.innerHTML = roomsData.map(room => {
+            const isActive = currentRoomId === room.id;
+            let displayName = "";
+            let avatarHtml = `<i class='bx bx-chat' style="font-size:1.8rem;"></i>`;
+            if (room.type === "private") {
+                const other = room.participants.find(p => p !== currentUsername);
+                const otherUser = allUsersMap.get(other) || { realName: other, username: other, profileImage: null };
+                displayName = otherUser.realName || other;
+                avatarHtml = `<img class="room-avatar" src="${otherUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80&name='+encodeURIComponent(otherUser.realName||'')}" onerror="this.src='https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'">`;
+            } else {
+                displayName = room.groupName || "Group Chat";
+                avatarHtml = `<div class="room-avatar" style="background:linear-gradient(135deg,#f77737,#d62976); color:white;"><i class='bx bx-group'></i></div>`;
+            }
+            const lastMsg = room.lastMessage ? (room.lastMessage.length > 25 ? room.lastMessage.substring(0,25)+"..." : room.lastMessage) : "No messages yet";
+            const unread = room.unreadCount && room.unreadCount[currentUsername] ? room.unreadCount[currentUsername] : 0;
+            return `<div class="room-item ${isActive ? 'active' : ''}" data-roomid="${room.id}" data-roomtype="${room.type}">
+                        ${avatarHtml}
+                        <div class="room-info">
+                            <div class="room-name">${escapeHtml(displayName)} ${unread > 0 ? `<span class="unread-badge">${unread}</span>` : ''}</div>
+                            <div class="room-last-msg">${escapeHtml(lastMsg)}</div>
+                        </div>
+                        <div class="room-time">${formatRelativeTime(room.lastMessageTime)}</div>
+                    </div>`;
+        }).join('');
+        // attach click handlers
+        document.querySelectorAll('.room-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const roomId = el.dataset.roomid;
+                const roomType = el.dataset.roomtype;
+                selectRoom(roomId, roomType);
+            });
+        });
+    }
+    
+    function formatRelativeTime(timestamp) {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return `${diff}s`;
+        if (diff < 3600) return `${Math.floor(diff/60)}m`;
+        if (diff < 86400) return `${Math.floor(diff/3600)}h`;
+        return `${Math.floor(diff/86400)}d`;
+    }
+    
+    // Subscribe to rooms list for current user
+    function subscribeToRooms() {
+        if (!currentUser) return;
+        const userRef = doc(db, "users", currentUsername);
+        unsubscribeRooms = onSnapshot(userRef, async (userSnap) => {
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                currentUser.chatRooms = userData.chatRooms || [];
+                const roomIds = currentUser.chatRooms;
+                if (!roomIds.length) { renderRooms([]); return; }
+                // fetch each room details
+                const roomsPromises = roomIds.map(async (rid) => {
+                    const roomDoc = await getDoc(doc(db, "chatRooms", rid));
+                    if (roomDoc.exists()) return { id: rid, ...roomDoc.data() };
+                    return null;
+                });
+                const roomsArr = (await Promise.all(roomsPromises)).filter(r => r !== null);
+                // sort by lastMessageTime desc
+                roomsArr.sort((a,b) => (b.lastMessageTime?.toDate?.() || 0) - (a.lastMessageTime?.toDate?.() || 0));
+                renderRooms(roomsArr);
+            }
+        });
+    }
+    
+    // Select room and load messages
+    async function selectRoom(roomId, type) {
+        if (unsubscribeMessages) unsubscribeMessages();
+        currentRoomId = roomId;
+        currentRoomType = type;
+        const roomDoc = await getDoc(doc(db, "chatRooms", roomId));
+        if (!roomDoc.exists()) return;
+        const roomData = roomDoc.data();
+        // Update UI header
+        const headerDiv = document.getElementById('chatHeader');
+        const inputDiv = document.getElementById('inputArea');
+        headerDiv.style.display = 'flex';
+        inputDiv.style.display = 'flex';
+        if (type === "private") {
+            const other = roomData.participants.find(p => p !== currentUsername);
+            const otherUser = allUsersMap.get(other) || { realName: other, username: other, profileImage: null };
+            document.getElementById('chatHeaderName').innerText = otherUser.realName || other;
+            document.getElementById('chatHeaderAvatar').src = otherUser.profileImage || `https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80&name=${encodeURIComponent(otherUser.realName||'')}`;
+            document.getElementById('chatHeaderStatus').innerText = "@" + (otherUser.username || other);
+        } else {
+            document.getElementById('chatHeaderName').innerText = roomData.groupName || "Group";
+            document.getElementById('chatHeaderAvatar').src = roomData.groupAvatar || `https://ui-avatars.com/api/?background=f77737&color=fff&rounded=true&size=80&name=${encodeURIComponent(roomData.groupName || 'G')}`;
+            const count = roomData.participants?.length || 0;
+            document.getElementById('chatHeaderStatus').innerText = `${count} members`;
+        }
+        // Mark unread as read for this room
+        const userRoomRef = doc(db, "users", currentUsername);
+        const userSnap = await getDoc(userRoomRef);
+        if (userSnap.exists()) {
+            const unreads = userSnap.data().roomUnread || {};
+            if (unreads[roomId]) {
+                delete unreads[roomId];
+                await updateDoc(userRoomRef, { roomUnread: unreads });
+            }
+        }
+        // Load messages realtime
+        const messagesRef = collection(db, "chatRooms", roomId, "messages");
+        const q = query(messagesRef, orderBy("timestamp", "asc"), limit(100));
+        unsubscribeMessages = onSnapshot(q, (snapshot) => {
+            const container = document.getElementById('messagesContainer');
+            if (snapshot.empty) {
+                container.innerHTML = `<div class="empty-chat">💬 No messages yet. Say hi!</div>`;
+                return;
+            }
+            let html = '';
+            snapshot.forEach(docMsg => {
+                const msg = docMsg.data();
+                const isOwn = msg.sender === currentUsername;
+                const verifiedIcon = msg.senderVerified === 'blue' ? '<i class="bx bx-check-circle" style="color:#0095f6; font-size:0.7rem;"></i>' : (msg.senderVerified === 'gray' ? '<i class="bx bxs-check-circle" style="color:#8e8e8e; font-size:0.7rem;"></i>' : '');
+                const senderName = msg.senderName || msg.sender;
+                html += `<div class="message ${isOwn ? 'own' : ''}">
+                            <img class="message-avatar" src="${msg.senderAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'}" onerror="this.src='https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=32'">
+                            <div class="message-bubble">
+                                ${!isOwn && currentRoomType === 'group' ? `<div class="message-name">${escapeHtml(senderName)} ${verifiedIcon}</div>` : ''}
+                                <div>${escapeHtml(msg.text)}</div>
+                                <div class="message-time">${formatTime(msg.timestamp)}</div>
+                            </div>
+                        </div>`;
+            });
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        });
+    }
+    
+    async function sendMessage() {
+        const input = document.getElementById('chatMessageInput');
+        const text = input.value.trim();
+        if (!text || !currentRoomId) return;
+        try {
+            const roomRef = doc(db, "chatRooms", currentRoomId);
+            const roomSnap = await getDoc(roomRef);
+            if (!roomSnap.exists()) return;
+            const roomData = roomSnap.data();
+            const messageObj = {
+                text: text,
+                sender: currentUsername,
+                senderName: currentUser.realName || currentUsername,
+                senderAvatar: currentUser.profileImage || null,
+                senderVerified: currentUser.verified || "none",
+                timestamp: serverTimestamp()
+            };
+            await addDoc(collection(db, "chatRooms", currentRoomId, "messages"), messageObj);
+            // Update room last message
+            await updateDoc(roomRef, {
+                lastMessage: text,
+                lastMessageTime: serverTimestamp(),
+                lastMessageSender: currentUsername
+            });
+            // Increment unread count for other participants
+            const participants = roomData.participants || [];
+            for (const participant of participants) {
+                if (participant !== currentUsername) {
+                    const userRef = doc(db, "users", participant);
+                    const userDoc = await getDoc(userRef);
+                    if (userDoc.exists()) {
+                        const unreads = userDoc.data().roomUnread || {};
+                        unreads[currentRoomId] = (unreads[currentRoomId] || 0) + 1;
+                        await updateDoc(userRef, { roomUnread: unreads });
+                    }
+                }
+            }
+            input.value = '';
+        } catch(e) { showNotification("Failed to send", "error"); }
+    }
+    
+    function formatTime(timestamp) {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+    
+    // Group creation modal
+    function showCreateGroupModal() {
+        const modalDiv = document.createElement('div');
+        modalDiv.className = 'modal';
+        const usersListHtml = Array.from(allUsersMap.values()).map(u => `
+            <label class="user-checkbox-item">
+                <input type="checkbox" value="${u.id}" class="group-member-check">
+                <img src="${u.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" onerror="this.src='https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'">
+                <div><strong>${escapeHtml(u.realName)}</strong><br><span style="font-size:0.7rem;">@${u.username}</span></div>
+            </label>
+        `).join('');
+        modalDiv.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-title">✨ New Group Chat</div>
+                <input type="text" id="groupNameInput" class="modal-input" placeholder="Group name">
+                <div class="user-select-list">${usersListHtml || '<div>No users found</div>'}</div>
+                <div class="modal-buttons">
+                    <button class="modal-btn modal-btn-secondary" id="cancelGroupBtn">Cancel</button>
+                    <button class="modal-btn modal-btn-primary" id="confirmGroupBtn">Create</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+        const confirmBtn = modalDiv.querySelector('#confirmGroupBtn');
+        const cancelBtn = modalDiv.querySelector('#cancelGroupBtn');
+        confirmBtn.onclick = async () => {
+            const groupName = modalDiv.querySelector('#groupNameInput').value.trim();
+            const selected = Array.from(modalDiv.querySelectorAll('.group-member-check:checked')).map(cb => cb.value);
+            await createGroup(groupName, selected);
+            modalDiv.remove();
+        };
+        cancelBtn.onclick = () => modalDiv.remove();
+    }
+    
+    // Anti-screenshot & resize
+    (function antiScreenshot() {
+        const blackFlash = () => { const o=document.createElement('div'); o.style.position='fixed'; o.style.top=o.style.left='0'; o.style.width=o.style.height='100%'; o.style.backgroundColor='#000'; o.style.zIndex='999999'; document.body.appendChild(o); setTimeout(()=>o.remove(),200); };
+        document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } });
+        document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); });
+    })();
+    
+    function handleResize() {
+        const blocker = document.getElementById('pcBlocker');
+        const app = document.getElementById('appRoot');
+        if(window.innerWidth > 768) { blocker.style.display = 'flex'; if(app) app.style.display = 'none'; }
+        else { blocker.style.display = 'none'; if(app) app.style.display = 'block'; }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    
+    // UI event bindings
+    document.getElementById('backBtn').addEventListener('click', () => { window.location.href = "home.html"; });
+    document.getElementById('createGroupBtn').addEventListener('click', () => showCreateGroupModal());
+    document.getElementById('newGroupBtnMobile').addEventListener('click', () => showCreateGroupModal());
+    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+    document.getElementById('chatMessageInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+    // Emoji picker
+    const emojiPicker = document.getElementById('chatEmojiPicker');
+    const emojiBtn = document.getElementById('chatEmojiBtn');
+    emojiBtn.addEventListener('click', () => { emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none'; });
+    emojiPicker.addEventListener('emoji-click', (event) => {
+        const input = document.getElementById('chatMessageInput');
+        input.value += event.detail.unicode;
+        emojiPicker.style.display = 'none';
+    });
+    document.addEventListener('click', (e) => { if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) emojiPicker.style.display = 'none'; });
+    document.getElementById('chatInfoBtn').addEventListener('click', () => {
+        if (currentRoomId) showNotification(`Room ID: ${currentRoomId}`, 'info');
+    });
+    
+    (async () => {
+        await loadCurrentUser();
+        await fetchAllUsers();
+        subscribeToRooms();
+        // optional: open chat from query param
+        const urlParams = new URLSearchParams(window.location.search);
+        const openUser = urlParams.get('openUser');
+        if (openUser && openUser !== currentUsername) {
+            await openPrivateChat(openUser);
+        }
+    })();
+</script>
+</body>
+</html>
