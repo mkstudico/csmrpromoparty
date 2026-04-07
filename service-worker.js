@@ -1,4 +1,4 @@
-const CACHE_NAME = 'galagram-v7';
+const CACHE_NAME = 'galagram-v8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,6 +7,8 @@ const STATIC_ASSETS = [
   '/profile-edit.html',
   '/add-news.html',
   '/news.html',
+ '/chat.html',
+  '/movies.html',
   '/requests.html',
   '/user.html',
   '/admin.html',
