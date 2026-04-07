@@ -69,13 +69,13 @@
             color: #0095f6;
             border-bottom-color: #0095f6;
         }
-        /* Main chat layout (two columns) */
+        /* Main chat layout */
         .chat-layout {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
-        /* Conversations sidebar (for private chat) */
+        /* Conversations sidebar (private) */
         .conversations-panel {
             width: 320px;
             border-right: 1px solid #dbdbdb;
@@ -83,10 +83,6 @@
             display: flex;
             flex-direction: column;
             overflow-y: auto;
-            transition: transform 0.2s;
-        }
-        .conversations-panel.hide-on-mobile {
-            display: flex;
         }
         .conversation-item {
             padding: 14px 16px;
@@ -127,27 +123,34 @@
             padding: 12px 16px;
             border-bottom: 1px solid #dbdbdb;
             background: #fafafa;
-            display: flex;
-            gap: 8px;
-            align-items: center;
         }
         .new-conversation input {
-            flex: 1;
-            padding: 8px 12px;
+            width: 100%;
+            padding: 10px 12px;
             border: 1px solid #dbdbdb;
             border-radius: 30px;
             font-size: 0.85rem;
         }
-        .new-conversation button {
-            background: #0095f6;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: 600;
+        .search-results {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        /* Messages panel (right side) */
+        .search-result-item {
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #efefef;
+        }
+        .search-result-item:hover {
+            background: #f0f0f0;
+        }
+        /* Messages panel */
         .messages-panel {
             flex: 1;
             display: flex;
@@ -195,9 +198,35 @@
             flex-direction: column;
             max-width: 75%;
             align-self: flex-start;
+            position: relative;
         }
         .message.own {
             align-self: flex-end;
+        }
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .message-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .message-sender {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .verified-badge {
+            font-size: 0.8rem;
+        }
+        .verified-badge.blue {
+            color: #0095f6;
+        }
+        .verified-badge.gray {
+            color: #8e8e8e;
         }
         .message-bubble {
             background: #efefef;
@@ -205,7 +234,6 @@
             border-radius: 20px;
             font-size: 0.9rem;
             word-wrap: break-word;
-            position: relative;
         }
         .message.own .message-bubble {
             background: #0095f6;
@@ -216,21 +244,46 @@
             color: #8e8e8e;
             margin-top: 4px;
             margin-left: 8px;
-            display: flex;
-            gap: 12px;
         }
-        .message-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 4px;
-            font-size: 0.7rem;
-        }
-        .message-actions span {
+        .message-actions-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
             cursor: pointer;
-            color: #8e8e8e;
+            padding: 4px;
+            background: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.1s;
         }
-        .message-actions span:hover {
-            color: #0095f6;
+        .message:hover .message-actions-btn {
+            opacity: 1;
+        }
+        .message.own .message-actions-btn {
+            right: auto;
+            left: 0;
+        }
+        .dropdown-menu {
+            position: absolute;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 120px;
+            overflow: hidden;
+        }
+        .dropdown-menu div {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .dropdown-menu div:hover {
+            background: #f0f0f0;
         }
         .reply-preview {
             font-size: 0.7rem;
@@ -293,6 +346,50 @@
             padding: 40px;
             color: #8e8e8e;
         }
+        /* Custom edit modal */
+        .edit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .edit-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+        }
+        .edit-modal textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #dbdbdb;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin: 12px 0;
+        }
+        .edit-modal .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .edit-modal button {
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+        }
+        .edit-modal .save-btn {
+            background: #0095f6;
+            color: white;
+        }
         @media (max-width: 768px) {
             .chat-layout {
                 flex-direction: column;
@@ -326,8 +423,8 @@
         <!-- Private conversations sidebar -->
         <div id="conversationsPanel" class="conversations-panel" style="display: none;">
             <div class="new-conversation">
-                <input type="text" id="newConvUsername" placeholder="Username to start chat...">
-                <button id="startConvBtn">Start</button>
+                <input type="text" id="newConvSearch" placeholder="Search username or real name...">
+                <div id="searchResults" class="search-results" style="display: none;"></div>
             </div>
             <div id="conversationsList"></div>
         </div>
@@ -353,7 +450,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, orderBy, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, orderBy, deleteDoc, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     
     const firebaseConfig = {
         apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -377,10 +474,11 @@
     
     // State
     let currentTab = "public";
-    let activePrivateChat = null; // { userId, username, realName, avatar, blocked }
+    let activePrivateChat = null;
     let publicUnsubscribe = null;
     let privateUnsubscribe = null;
-    let replyToMessage = null; // { id, text, senderName }
+    let replyToMessage = null;
+    let activeDropdown = null;
     
     // DOM elements
     const backBtn = document.getElementById('backBtn');
@@ -394,15 +492,16 @@
     const sendBtn = document.getElementById('sendBtn');
     const emojiBtn = document.getElementById('emojiBtn');
     const emojiPicker = document.getElementById('emojiPicker');
+    const newConvSearch = document.getElementById('newConvSearch');
+    const searchResults = document.getElementById('searchResults');
     
-    // Helper: fetch user profile
+    // Helper functions
     async function getUserProfile(username) {
         const docSnap = await getDoc(doc(db, "users", username));
         if (docSnap.exists()) return docSnap.data();
         return null;
     }
     
-    // Helper: show notification
     function showToast(msg, type = "info") {
         const toast = document.createElement('div');
         toast.style.cssText = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;padding:10px 20px;border-radius:40px;z-index:10000;font-size:0.85rem;`;
@@ -411,14 +510,61 @@
         setTimeout(() => toast.remove(), 3000);
     }
     
-    // Load current user data
-    async function loadCurrentUser() {
-        const docSnap = await getDoc(doc(db, "users", currentUser));
-        if (docSnap.exists()) currentUserDoc = docSnap.data();
+    function formatTime(timestamp) {
+        if (!timestamp) return 'just now';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return `${diff}s ago`;
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return date.toLocaleDateString();
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+    
+    function getVerifiedIcon(verified) {
+        if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>';
+        if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>';
+        return '';
+    }
+    
+    function scrollToBottom() {
+        setTimeout(() => messagesContainer.scrollTop = messagesContainer.scrollHeight, 100);
+    }
+    
+    // Custom edit modal
+    function showEditModal(currentText, onSave) {
+        const overlay = document.createElement('div');
+        overlay.className = 'edit-modal-overlay';
+        overlay.innerHTML = `
+            <div class="edit-modal">
+                <h4>Edit message</h4>
+                <textarea id="editTextarea" rows="3">${escapeHtml(currentText)}</textarea>
+                <div class="modal-buttons">
+                    <button class="cancel-edit">Cancel</button>
+                    <button class="save-btn">Save</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        const textarea = overlay.querySelector('#editTextarea');
+        const saveBtn = overlay.querySelector('.save-btn');
+        const cancelBtn = overlay.querySelector('.cancel-edit');
+        saveBtn.onclick = () => {
+            const newText = textarea.value.trim();
+            if (newText) onSave(newText);
+            overlay.remove();
+        };
+        cancelBtn.onclick = () => overlay.remove();
+        textarea.focus();
     }
     
     // ---------- PUBLIC CHAT ----------
-    function loadPublicChat() {
+    async function loadPublicChat() {
         if (publicUnsubscribe) publicUnsubscribe();
         const q = query(collection(db, "chatMessages"), orderBy("timestamp", "asc"));
         publicUnsubscribe = onSnapshot(q, (snapshot) => {
@@ -434,61 +580,77 @@
             });
             scrollToBottom();
         });
-        // Show input area
         inputArea.style.display = 'flex';
         chatTitle.innerText = "Public Chat";
         blockBtn.style.display = 'none';
         cancelPrivateBtn.style.display = 'none';
     }
     
-    function renderPublicMessage(msg, msgId) {
+    async function renderPublicMessage(msg, msgId) {
         const isOwn = msg.username === currentUser;
+        const userProfile = await getUserProfile(msg.username);
+        const avatar = userProfile?.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=40';
+        const verified = userProfile?.verified || "none";
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+        messageDiv.dataset.id = msgId;
         let replyHtml = '';
         if (msg.replyTo) {
             replyHtml = `<div class="reply-preview">↩️ Replying to ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0, 50))}</div>`;
         }
         messageDiv.innerHTML = `
+            <div class="message-header">
+                <img class="message-avatar" src="${avatar}" alt="">
+                <span class="message-sender">${escapeHtml(msg.username)}</span>
+                ${getVerifiedIcon(verified)}
+            </div>
             ${replyHtml}
-            <div class="message-bubble">${escapeHtml(msg.text)}</div>
+            <div class="message-bubble">${escapeHtml(msg.text)}${msg.edited ? ' <span style="font-size:0.7rem;">(edited)</span>' : ''}</div>
             <div class="message-info">
-                <span>${escapeHtml(msg.username)}</span>
                 <span>${formatTime(msg.timestamp)}</span>
             </div>
-            <div class="message-actions">
-                <span class="reply-action" data-id="${msgId}" data-text="${escapeHtml(msg.text)}" data-sender="${escapeHtml(msg.username)}">↩️ Reply</span>
-                ${isOwn ? `<span class="edit-action" data-id="${msgId}" data-text="${escapeHtml(msg.text)}">✏️ Edit</span>` : ''}
-                ${isOwn ? `<span class="delete-action" data-id="${msgId}">🗑️ Delete</span>` : ''}
-            </div>
+            <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
         `;
         messagesContainer.appendChild(messageDiv);
         
-        // Attach event listeners
-        messageDiv.querySelectorAll('.reply-action').forEach(el => {
-            el.addEventListener('click', () => {
-                replyToMessage = { id: el.dataset.id, text: el.dataset.text, senderName: el.dataset.sender };
+        const actionsBtn = messageDiv.querySelector('.message-actions-btn');
+        actionsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeDropdown();
+            const dropdown = document.createElement('div');
+            dropdown.className = 'dropdown-menu';
+            dropdown.innerHTML = `
+                <div class="reply-action">↩️ Reply</div>
+                ${isOwn ? `<div class="edit-action">✏️ Edit</div>` : ''}
+                ${isOwn ? `<div class="delete-action">🗑️ Delete</div>` : ''}
+            `;
+            const rect = actionsBtn.getBoundingClientRect();
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = `${rect.bottom + 4}px`;
+            dropdown.style.left = `${rect.left}px`;
+            document.body.appendChild(dropdown);
+            activeDropdown = dropdown;
+            
+            dropdown.querySelector('.reply-action')?.addEventListener('click', () => {
+                replyToMessage = { id: msgId, text: msg.text, senderName: msg.username };
                 messageInput.placeholder = `Replying to ${replyToMessage.senderName}...`;
                 messageInput.focus();
+                closeDropdown();
             });
+            if (isOwn) {
+                dropdown.querySelector('.edit-action')?.addEventListener('click', () => {
+                    showEditModal(msg.text, async (newText) => {
+                        await updateDoc(doc(db, "chatMessages", msgId), { text: newText, edited: true });
+                    });
+                    closeDropdown();
+                });
+                dropdown.querySelector('.delete-action')?.addEventListener('click', async () => {
+                    if (confirm("Delete this message?")) await deleteDoc(doc(db, "chatMessages", msgId));
+                    closeDropdown();
+                });
+            }
         });
-        if (isOwn) {
-            messageDiv.querySelectorAll('.edit-action').forEach(el => {
-                el.addEventListener('click', () => {
-                    const newText = prompt("Edit your message:", el.dataset.text);
-                    if (newText && newText.trim()) {
-                        updateDoc(doc(db, "chatMessages", el.dataset.id), { text: newText.trim() });
-                    }
-                });
-            });
-            messageDiv.querySelectorAll('.delete-action').forEach(el => {
-                el.addEventListener('click', async () => {
-                    if (confirm("Delete this message?")) {
-                        await deleteDoc(doc(db, "chatMessages", el.dataset.id));
-                    }
-                });
-            });
-        }
     }
     
     async function sendPublicMessage(text) {
@@ -507,15 +669,12 @@
         }
         await addDoc(collection(db, "chatMessages"), messageData);
         messageInput.value = '';
-        // Update chat message count
         const newCount = (currentUserDoc?.chatMessageCount || 0) + 1;
         await updateDoc(doc(db, "users", currentUser), { chatMessageCount: newCount });
         currentUserDoc.chatMessageCount = newCount;
     }
     
     // ---------- PRIVATE CHAT ----------
-    // Store private messages in subcollection: users/{userId}/privateChats/{otherUserId}/messages
-    // Also maintain a conversation list for each user.
     async function getOrCreatePrivateChat(otherUserId) {
         const chatId = [currentUser, otherUserId].sort().join('_');
         const chatRef = doc(db, "privateChats", chatId);
@@ -531,7 +690,6 @@
         return chatId;
     }
     
-    // Load user's private conversations
     async function loadConversations() {
         const q = query(collection(db, "privateChats"), where("participants", "array-contains", currentUser));
         const snapshot = await getDocs(q);
@@ -541,7 +699,6 @@
             const otherId = data.participants.find(p => p !== currentUser);
             const userProfile = await getUserProfile(otherId);
             if (userProfile) {
-                // Check if blocked
                 const blockedByOther = userProfile.blockedUsers?.includes(currentUser) || false;
                 const blockedByMe = currentUserDoc?.blockedUsers?.includes(otherId) || false;
                 convos.push({
@@ -584,7 +741,6 @@
     }
     
     async function openPrivateChat(otherUserId) {
-        // Check block status
         const otherProfile = await getUserProfile(otherUserId);
         const isBlockedByMe = currentUserDoc?.blockedUsers?.includes(otherUserId);
         const isBlockedByOther = otherProfile?.blockedUsers?.includes(currentUser);
@@ -599,13 +755,11 @@
             avatar: otherProfile?.profileImage,
             blocked: isBlockedByMe || false
         };
-        // Update UI
         chatTitle.innerText = `${escapeHtml(activePrivateChat.realName)} (@${activePrivateChat.username})`;
         blockBtn.style.display = 'flex';
         blockBtn.innerText = activePrivateChat.blocked ? "Unblock" : "Block";
         cancelPrivateBtn.style.display = 'block';
         inputArea.style.display = 'flex';
-        // Load messages
         if (privateUnsubscribe) privateUnsubscribe();
         const chatId = [currentUser, otherUserId].sort().join('_');
         const messagesRef = collection(db, "privateChats", chatId, "messages");
@@ -619,64 +773,70 @@
             }
             snapshot.forEach(docSnap => {
                 const msg = docSnap.data();
-                renderPrivateMessage(msg, docSnap.id);
+                renderPrivateMessage(msg, docSnap.id, chatId);
             });
             scrollToBottom();
         });
-        // Highlight active conversation in list
         loadConversations();
     }
     
-    function renderPrivateMessage(msg, msgId) {
+    function renderPrivateMessage(msg, msgId, chatId) {
         const isOwn = msg.senderId === currentUser;
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : ''}`;
+        messageDiv.dataset.id = msgId;
         let replyHtml = '';
         if (msg.replyTo) {
             replyHtml = `<div class="reply-preview">↩️ Replying to ${escapeHtml(msg.replyTo.senderName)}: ${escapeHtml(msg.replyTo.text.substring(0, 50))}</div>`;
         }
-        let editedHtml = msg.edited ? ' <span style="font-size:0.7rem;">(edited)</span>' : '';
         messageDiv.innerHTML = `
             ${replyHtml}
-            <div class="message-bubble">${escapeHtml(msg.text)}${editedHtml}</div>
+            <div class="message-bubble">${escapeHtml(msg.text)}${msg.edited ? ' <span style="font-size:0.7rem;">(edited)</span>' : ''}</div>
             <div class="message-info">
                 <span>${isOwn ? 'You' : escapeHtml(msg.senderName)}</span>
                 <span>${formatTime(msg.timestamp)}</span>
             </div>
-            <div class="message-actions">
-                <span class="reply-action" data-id="${msgId}" data-text="${escapeHtml(msg.text)}" data-sender="${escapeHtml(msg.senderName)}">↩️ Reply</span>
-                ${isOwn ? `<span class="edit-action" data-id="${msgId}" data-text="${escapeHtml(msg.text)}">✏️ Edit</span>` : ''}
-                ${isOwn ? `<span class="delete-action" data-id="${msgId}">🗑️ Delete</span>` : ''}
-            </div>
+            <div class="message-actions-btn"><i class='bx bx-dots-vertical-rounded'></i></div>
         `;
         messagesContainer.appendChild(messageDiv);
         
-        messageDiv.querySelectorAll('.reply-action').forEach(el => {
-            el.addEventListener('click', () => {
-                replyToMessage = { id: el.dataset.id, text: el.dataset.text, senderName: el.dataset.sender };
+        const actionsBtn = messageDiv.querySelector('.message-actions-btn');
+        actionsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeDropdown();
+            const dropdown = document.createElement('div');
+            dropdown.className = 'dropdown-menu';
+            dropdown.innerHTML = `
+                <div class="reply-action">↩️ Reply</div>
+                ${isOwn ? `<div class="edit-action">✏️ Edit</div>` : ''}
+                ${isOwn ? `<div class="delete-action">🗑️ Delete</div>` : ''}
+            `;
+            const rect = actionsBtn.getBoundingClientRect();
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = `${rect.bottom + 4}px`;
+            dropdown.style.left = `${rect.left}px`;
+            document.body.appendChild(dropdown);
+            activeDropdown = dropdown;
+            
+            dropdown.querySelector('.reply-action')?.addEventListener('click', () => {
+                replyToMessage = { id: msgId, text: msg.text, senderName: isOwn ? 'You' : msg.senderName };
                 messageInput.placeholder = `Replying to ${replyToMessage.senderName}...`;
                 messageInput.focus();
+                closeDropdown();
             });
+            if (isOwn) {
+                dropdown.querySelector('.edit-action')?.addEventListener('click', () => {
+                    showEditModal(msg.text, async (newText) => {
+                        await updateDoc(doc(db, "privateChats", chatId, "messages", msgId), { text: newText, edited: true });
+                    });
+                    closeDropdown();
+                });
+                dropdown.querySelector('.delete-action')?.addEventListener('click', async () => {
+                    if (confirm("Delete this message?")) await deleteDoc(doc(db, "privateChats", chatId, "messages", msgId));
+                    closeDropdown();
+                });
+            }
         });
-        if (isOwn) {
-            messageDiv.querySelectorAll('.edit-action').forEach(el => {
-                el.addEventListener('click', () => {
-                    const newText = prompt("Edit your message:", el.dataset.text);
-                    if (newText && newText.trim()) {
-                        const chatId = [currentUser, activePrivateChat.otherUserId].sort().join('_');
-                        updateDoc(doc(db, "privateChats", chatId, "messages", el.dataset.id), { text: newText.trim(), edited: true });
-                    }
-                });
-            });
-            messageDiv.querySelectorAll('.delete-action').forEach(el => {
-                el.addEventListener('click', async () => {
-                    if (confirm("Delete this message?")) {
-                        const chatId = [currentUser, activePrivateChat.otherUserId].sort().join('_');
-                        await deleteDoc(doc(db, "privateChats", chatId, "messages", el.dataset.id));
-                    }
-                });
-            });
-        }
     }
     
     async function sendPrivateMessage(text) {
@@ -699,13 +859,11 @@
             messageInput.placeholder = "Type a message...";
         }
         await addDoc(collection(db, "privateChats", chatId, "messages"), messageData);
-        // Update last message in chat metadata
         await updateDoc(doc(db, "privateChats", chatId), {
             lastMessage: text.trim(),
             lastUpdated: new Date()
         });
         messageInput.value = '';
-        // Reload conversations to update last message
         loadConversations();
     }
     
@@ -713,7 +871,6 @@
         if (!activePrivateChat) return;
         const isBlocked = currentUserDoc?.blockedUsers?.includes(activePrivateChat.otherUserId);
         if (isBlocked) {
-            // Unblock
             await updateDoc(doc(db, "users", currentUser), {
                 blockedUsers: arrayRemove(activePrivateChat.otherUserId)
             });
@@ -722,7 +879,6 @@
             activePrivateChat.blocked = false;
             blockBtn.innerText = "Block";
         } else {
-            // Block
             await updateDoc(doc(db, "users", currentUser), {
                 blockedUsers: arrayUnion(activePrivateChat.otherUserId)
             });
@@ -730,72 +886,87 @@
             showToast(`Blocked ${activePrivateChat.realName}. You cannot message them.`);
             activePrivateChat.blocked = true;
             blockBtn.innerText = "Unblock";
-            // Optionally close chat? Keep open but block sending.
         }
-        loadConversations(); // refresh list to show block icon
+        loadConversations();
     }
     
-    async function startNewConversation() {
-        const username = document.getElementById('newConvUsername').value.trim();
-        if (!username) return;
-        if (username === currentUser) {
-            showToast("You cannot chat with yourself.");
+    // Live search for users
+    let searchTimeout = null;
+    newConvSearch.addEventListener('input', () => {
+        if (searchTimeout) clearTimeout(searchTimeout);
+        const query = newConvSearch.value.trim().toLowerCase();
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
             return;
         }
-        const userProfile = await getUserProfile(username);
-        if (!userProfile) {
-            showToast("User not found.");
-            return;
-        }
-        // Check if already have a conversation
-        const chatId = [currentUser, username].sort().join('_');
-        const chatRef = doc(db, "privateChats", chatId);
-        const chatSnap = await getDoc(chatRef);
-        if (!chatSnap.exists()) {
-            await setDoc(chatRef, {
-                participants: [currentUser, username],
-                createdAt: new Date(),
-                lastMessage: null,
-                lastUpdated: new Date()
+        searchTimeout = setTimeout(async () => {
+            const usersRef = collection(db, "users");
+            const snapshot = await getDocs(usersRef);
+            const matches = [];
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const username = docSnap.id;
+                if (username === currentUser) return;
+                const realName = data.realName || '';
+                if (username.toLowerCase().includes(query) || realName.toLowerCase().includes(query)) {
+                    matches.push({ username, realName, avatar: data.profileImage });
+                }
             });
+            if (matches.length === 0) {
+                searchResults.style.display = 'none';
+                return;
+            }
+            searchResults.style.display = 'block';
+            searchResults.innerHTML = matches.map(u => `
+                <div class="search-result-item" data-username="${u.username}">
+                    <img src="${u.avatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=36'}" style="width:36px;height:36px;border-radius:50%;">
+                    <div>
+                        <div><strong>${escapeHtml(u.realName)}</strong></div>
+                        <div style="font-size:0.75rem;color:#8e8e8e;">@${u.username}</div>
+                    </div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.search-result-item').forEach(el => {
+                el.addEventListener('click', async () => {
+                    const username = el.dataset.username;
+                    const userProfile = await getUserProfile(username);
+                    if (!userProfile) return;
+                    const chatId = [currentUser, username].sort().join('_');
+                    const chatRef = doc(db, "privateChats", chatId);
+                    const chatSnap = await getDoc(chatRef);
+                    if (!chatSnap.exists()) {
+                        await setDoc(chatRef, {
+                            participants: [currentUser, username],
+                            createdAt: new Date(),
+                            lastMessage: null,
+                            lastUpdated: new Date()
+                        });
+                    }
+                    newConvSearch.value = '';
+                    searchResults.style.display = 'none';
+                    await loadConversations();
+                    openPrivateChat(username);
+                });
+            });
+        }, 300);
+    });
+    
+    function closeDropdown() {
+        if (activeDropdown) {
+            activeDropdown.remove();
+            activeDropdown = null;
         }
-        document.getElementById('newConvUsername').value = '';
-        await loadConversations();
-        openPrivateChat(username);
     }
+    document.addEventListener('click', () => closeDropdown());
     
-    // ---------- UI Helpers ----------
-    function scrollToBottom() {
-        setTimeout(() => {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }, 100);
-    }
-    
-    function formatTime(timestamp) {
-        if (!timestamp) return 'just now';
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        const now = new Date();
-        const diff = Math.floor((now - date) / 1000);
-        if (diff < 60) return `${diff}s ago`;
-        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-        return date.toLocaleDateString();
-    }
-    
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
-    }
-    
-    // ---------- Tab switching ----------
+    // Tab switching
     async function switchTab(tab) {
         currentTab = tab;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-        
+        closeDropdown();
         if (tab === 'public') {
             conversationsPanel.style.display = 'none';
-            if (publicUnsubscribe) publicUnsubscribe();
             if (privateUnsubscribe) privateUnsubscribe();
             activePrivateChat = null;
             loadPublicChat();
@@ -811,7 +982,7 @@
         }
     }
     
-    // ---------- Event Listeners ----------
+    // Event listeners
     backBtn.addEventListener('click', () => window.location.href = "home.html");
     sendBtn.addEventListener('click', async () => {
         const text = messageInput.value;
@@ -848,16 +1019,14 @@
         loadConversations();
     });
     blockBtn.addEventListener('click', blockCurrentUser);
-    document.getElementById('startConvBtn').addEventListener('click', startNewConversation);
-    document.getElementById('newConvUsername').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') startNewConversation();
-    });
     
-    // Initial load
-    await loadCurrentUser();
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
+    
+    // Load current user data
+    const userDoc = await getDoc(doc(db, "users", currentUser));
+    if (userDoc.exists()) currentUserDoc = userDoc.data();
     switchTab('public');
 </script>
 </body>
