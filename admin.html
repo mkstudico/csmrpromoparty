@@ -6,7 +6,7 @@
     <title>Galagram • Admin Panel (PC)</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyA3gohTf1rzOYBBQCI-WD8ORoTK4DOf-fw",
@@ -285,7 +285,7 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        /* Schedule editor styles */
+        /* Schedule editor styles - improved */
         .schedule-editor-item {
             display: flex;
             align-items: center;
@@ -295,21 +295,28 @@
             margin-bottom: 8px;
             border-radius: 12px;
             cursor: grab;
+            transition: background 0.1s;
         }
         .schedule-editor-item:active {
             cursor: grabbing;
         }
+        .schedule-editor-item.drag-over {
+            background: #e0e0e0;
+            border: 1px dashed #0095f6;
+        }
         .schedule-time {
-            width: 100px;
-            padding: 6px;
+            width: 120px;
+            padding: 8px;
             border: 1px solid #dbdbdb;
             border-radius: 8px;
+            font-size: 0.9rem;
         }
         .schedule-activity {
             flex: 1;
-            padding: 6px;
+            padding: 8px;
             border: 1px solid #dbdbdb;
             border-radius: 8px;
+            font-size: 0.9rem;
         }
         .delete-schedule-item {
             background: #ef4444;
@@ -318,6 +325,13 @@
             border-radius: 20px;
             padding: 6px 12px;
             cursor: pointer;
+        }
+        .question-editor {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
         }
         @media (max-width: 768px) {
             .admin-layout {
@@ -340,6 +354,9 @@
             }
             .search-input {
                 width: 100%;
+            }
+            .schedule-time {
+                width: 90px;
             }
         }
     </style>
@@ -367,10 +384,7 @@
     </div>
 </div>
 
-
-    
-    
-  <script type="module">
+<script type="module">
     import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, orderBy, query, addDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
     const db = window.db;
     
@@ -719,12 +733,21 @@
         `).join('');
     }
     
-    // ---------- Party Schedule (drag & drop) ----------
+    // ---------- Party Schedule (drag & drop + question editor + download) ----------
+    let currentQuestion = "";
+    
     async function loadSchedule() {
-        const docRef = doc(db, "party", "schedule");
-        const docSnap = await getDoc(docRef);  // getDoc is now imported
-        if (docSnap.exists()) {
-            scheduleItems = docSnap.data().items || [];
+        // Load question
+        const configDoc = await getDoc(doc(db, "party", "config"));
+        if (configDoc.exists() && configDoc.data().postQuestion) {
+            currentQuestion = configDoc.data().postQuestion;
+        } else {
+            currentQuestion = "What are you planning to wear in the party?";
+        }
+        // Load schedule items
+        const scheduleDoc = await getDoc(doc(db, "party", "schedule"));
+        if (scheduleDoc.exists()) {
+            scheduleItems = scheduleDoc.data().items || [];
         } else {
             scheduleItems = [];
         }
@@ -732,28 +755,52 @@
         renderStats();
     }
     
+    async function saveQuestion() {
+        const newQuestion = document.getElementById('postQuestionInput').value.trim();
+        if (!newQuestion) return;
+        await setDoc(doc(db, "party", "config"), { postQuestion: newQuestion }, { merge: true });
+        currentQuestion = newQuestion;
+        showNotification("Post question updated!");
+    }
+    
     function renderScheduleEditor() {
         const container = document.getElementById('adminContent');
+        let html = `
+            <div class="question-editor">
+                <h3>📝 Post Question (shown in home.html)</h3>
+                <div style="display: flex; gap: 12px; margin-top: 12px;">
+                    <input type="text" id="postQuestionInput" value="${escapeHtml(currentQuestion)}" style="flex:1; padding: 10px; border: 1px solid #dbdbdb; border-radius: 10px;">
+                    <button id="saveQuestionBtn" class="btn-primary">Save Question</button>
+                </div>
+            </div>
+        `;
+        
         if (!scheduleItems.length) {
-            container.innerHTML = `
+            html += `
                 <div style="background:white; border-radius:16px; padding:24px;">
                     <div class="empty-state" style="text-align:center; color:#8e8e8e;">No schedule items. Add some!</div>
                     <button id="addScheduleItemBtn" class="btn-primary" style="margin-top:16px;">+ Add Item</button>
                 </div>
             `;
+            container.innerHTML = html;
+            document.getElementById('saveQuestionBtn')?.addEventListener('click', saveQuestion);
             document.getElementById('addScheduleItemBtn')?.addEventListener('click', () => addScheduleItem());
             return;
         }
-        let html = `
+        
+        html += `
             <div style="background:white; border-radius:16px; padding:16px; margin-bottom:16px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
                     <h3>Drag to reorder schedule</h3>
-                    <button id="addScheduleItemBtn" class="btn-primary">+ Add Item</button>
+                    <div style="display:flex; gap:12px;">
+                        <button id="downloadPlanBtn" class="btn-secondary">📥 Download Plan</button>
+                        <button id="addScheduleItemBtn" class="btn-primary">+ Add Item</button>
+                    </div>
                 </div>
                 <div id="scheduleSortableList">
                     ${scheduleItems.map((item, idx) => `
                         <div class="schedule-editor-item" data-index="${idx}" draggable="true">
-                            <i class='bx bx-menu' style="font-size:1.2rem; color:#8e8e8e;"></i>
+                            <i class='bx bx-menu' style="font-size:1.2rem; color:#8e8e8e; cursor:grab;"></i>
                             <input type="text" class="schedule-time" value="${escapeHtml(item.time || '')}" placeholder="Time (e.g., 7:00 PM)">
                             <input type="text" class="schedule-activity" value="${escapeHtml(item.activity)}" placeholder="Activity">
                             <button class="delete-schedule-item" data-idx="${idx}">Delete</button>
@@ -765,16 +812,20 @@
         `;
         container.innerHTML = html;
         
+        // Attach drag & drop handlers
         const items = document.querySelectorAll('.schedule-editor-item');
         items.forEach(item => {
             item.addEventListener('dragstart', handleDragStart);
             item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('dragleave', handleDragLeave);
             item.addEventListener('drop', handleDrop);
             item.addEventListener('dragend', handleDragEnd);
         });
         
+        document.getElementById('saveQuestionBtn')?.addEventListener('click', saveQuestion);
         document.getElementById('addScheduleItemBtn').addEventListener('click', () => addScheduleItem());
         document.getElementById('saveScheduleBtn').addEventListener('click', () => saveSchedule());
+        document.getElementById('downloadPlanBtn').addEventListener('click', () => downloadPlan());
         document.querySelectorAll('.delete-schedule-item').forEach(btn => {
             btn.addEventListener('click', () => {
                 const idx = parseInt(btn.dataset.idx);
@@ -782,6 +833,7 @@
                 renderScheduleEditor();
             });
         });
+        // Update scheduleItems array when inputs change
         document.querySelectorAll('.schedule-time, .schedule-activity').forEach((input, i) => {
             input.addEventListener('change', (e) => {
                 const parent = input.closest('.schedule-editor-item');
@@ -798,6 +850,7 @@
     function handleDragStart(e) {
         dragSrcIndex = parseInt(e.target.closest('.schedule-editor-item').dataset.index);
         e.dataTransfer.effectAllowed = 'move';
+        e.target.closest('.schedule-editor-item').style.opacity = '0.5';
     }
     function handleDragOver(e) {
         e.preventDefault();
@@ -805,10 +858,17 @@
         const targetItem = e.target.closest('.schedule-editor-item');
         if (targetItem) {
             dragOverIndex = parseInt(targetItem.dataset.index);
+            targetItem.classList.add('drag-over');
         }
+    }
+    function handleDragLeave(e) {
+        const targetItem = e.target.closest('.schedule-editor-item');
+        if (targetItem) targetItem.classList.remove('drag-over');
     }
     function handleDrop(e) {
         e.preventDefault();
+        const targetItem = e.target.closest('.schedule-editor-item');
+        if (targetItem) targetItem.classList.remove('drag-over');
         if (dragSrcIndex !== null && dragOverIndex !== null && dragSrcIndex !== dragOverIndex) {
             const movedItem = scheduleItems[dragSrcIndex];
             scheduleItems.splice(dragSrcIndex, 1);
@@ -819,8 +879,12 @@
         dragOverIndex = null;
     }
     function handleDragEnd(e) {
+        if (e.target.closest('.schedule-editor-item')) {
+            e.target.closest('.schedule-editor-item').style.opacity = '';
+        }
         dragSrcIndex = null;
         dragOverIndex = null;
+        document.querySelectorAll('.schedule-editor-item').forEach(item => item.classList.remove('drag-over'));
     }
     
     function addScheduleItem() {
@@ -839,6 +903,23 @@
         scheduleItems = newItems;
         await setDoc(doc(db, "party", "schedule"), { items: scheduleItems });
         showNotification("Schedule saved!");
+    }
+    
+    function downloadPlan() {
+        const data = {
+            schedule: scheduleItems,
+            exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `party_schedule_${new Date().toISOString().slice(0,19)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showNotification("Schedule downloaded as JSON");
     }
     
     // ---------- Stats ----------
