@@ -1,4 +1,6 @@
-const CACHE_NAME = 'galagram-v1';
+const CACHE_NAME = 'galagram-v2';
+
+// Core files to cache
 const urlsToCache = [
   '/',
   '/index.html',
@@ -11,30 +13,60 @@ const urlsToCache = [
   '/user.html',
   '/admin.html',
   '/manifest.json',
+
+  // External resources
   'https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css',
   'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.9.0/index.js',
   'https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js',
   'https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js'
 ];
 
-// Install event – cache core assets
+
+// 🔹 INSTALL – cache core assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
-      .then(() => self.skipWaiting())
   );
+  self.skipWaiting(); // activate immediately
 });
 
-// Fetch event – serve from cache, fallback to network
+
+// 🔹 FETCH – smart strategy
 self.addEventListener('fetch', event => {
+
+  // 🟢 For pages → NETWORK FIRST (always fresh)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, response.clone());
+            return response;
+          });
+        })
+        .catch(() => caches.match(event.request)) // offline fallback
+    );
+    return;
+  }
+
+  // 🔵 For other assets → CACHE FIRST
   event.respondWith(
     caches.match(event.request)
-      .then(response => response || fetch(event.request))
+      .then(response => {
+        return response || fetch(event.request)
+          .then(networkResponse => {
+            return caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, networkResponse.clone());
+              return networkResponse;
+            });
+          });
+      })
   );
 });
 
-// Activate event – clean up old caches
+
+// 🔹 ACTIVATE – clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -45,6 +77,7 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    })
   );
+  self.clients.claim(); // take control immediately
 });
