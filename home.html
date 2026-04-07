@@ -47,7 +47,8 @@
         .heart-icon { position: relative; cursor: pointer; }
         .heart-badge { position: absolute; top: -8px; right: -8px; background: #ed4956; color: white; font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 20px; min-width: 18px; text-align: center; }
         .profile-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; cursor: pointer; border: 1.5px solid #dbdbdb; }
-        .search-bar { padding: 12px 16px; background: #fff; border-bottom: 0.5px solid #efefef; position: relative; }
+        .search-bar { padding: 12px 16px; background: #fff; border-bottom: 0.5px solid #efefef; position: relative; transition: all 0.2s; }
+        .search-bar.hide { display: none; }
         .search-input { width: 100%; padding: 10px 14px; border: 1px solid #dbdbdb; border-radius: 10px; font-size: 0.9rem; background: #fafafa; }
         .search-suggestions { position: absolute; top: 100%; left: 16px; right: 16px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 250px; overflow-y: auto; z-index: 20; display: none; }
         .search-suggestions.show { display: block; }
@@ -82,12 +83,44 @@
         .bx-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .hidden { display: none; }
-        .survey-overlay, .perm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .perm-container { background: white; border-radius: 24px; width: 85%; max-width: 320px; padding: 24px 20px; text-align: center; }
-        .perm-container i { font-size: 3rem; margin-bottom: 12px; }
-        .perm-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
-        .perm-message { font-size: 0.9rem; margin: 12px 0; color: #555; }
-        .perm-btn { padding: 10px 16px; border-radius: 30px; font-weight: 600; border: none; cursor: pointer; }
+        /* Posting UI styles */
+        .posting-area { background: white; border-radius: 16px; padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .posting-question { font-weight: 600; font-size: 1rem; margin-bottom: 12px; color: #262626; }
+        .posting-tabs { display: flex; gap: 12px; border-bottom: 1px solid #efefef; margin-bottom: 16px; }
+        .posting-tab { padding: 8px 0; font-size: 0.85rem; font-weight: 600; color: #8e8e8e; cursor: pointer; border-bottom: 2px solid transparent; }
+        .posting-tab.active { color: #0095f6; border-bottom-color: #0095f6; }
+        .posting-textarea { width: 100%; padding: 12px; border: 1px solid #dbdbdb; border-radius: 12px; font-size: 0.9rem; resize: vertical; margin-bottom: 12px; }
+        .image-upload-area { margin-bottom: 12px; }
+        .image-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+        .image-preview-item { position: relative; aspect-ratio: 1; background: #f0f0f0; border-radius: 8px; overflow: hidden; }
+        .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .remove-image { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
+        .post-btn { background: #0095f6; color: white; border: none; padding: 10px 16px; border-radius: 30px; font-weight: 600; width: 100%; cursor: pointer; }
+        .post-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .section-title { font-weight: 700; font-size: 1.1rem; margin: 20px 0 12px 0; display: flex; justify-content: space-between; align-items: center; }
+        .horizontal-scroll { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 8px; scrollbar-width: thin; }
+        .horizontal-scroll::-webkit-scrollbar { height: 4px; }
+        .discovery-card { flex: 0 0 140px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.04); cursor: pointer; }
+        .discovery-card img { width: 100%; height: 140px; object-fit: cover; }
+        .discovery-card .content { padding: 8px; }
+        .discovery-card .title { font-weight: 600; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .discovery-card .stats { font-size: 0.7rem; color: #8e8e8e; margin-top: 4px; }
+        .image-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 12px; }
+        .grid-item { position: relative; aspect-ratio: 1; cursor: pointer; }
+        .grid-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+        .grid-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.6)); color: white; padding: 4px; font-size: 0.7rem; display: flex; justify-content: space-around; border-radius: 0 0 8px 8px; }
+        hr { margin: 16px 0; border: none; border-top: 0.5px solid #efefef; }
+        /* Modals for notifier and verification */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10001; display: flex; align-items: center; justify-content: center; }
+        .modal-container { background: white; border-radius: 24px; width: 85%; max-width: 320px; padding: 24px 20px; text-align: center; }
+        .modal-container i { font-size: 3rem; margin-bottom: 12px; }
+        .modal-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+        .modal-message { font-size: 0.9rem; margin: 12px 0; color: #555; }
+        .modal-btn { padding: 10px 16px; border-radius: 30px; font-weight: 600; border: none; cursor: pointer; background: #0095f6; color: white; width: 100%; margin-top: 8px; }
+        .modal-btn-secondary { background: #efefef; color: #262626; }
+        .flex-buttons { display: flex; gap: 10px; margin-top: 12px; }
+        .flex-buttons .modal-btn { flex: 1; }
+        .survey-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
         .survey-container { background: white; border-radius: 24px; width: 90%; max-width: 400px; max-height: 85vh; overflow-y: auto; padding: 20px; }
         .survey-title { font-size: 1.3rem; font-weight: 700; text-align: center; margin-bottom: 16px; background: linear-gradient(135deg, #f77737, #d62976); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .survey-question { margin-bottom: 20px; }
@@ -111,12 +144,12 @@
             <img id="profileAvatar" class="profile-icon" src="" alt="profile">
         </div>
     </div>
-    <div class="search-bar">
+    <div class="search-bar" id="searchBar">
         <input type="text" id="searchInput" class="search-input" placeholder="Search by username...">
         <div id="searchSuggestions" class="search-suggestions"></div>
     </div>
     <div class="content" id="contentArea"><div class="loading-spinner"><i class='bx bx-loader-alt bx-spin'></i> Loading...</div></div>
-    <div id="fabBtn" class="fab hidden"><i class='bx bx-plus' style="font-size:1.8rem;"></i></div>
+    <div id="fabBtn" class="fab"><i class='bx bx-plus' style="font-size:1.8rem;"></i></div>
     
     <!-- Bottom Navigation Bar -->
     <div class="bottom-nav">
@@ -134,7 +167,13 @@
     
     const db = window.db;
     const messaging = getMessaging();
+    const IMGBB_KEY = "99c6aa298645e8a4742979117fc73be6";
+    
     let currentUser = null, allUsers = [], postsItems = [], requestsList = [], currentNav = "posts", searchQuery = "", searchDebounceTimer = null, unsubscribeUsers = null;
+    let allPosts = [];
+    let postingType = "text";
+    let selectedImageFiles = [];
+    let imagePreviewUrls = [];
     
     // ---------- Helper functions ----------
     async function addLog(type, actor, target, message) { try { await addDoc(collection(db,"logs"),{type,actor,target,message,timestamp:new Date()}); } catch(e){} }
@@ -154,34 +193,7 @@
     const session = JSON.parse(sessionData); 
     const currentUsername = session.username;
     
-    // ---------- Notification Permission Modal (with OK button) ----------
-    function showPermissionModal(message, isError = false, onRetry = null) {
-        const overlay = document.createElement('div');
-        overlay.className = 'perm-overlay';
-        const icon = isError ? 'bx-bell-off' : 'bx-bell';
-        overlay.innerHTML = `
-            <div class="perm-container">
-                <i class='bx ${icon}' style="color: ${isError ? '#ed4956' : '#22c55e'}; font-size: 3rem;"></i>
-                <div class="perm-title">${isError ? 'Notifications Blocked' : 'Notifications Enabled'}</div>
-                <div class="perm-message">${message}</div>
-                <div style="display: flex; gap: 10px; margin-top: 12px; justify-content: center;">
-                    <button class="perm-btn" id="permOkBtn" style="background:#8e8e8e; color:white;">OK</button>
-                    ${onRetry ? `<button class="perm-btn" id="permRetryBtn" style="background:#0095f6; color:white;">Request Again</button>` : ''}
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-        
-        document.getElementById('permOkBtn').onclick = () => overlay.remove();
-        if (onRetry) {
-            document.getElementById('permRetryBtn').onclick = () => {
-                overlay.remove();
-                onRetry();
-            };
-        }
-    }
-    
-    // ---------- FCM: request permission, get token, store ----------
+    // ---------- Silent FCM (no modals) ----------
     async function initFCM() {
         try {
             const permission = await Notification.requestPermission();
@@ -192,33 +204,21 @@
                         await updateDoc(doc(db, "users", currentUsername), { fcmToken: token });
                         console.log("FCM token stored");
                     }
-                    showPermissionModal("✅ You will now receive real‑time alerts for new posts, requests, admin messages, and chat.", false);
                 } catch (swError) {
                     console.error("Service worker registration failed:", swError);
-                    showPermissionModal("⚠️ Could not register notification service. Please ensure the site is served over HTTPS or check browser settings.", true, () => initFCM());
                 }
-            } else if (permission === 'denied') {
-                showPermissionModal(
-                    "🔔 Notifications are blocked. Please enable notifications in your browser settings to receive important updates.",
-                    true,
-                    () => initFCM()
-                );
-            } else {
-                console.log("Notification permission not determined");
             }
         } catch (err) {
             console.error("FCM init error", err);
-            showPermissionModal("Could not enable notifications. Please check your browser settings.", true, () => initFCM());
         }
     }
     
-    // Listen for foreground messages
     onMessage(messaging, (payload) => {
         const { title, body } = payload.notification;
         new Notification(title, { body, icon: "/icon-192.png" });
     });
     
-    // ---------- Load current user and setup ----------
+    // ---------- Load current user ----------
     async function loadCurrentUser() { 
         const userDoc = await getDoc(doc(db, "users", currentUsername)); 
         if (userDoc.exists()) { 
@@ -231,12 +231,13 @@
             updateRequestBadge(); 
             document.getElementById('profileAvatar').src = currentUser.profileImage || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'; 
             if (!currentUser.survey) showSurvey(); 
-            // Initialize FCM after user loaded
             await initFCM();
+            await checkPendingNotifiers();
+            await checkVerificationPrompt();
         } 
     }
     
-    // ---------- Survey ----------
+    // ---------- Survey (unchanged) ----------
     function showSurvey() {
         if (currentUser.survey) return;
         const overlay = document.createElement('div');
@@ -286,6 +287,119 @@
         renderStep();
     }
     
+    // ---------- Pending Notifiers (admin messages) ----------
+    async function checkPendingNotifiers() {
+        if (!currentUser) return;
+        const notifiersRef = collection(db, "notifiers");
+        const q = query(notifiersRef, where("userId", "==", currentUsername), where("completed", "==", false));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return;
+        for (const docSnap of snapshot.docs) {
+            const notifier = { id: docSnap.id, ...docSnap.data() };
+            await showNotifierModal(notifier);
+            break;
+        }
+    }
+    
+    async function showNotifierModal(notifier) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            const modal = document.createElement('div');
+            modal.className = 'modal-container';
+            let innerHtml = `<div class="modal-title">📢 ${notifier.type === 'warning' ? 'Warning' : (notifier.type === 'inquiry' ? 'Inquiry' : 'Update Required')}</div>
+                             <div class="modal-message">${escapeHtml(notifier.message)}</div>`;
+            if (notifier.type === 'update') {
+                innerHtml += `<input type="text" id="updateValueInput" placeholder="Enter new value" style="width:100%; padding:10px; border-radius:30px; border:1px solid #dbdbdb; margin:12px 0;">`;
+                innerHtml += `<button id="submitUpdateBtn" class="modal-btn">UPDATE</button>`;
+            } else {
+                innerHtml += `<button id="doneBtn" class="modal-btn">DONE</button>`;
+            }
+            innerHtml += `<button id="closeModalBtn" class="modal-btn modal-btn-secondary" style="margin-top:8px;">Close</button>`;
+            modal.innerHTML = innerHtml;
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            const closeModal = () => { overlay.remove(); resolve(); };
+            if (notifier.type === 'update') {
+                const submitBtn = modal.querySelector('#submitUpdateBtn');
+                const inputField = modal.querySelector('#updateValueInput');
+                submitBtn.addEventListener('click', async () => {
+                    const newValue = inputField.value.trim();
+                    if (!newValue) { showNotificationMessage("Please enter a value", "error"); return; }
+                    const fieldToUpdate = notifier.fields[0];
+                    if (fieldToUpdate) {
+                        await updateDoc(doc(db, "users", currentUsername), { [fieldToUpdate]: newValue });
+                        showNotificationMessage(`${fieldToUpdate} updated to ${newValue}`, "success");
+                    }
+                    await updateDoc(doc(db, "notifiers", notifier.id), { completed: true });
+                    closeModal();
+                    await loadCurrentUser();
+                    checkPendingNotifiers();
+                });
+            } else {
+                const doneBtn = modal.querySelector('#doneBtn');
+                doneBtn.addEventListener('click', async () => {
+                    await updateDoc(doc(db, "notifiers", notifier.id), { completed: true });
+                    closeModal();
+                    checkPendingNotifiers();
+                });
+            }
+            modal.querySelector('#closeModalBtn').addEventListener('click', closeModal);
+        });
+    }
+    
+    // ---------- Verification Badge Prompt ----------
+    async function checkVerificationPrompt() {
+        if (!currentUser) return;
+        if (currentUser.verified !== "none") return;
+        const laterUntil = localStorage.getItem('galagram_verify_later_until');
+        if (laterUntil && Date.now() < parseInt(laterUntil)) return;
+        let laterCount = parseInt(localStorage.getItem('galagram_verify_later_count') || '0');
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        const modal = document.createElement('div');
+        modal.className = 'modal-container';
+        let message = `Hey ${escapeHtml(currentUser.realName || currentUser.username)}! PAY FOR A VERIFICATION BADGE TO HAVE A MORE LEGITIMATE ACCOUNT AND A GOOD POSITION IN THE PROMO PARTY.`;
+        let buttonsHtml = `<div class="flex-buttons"><button id="laterBtn" class="modal-btn modal-btn-secondary">LATER</button><button id="payBtn" class="modal-btn">AM ON IT</button></div>`;
+        const hasClickedPayBefore = localStorage.getItem('galagram_verify_paid_clicked') === 'true';
+        if (hasClickedPayBefore && currentUser.verified === "none") {
+            buttonsHtml = `<button id="paidBtn" class="modal-btn">I Have paid.</button>`;
+        }
+        modal.innerHTML = `<div class="modal-title">🔔 Verification Required</div><div class="modal-message">${message}</div>${buttonsHtml}`;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        const laterBtn = modal.querySelector('#laterBtn');
+        const payBtn = modal.querySelector('#payBtn');
+        const paidBtn = modal.querySelector('#paidBtn');
+        if (laterBtn) {
+            laterBtn.addEventListener('click', () => {
+                const newCount = laterCount + 1;
+                localStorage.setItem('galagram_verify_later_count', newCount);
+                const until = Date.now() + (12 * 60 * 60 * 1000);
+                localStorage.setItem('galagram_verify_later_until', until);
+                overlay.remove();
+            });
+        }
+        if (payBtn) {
+            payBtn.addEventListener('click', () => {
+                localStorage.setItem('galagram_verify_paid_clicked', 'true');
+                window.location.href = "tel:*182*1*1*0795513139*8000%23";
+                overlay.remove();
+                setTimeout(() => {
+                    if (currentUser.verified === "none") {
+                        checkVerificationPrompt();
+                    }
+                }, 1000);
+            });
+        }
+        if (paidBtn) {
+            paidBtn.addEventListener('click', () => {
+                alert("Please contact 0795065789 for verification confirmation.");
+                overlay.remove();
+            });
+        }
+    }
+    
     // ---------- Compatibility & Suggestions ----------
     let recentSuggestions = [];
     function computeCompatibilityScore(user) { 
@@ -309,14 +423,7 @@
         return users.filter(u => u.galaStatus === "available" && u.id !== currentUsername && currentUser.gender !== u.gender).map(u => ({ user: u, score: computeCompatibilityScore(u) })).sort((a,b) => b.score - a.score).slice(0, count).map(item => item.user); 
     }
     
-    // ---------- Render functions ----------
-    function renderPosts() { 
-        const container = document.getElementById('contentArea'); 
-        if (!postsItems.length) { container.innerHTML = `<div class="empty-state"><i class='bx bx-news' style="font-size: 3rem;"></i><p>No posts yet. Tap + to create one!</p></div>`; return; } 
-        container.innerHTML = postsItems.map(post => `<div class="post-card" data-postid="${post.id}"><div class="post-header"><img class="post-avatar" src="${post.authorAvatar || 'https://ui-avatars.com/api/?background=962fbf&color=fff&rounded=true&size=80'}" alt=""><div><div class="post-author-row"><span class="post-author">${escapeHtml(post.authorName)}</span>${getVerifiedIcon(post.authorVerified)}</div><div class="post-time">${formatTime(post.createdAt)}</div></div></div><div class="post-text">${escapeHtml(post.text)}</div>${post.imageUrl ? `<img class="post-image" src="${post.imageUrl}" alt="post image">` : ''}<div class="post-stats"><span><i class='bx bx-heart'></i> ${post.likes?.length || 0}</span><span><i class='bx bx-comment'></i> ${post.comments?.length || 0}</span></div></div>`).join(''); 
-        document.querySelectorAll('.post-card').forEach(card => card.addEventListener('click', () => window.location.href = `news.html?id=${card.dataset.postid}`)); 
-    }
-    
+    // ---------- Render Users (All / Available) ----------
     function renderUsers() { 
         let filtered = [...allUsers]; 
         if (searchQuery) { const q = searchQuery.toLowerCase(); filtered = filtered.filter(u => u.username?.toLowerCase().includes(q) || u.realName?.toLowerCase().includes(q)); } 
@@ -337,10 +444,8 @@
     }
     
     function getVerifiedIcon(verified) { if (verified === "blue") return '<i class="bx bx-check-circle verified-badge blue"></i>'; if (verified === "gray") return '<i class="bx bxs-check-circle verified-badge gray"></i>'; return ''; }
-    function formatTime(timestamp) { if (!timestamp) return 'just now'; const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp); const diff = Math.floor((new Date() - date) / 1000); if (diff < 60) return `${diff}s ago`; if (diff < 3600) return `${Math.floor(diff / 60)}m ago`; if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`; return `${Math.floor(diff / 86400)}d ago`; }
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')); }
     
-    // ---------- FIXED: updateRequestBadge with null check ----------
     function updateRequestBadge() {
         const badge = document.getElementById('requestBadge');
         if (!badge) return;
@@ -353,56 +458,206 @@
         }
     }
     
-    // ---------- Data listeners for notifications & realtime updates ----------
-    let lastPostCount = 0, lastNotifierCount = 0, lastMessageCount = 0;
-    function setupNotificationListeners() {
-        // Listen for new posts
-        onSnapshot(collection(db, "news"), (snapshot) => {
-            const newCount = snapshot.size;
-            if (lastPostCount !== 0 && newCount > lastPostCount && currentNav !== "posts") {
-                new Notification("New Post!", { body: "A new post has been added.", icon: "/icon-192.png" });
-            }
-            lastPostCount = newCount;
-            postsItems = [];
-            snapshot.forEach(docSnap => postsItems.push({ id: docSnap.id, ...docSnap.data() }));
-            postsItems.sort((a,b) => (b.pinned ? 1000 : 0) - (a.pinned ? 1000 : 0));
-            if (currentNav === "posts") renderPosts();
+    // ---------- POST tab: posting UI + discovery sections ----------
+    async function uploadToImgBB(file) {
+        const fd = new FormData();
+        fd.append('image', file);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) return data.data.url;
+        throw new Error('Upload failed');
+    }
+    
+    async function createPost(text, imageUrls = [], description = '') {
+        const postData = {
+            authorName: currentUser.realName,
+            authorUsername: currentUser.username,
+            authorAvatar: currentUser.profileImage,
+            authorVerified: currentUser.verified || "none",
+            createdAt: new Date(),
+            likes: [],
+            comments: [],
+            pinned: false
+        };
+        if (imageUrls.length > 0) {
+            postData.type = 'image';
+            postData.imageUrls = imageUrls;
+            postData.description = description;
+        } else {
+            postData.type = 'text';
+            postData.text = text;
+        }
+        await addDoc(collection(db, "news"), postData);
+        showNotificationMessage("Post created!", "success");
+        await addLog('post', currentUsername, 'public', `${currentUsername} created a ${imageUrls.length ? 'image' : 'text'} post`);
+    }
+    
+    function renderPostingArea() {
+        return `
+            <div class="posting-area">
+                <div class="posting-question">🎤 What are you planning to wear in the party?</div>
+                <div class="posting-tabs">
+                    <div class="posting-tab ${postingType === 'text' ? 'active' : ''}" data-type="text">📝 TEXT</div>
+                    <div class="posting-tab ${postingType === 'images' ? 'active' : ''}" data-type="images">🖼️ IMAGES</div>
+                </div>
+                <div id="postingForm">
+                    ${postingType === 'text' ? `
+                        <textarea id="postText" class="posting-textarea" rows="3" placeholder="Write something..."></textarea>
+                    ` : `
+                        <div class="image-upload-area">
+                            <input type="file" id="imageUploadInput" accept="image/*" multiple style="display:none;">
+                            <button id="selectImagesBtn" class="post-btn" style="background:#efefef; color:#262626; margin-bottom:12px;">📷 Select Images (max 10)</button>
+                            <div id="imagePreviewGrid" class="image-preview-grid"></div>
+                            <textarea id="imageDescription" class="posting-textarea" rows="2" placeholder="Add a description..."></textarea>
+                        </div>
+                    `}
+                    <button id="submitPostBtn" class="post-btn">Post</button>
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderDiscoverySections(posts) {
+        const sortedByLikes = [...posts].sort((a,b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+        const mostPopular = sortedByLikes.slice(0, 15);
+        const mostPopularIds = new Set(mostPopular.map(p => p.id));
+        const textPosts = posts.filter(p => p.type === 'text' || (!p.imageUrls && p.text)).filter(p => !mostPopularIds.has(p.id));
+        const imagePosts = posts.filter(p => p.type === 'image' || (p.imageUrls && p.imageUrls.length > 0)).filter(p => !mostPopularIds.has(p.id));
+        
+        let html = '';
+        if (mostPopular.length) {
+            html += `<div class="section-title">🔥 Most Viewed/Liked</div><div class="horizontal-scroll" id="popularScroll">${renderDiscoveryCards(mostPopular)}</div>`;
+        }
+        if (textPosts.length) {
+            html += `<div class="section-title">📄 All Text Posts</div><div class="horizontal-scroll" id="textScroll">${renderDiscoveryCards(textPosts)}</div>`;
+        }
+        if (imagePosts.length) {
+            html += `<div class="section-title">🖼️ All Image Posts</div><div class="image-grid" id="imageGrid">${renderImageGrid(imagePosts)}</div>`;
+        }
+        if (mostPopular.length === 0 && textPosts.length === 0 && imagePosts.length === 0) {
+            html += `<div class="empty-state">No posts yet. Be the first to post!</div>`;
+        }
+        return html;
+    }
+    
+    function renderDiscoveryCards(posts) {
+        return posts.map(post => {
+            const imageUrl = post.imageUrls?.[0] || post.imageUrl || 'https://via.placeholder.com/140';
+            const title = post.type === 'image' ? (post.description || 'Image post') : (post.text?.substring(0, 40) || 'Post');
+            const likes = post.likes?.length || 0;
+            return `<div class="discovery-card" data-postid="${post.id}"><img src="${imageUrl}" alt="post"><div class="content"><div class="title">${escapeHtml(title)}</div><div class="stats">❤️ ${likes} likes</div></div></div>`;
+        }).join('');
+    }
+    
+    function renderImageGrid(posts) {
+        return posts.map(post => {
+            const imageUrl = post.imageUrls?.[0] || post.imageUrl;
+            const likes = post.likes?.length || 0;
+            const comments = post.comments?.length || 0;
+            return `<div class="grid-item" data-postid="${post.id}"><img src="${imageUrl}" alt="post"><div class="grid-overlay"><span><i class='bx bx-heart'></i> ${likes}</span><span><i class='bx bx-comment'></i> ${comments}</span></div></div>`;
+        }).join('');
+    }
+    
+    async function renderPostsTab() {
+        document.getElementById('searchBar').classList.add('hide');
+        const snapshot = await getDocs(collection(db, "news"));
+        allPosts = [];
+        snapshot.forEach(docSnap => allPosts.push({ id: docSnap.id, ...docSnap.data() }));
+        const container = document.getElementById('contentArea');
+        container.innerHTML = renderPostingArea() + renderDiscoverySections(allPosts);
+        
+        document.querySelectorAll('.posting-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                postingType = tab.dataset.type;
+                renderPostsTab();
+            });
         });
         
-        // Listen for new notifiers for this user
-        const notifiersQuery = query(collection(db, "notifiers"), where("userId", "==", currentUsername), where("completed", "==", false));
-        onSnapshot(notifiersQuery, (snapshot) => {
-            const newCount = snapshot.size;
-            if (lastNotifierCount !== 0 && newCount > lastNotifierCount) {
-                new Notification("Admin Message", { body: "You have a new notification from admin.", icon: "/icon-192.png" });
-            }
-            lastNotifierCount = newCount;
-        });
-        
-        // Listen for new chat messages (global)
-        onSnapshot(collection(db, "chatMessages"), (snapshot) => {
-            const newCount = snapshot.size;
-            if (lastMessageCount !== 0 && newCount > lastMessageCount) {
-                new Notification("New Chat Message", { body: "Someone sent a message in public chat.", icon: "/icon-192.png" });
-            }
-            lastMessageCount = newCount;
-        });
-        
-        // Listen for changes in user's requests
-        onSnapshot(doc(db, "users", currentUsername), (docSnap) => {
-            if (docSnap.exists()) {
-                const newRequests = docSnap.data().requests || [];
-                if (newRequests.length > requestsList.length) {
-                    new Notification("New Request!", { body: "Someone sent you a gala request.", icon: "/icon-192.png" });
+        if (postingType === 'text') {
+            document.getElementById('submitPostBtn').addEventListener('click', async () => {
+                const text = document.getElementById('postText').value.trim();
+                if (!text) { showNotificationMessage("Please enter text", "error"); return; }
+                document.getElementById('submitPostBtn').disabled = true;
+                await createPost(text);
+                document.getElementById('submitPostBtn').disabled = false;
+                document.getElementById('postText').value = '';
+                renderPostsTab();
+            });
+        } else {
+            const fileInput = document.getElementById('imageUploadInput');
+            const selectBtn = document.getElementById('selectImagesBtn');
+            const previewGrid = document.getElementById('imagePreviewGrid');
+            const descriptionInput = document.getElementById('imageDescription');
+            selectBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', async (e) => {
+                const files = Array.from(e.target.files);
+                if (selectedImageFiles.length + files.length > 10) {
+                    showNotificationMessage("Max 10 images allowed", "error");
+                    return;
                 }
-                requestsList = newRequests;
-                updateRequestBadge();
-                if (currentNav !== "posts") renderUsers();
+                for (const file of files) {
+                    if (!file.type.startsWith('image/')) continue;
+                    selectedImageFiles.push(file);
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        imagePreviewUrls.push(ev.target.result);
+                        renderImagePreviews();
+                    };
+                    reader.readAsDataURL(file);
+                }
+                fileInput.value = '';
+            });
+            function renderImagePreviews() {
+                previewGrid.innerHTML = selectedImageFiles.map((_, idx) => `<div class="image-preview-item"><img src="${imagePreviewUrls[idx]}" alt="preview"><div class="remove-image" data-index="${idx}">✕</div></div>`).join('');
+                document.querySelectorAll('.remove-image').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const idx = parseInt(btn.dataset.index);
+                        selectedImageFiles.splice(idx, 1);
+                        imagePreviewUrls.splice(idx, 1);
+                        renderImagePreviews();
+                    });
+                });
             }
+            document.getElementById('submitPostBtn').addEventListener('click', async () => {
+                if (selectedImageFiles.length === 0) { showNotificationMessage("Select at least one image", "error"); return; }
+                const description = descriptionInput.value.trim();
+                document.getElementById('submitPostBtn').disabled = true;
+                try {
+                    const uploadedUrls = [];
+                    for (const file of selectedImageFiles) {
+                        const url = await uploadToImgBB(file);
+                        uploadedUrls.push(url);
+                    }
+                    await createPost('', uploadedUrls, description);
+                    selectedImageFiles = [];
+                    imagePreviewUrls = [];
+                    renderPostsTab();
+                } catch (err) {
+                    showNotificationMessage("Upload failed: " + err.message, "error");
+                } finally {
+                    document.getElementById('submitPostBtn').disabled = false;
+                }
+            });
+        }
+        
+        document.querySelectorAll('.discovery-card, .grid-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const postId = el.dataset.postid;
+                if (postId) window.location.href = `news.html?id=${postId}`;
+            });
         });
     }
     
-    // ---------- Load users & posts ----------
+    // ---------- Real-time listener for posts ----------
+    let unsubscribePosts = null;
+    function setupPostsListener() {
+        if (unsubscribePosts) unsubscribePosts();
+        unsubscribePosts = onSnapshot(collection(db, "news"), () => {
+            if (currentNav === "posts") renderPostsTab();
+        });
+    }
+    
+    // ---------- Load users for All/Available tabs ----------
     function loadUsersRealtime() { 
         if (unsubscribeUsers) unsubscribeUsers(); 
         unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => { 
@@ -412,21 +667,24 @@
         }); 
     }
     
-    // ---------- Navigation (bottom bar) ----------
-    function setActiveNav(nav) {
+    // ---------- Navigation ----------
+    async function setActiveNav(nav) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         document.querySelector(`.nav-item[data-nav="${nav}"]`).classList.add('active');
         currentNav = nav;
         const fab = document.getElementById('fabBtn');
+        const searchBar = document.getElementById('searchBar');
         if (nav === "posts") {
             fab.classList.remove('hidden');
-            renderPosts();
+            searchBar.classList.add('hide');
+            await renderPostsTab();
         } else if (nav === "movies") {
             window.location.href = "movie.html";
         } else if (nav === "chat") {
             window.location.href = "chat.html";
         } else {
             fab.classList.add('hidden');
+            searchBar.classList.remove('hide');
             renderUsers();
         }
     }
@@ -448,20 +706,21 @@
     searchInput.addEventListener('input', () => { if (searchDebounceTimer) clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(() => { performSearch(); updateSearchSuggestions(); }, 300); });
     document.addEventListener('click', (e) => { if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) suggestionsDiv.classList.remove('show'); });
     
-    // ---------- Event listeners for heart & profile ----------
+    // ---------- Event listeners ----------
     document.getElementById('requestsHeart').addEventListener('click', () => window.location.href = `requests.html`);
     document.getElementById('profileAvatar').addEventListener('click', () => window.location.href = `profile.html`);
-    document.getElementById('fabBtn').addEventListener('click', () => window.location.href = `add-news.html`);
-    
-    // ---------- Bottom nav click handlers ----------
+    document.getElementById('fabBtn').addEventListener('click', () => {
+        if (currentNav === "posts") {
+            document.querySelector('.posting-area')?.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            setActiveNav("posts");
+        }
+    });
     document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const nav = item.dataset.nav;
-            setActiveNav(nav);
-        });
+        item.addEventListener('click', () => setActiveNav(item.dataset.nav));
     });
     
-    // ---------- FIXED: handleResize with null check ----------
+    // ---------- Resize & anti-screenshot ----------
     function handleResize() {
         const blocker = document.getElementById('pcBlocker');
         const app = document.getElementById('appRoot');
@@ -474,8 +733,6 @@
             app.style.display = 'block';
         }
     }
-    
-    // Anti-screenshot
     (function antiScreenshot() { 
         const blackFlash = () => { 
             const o=document.createElement('div'); 
@@ -490,7 +747,6 @@
         document.addEventListener('keyup', (e) => { if(e.key === 'PrintScreen') { blackFlash(); e.preventDefault(); } }); 
         document.addEventListener('contextmenu', (e) => { e.preventDefault(); blackFlash(); }); 
     })();
-    
     window.addEventListener('resize', handleResize); 
     handleResize();
     
@@ -498,7 +754,7 @@
     (async () => {
         await loadCurrentUser();
         loadUsersRealtime();
-        setupNotificationListeners();
+        setupPostsListener();
         setActiveNav("posts");
     })();
 </script>
